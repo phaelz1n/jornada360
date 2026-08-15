@@ -1,0 +1,73 @@
+# Pilha de produção do Jornada360: aplicação + proxy com HTTPS automático.
+#
+#   docker compose up -d
+#
+# É isto. O Caddy pede o certificado ao Let's Encrypt sozinho, renova sozinho, e redireciona
+# http → https. Não há passo manual de certificado, e não há data de validade para alguém esquecer.
+#
+# ANTES DE SUBIR: preencha o .env (copie de .env.example). O servidor RECUSA subir com configuração
+# insegura — ver server/config.js.
+
+services:
+  app:
+    build: .
+    image: jornada360:producao
+    # `unless-stopped`: reinicia sozinho se cair, e volta sozinho depois de reiniciar a máquina.
+    # Só não volta se alguém tiver parado de propósito — que é o comportamento desejado durante
+    # uma manutenção.
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      JORNADA_DB_PATH: /dados/jornada360.db
+      JORNADA_BACKUP_DIR: /backups
+      JORNADA_SERVIR_FRONTEND: "1"
+      # O Caddy é quem fala com a internet; a aplicação enxerga o IP dele. Sem confiar no
+      # cabeçalho encaminhado, o limite de tentativas trataria todo mundo como a mesma pessoa.
+      JORNADA_TRUST_PROXY: "1"
+    volumes:
+      # OS DOIS VOLUMES SÃO O QUE FAZ OS DADOS SOBREVIVEREM A UM DEPLOY.
+      # Sem eles, `docker compose up --build` apagaria o banco de todos os clientes em silêncio.
+      - jornada_dados:/dados
+      - jornada_backups:/backups
+    # A porta NÃO é publicada: só o Caddy alcança a aplicação, pela rede interna. Publicar 3333
+    # deixaria a aplicação acessível por HTTP direto, contornando o HTTPS.
+    expose:
+      - "3333"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3333/api/saude').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+    logging:
+      # Sem limite, o log enche o disco — e disco cheio derruba o banco junto.
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      # Definido no .env. O Caddy usa para pedir o certificado do domínio certo.
+      JORNADA_DOMINIO: ${JORNADA_DOMINIO}
+      JORNADA_EMAIL_ADMIN: ${JORNADA_EMAIL_ADMIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Os certificados vivem num volume: sem isso, cada `docker compose up` pediria certificado
+      # novo ao Let's Encrypt e esbarraria no limite de emissão deles.
+      - caddy_dados:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+
+volumes:
+  jornada_dados:
+  jornada_backups:
+  caddy_dados:
+  caddy_config:

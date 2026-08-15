@@ -1,0 +1,21 @@
+# Ensaio de restauração agendado.
+#
+# Restaura o backup mais recente num banco temporário, confere que abre, e descarta. Não toca no
+# banco em uso.
+#
+# Existe porque a única pergunta que importa sobre um backup é "ele funciona?", e a pior hora para
+# responder isso é no dia em que se precisa dele. Rodando semanalmente, uma falha aparece em dias,
+# não em meses.
+
+[Unit]
+Description=Ensaio de restauração do Jornada360
+
+[Service]
+Type=oneshot
+User=jornada360
+Group=jornada360
+WorkingDirectory=/opt/jornada360
+EnvironmentFile=/etc/jornada360/producao.env
+ExecStart=/usr/bin/node scripts/restaurar.js --testar
+ReadWritePaths=/var/backups/jornada360
+PrivateTmp=true

@@ -1,0 +1,18 @@
+# Backup agendado pelo systemd — alternativa ao agendamento interno do servidor.
+#
+# Use este caminho se preferir o backup fora do processo da aplicação (ele continua rodando mesmo
+# se a aplicação estiver parada). Nesse caso, desligue o interno:
+#   JORNADA_BACKUP_INTERVALO_HORAS=0
+
+[Unit]
+Description=Backup do banco do Jornada360
+After=jornada360.service
+
+[Service]
+Type=oneshot
+User=jornada360
+Group=jornada360
+WorkingDirectory=/opt/jornada360
+EnvironmentFile=/etc/jornada360/producao.env
+ExecStart=/usr/bin/node scripts/backup.js
+ReadWritePaths=/var/lib/jornada360 /var/backups/jornada360

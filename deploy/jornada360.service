@@ -1,0 +1,65 @@
+# Unidade systemd — alternativa ao Docker para quem prefere rodar direto na máquina.
+#
+# Instalação:
+#   sudo cp deploy/jornada360.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now jornada360
+#
+# Isto NÃO inclui HTTPS. Com systemd você precisa de um proxy na frente (Caddy ou Nginx) para o
+# certificado. O caminho do Docker Compose já traz isso resolvido — ver DEPLOY.md.
+
+[Unit]
+Description=Jornada360 — gestão e auditoria de jornada
+Documentation=file:///opt/jornada360/DEPLOY.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=jornada360
+Group=jornada360
+WorkingDirectory=/opt/jornada360
+
+# Os segredos ficam num arquivo com permissão 600, fora do repositório e fora do systemd.
+# Colocá-los aqui como Environment= os tornaria legíveis por `systemctl show`, que qualquer
+# usuário do sistema pode executar.
+EnvironmentFile=/etc/jornada360/producao.env
+
+ExecStart=/usr/bin/node server/index.js
+
+# Reiniciar sempre, com espera crescente. `RestartSec` evita um laço de reinício que consome CPU
+# quando a causa da falha é permanente (banco inacessível, porta ocupada).
+Restart=always
+RestartSec=5s
+StartLimitBurst=5
+StartLimitIntervalSec=60
+
+# O servidor trata SIGTERM: para de aceitar conexões, fecha o banco e sai. 15s é folgado para
+# isso; passou disso, algo travou e o SIGKILL é o certo.
+KillSignal=SIGTERM
+TimeoutStopSec=15
+
+# Endurecimento. Cada linha remove uma capacidade que a aplicação não usa — o que limita o
+# estrago se algo escapar do processo.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictNamespaces=true
+LockPersonality=true
+MemoryDenyWriteExecute=false
+
+# As ÚNICAS pastas em que o processo pode escrever. `ProtectSystem=strict` deixa o resto do disco
+# somente-leitura — inclusive /opt/jornada360.
+ReadWritePaths=/var/lib/jornada360 /var/backups/jornada360
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=jornada360
+
+[Install]
+WantedBy=multi-user.target

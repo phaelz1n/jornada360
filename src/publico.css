@@ -1,0 +1,861 @@
+/* Telas fora do shell da aplicação (portão de entrada, portfólio, apresentação) e o painel de
+   onboarding. Arquivo separado do index.css porque este é o "lado de fora" do produto: quem vê
+   estas telas ainda não entrou em nenhuma empresa. Usa os mesmos tokens de cor e tipografia do
+   sistema — o visitante deve reconhecer o produto ao atravessar o portão. */
+
+/* ============================================================
+   PORTÃO DE ENTRADA
+   ============================================================ */
+
+.portao {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px;
+  background: linear-gradient(160deg, var(--brand-900) 0%, var(--bg) 55%);
+}
+
+.portao-conteudo {
+  width: 100%;
+  max-width: 560px;
+}
+
+.portao-marca {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.portao-logo {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  background: var(--brand-500);
+  color: #06120d;
+  font-weight: 800;
+  font-size: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.portao-nome {
+  margin: 0;
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.portao-sub {
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.portao-pitch {
+  font-size: 17px;
+  font-weight: 600;
+  margin: 0 0 22px;
+  line-height: 1.45;
+}
+
+.portao-opcoes {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.portao-opcao {
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+  width: 100%;
+  padding: 15px 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.portao-opcao:hover:not(:disabled) {
+  border-color: var(--brand-500);
+  background: var(--surface-muted);
+}
+.portao-opcao:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.portao-opcao > svg:first-child {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--text-muted);
+}
+.portao-opcao-principal {
+  border-color: var(--brand-500);
+  background: var(--brand-100);
+}
+.portao-opcao-principal > svg:first-child {
+  color: var(--brand-400);
+}
+.portao-opcao-titulo {
+  font-weight: 700;
+  font-size: 14px;
+}
+.portao-opcao-desc {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin-top: 3px;
+  line-height: 1.5;
+}
+.portao-seta {
+  margin-left: auto;
+  align-self: center;
+  flex-shrink: 0;
+  color: var(--text-faint);
+}
+
+.portao-form {
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.portao-form .input {
+  width: 100%;
+  margin-top: 6px;
+}
+.portao-nota {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  line-height: 1.55;
+  margin: 12px 0 0;
+}
+.portao-erro {
+  margin-top: 8px;
+  font-size: 12.5px;
+  color: var(--red);
+}
+.portao-form-acoes {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.portao-existentes {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+.portao-existentes-titulo {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-bottom: 8px;
+}
+.portao-existente {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 9px 12px;
+  margin-bottom: 6px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: none;
+  color: inherit;
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+}
+.portao-existente:hover {
+  border-color: var(--brand-500);
+}
+.portao-existente svg {
+  margin-left: auto;
+  color: var(--text-faint);
+}
+.portao-existente-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--brand-400);
+  flex-shrink: 0;
+}
+
+.portao-rodape {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin-top: 22px;
+  font-size: 11.5px;
+  color: var(--text-faint);
+  line-height: 1.5;
+}
+.portao-rodape svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.portao-link-portfolio {
+  display: block;
+  margin: 16px auto 0;
+  background: none;
+  border: none;
+  color: var(--brand-400);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* ============================================================
+   PORTFÓLIO E APRESENTAÇÃO
+   ============================================================ */
+
+.publico {
+  min-height: 100vh;
+  background: var(--bg);
+}
+
+.publico-topo {
+  padding: 18px 24px 0;
+  max-width: 940px;
+  margin: 0 auto;
+}
+
+.publico-voltar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-decoration: none;
+}
+.publico-voltar:hover {
+  color: var(--brand-400);
+}
+
+.publico-conteudo {
+  max-width: 940px;
+  margin: 0 auto;
+  padding: 24px 24px 64px;
+}
+
+.publico-cabecalho {
+  margin-bottom: 28px;
+}
+
+.publico-titulo {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.publico-descricao {
+  margin: 8px 0 0;
+  font-size: 14px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  max-width: 660px;
+}
+
+.publico-secao {
+  margin-top: 34px;
+}
+
+.publico-secao-titulo {
+  margin: 0 0 14px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.publico-cta {
+  margin-top: 40px;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+/* ---------- hero ---------- */
+
+.hero-marca {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.hero-nome {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}
+.hero-sub {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.hero-frase {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 0 0 12px;
+  max-width: 620px;
+  letter-spacing: -0.02em;
+}
+.hero-texto {
+  font-size: 14px;
+  color: var(--text-muted);
+  line-height: 1.65;
+  max-width: 680px;
+  margin: 0 0 20px;
+}
+.hero-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* ---------- projeto ---------- */
+
+.projeto {
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  margin-bottom: 20px;
+}
+.projeto-cabecalho {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+.projeto-nome {
+  margin: 0;
+  font-size: 21px;
+  font-weight: 800;
+}
+.projeto-subtitulo {
+  margin: 3px 0 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.projeto-resumo {
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--text-muted);
+  margin: 14px 0 0;
+  max-width: 700px;
+}
+.projeto-stack {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 14px;
+}
+.projeto-secao {
+  margin-top: 26px;
+  padding-top: 22px;
+  border-top: 1px solid var(--border);
+}
+.projeto-secao-titulo {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 12px;
+  font-size: 13.5px;
+  font-weight: 700;
+}
+.projeto-secao-titulo svg {
+  color: var(--brand-400);
+}
+.projeto-lista-problemas {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 6px 20px;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+.projeto-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 26px;
+  padding-top: 22px;
+  border-top: 1px solid var(--border);
+}
+.projeto-futuro {
+  padding: 16px 18px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+.projeto-futuro code {
+  font-size: 11.5px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--surface-muted);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface-muted);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.chip-sutil {
+  background: none;
+  font-weight: 500;
+}
+
+/* ---------- fluxo ---------- */
+
+.fluxo {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.fluxo li {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+}
+.fluxo-num {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  border-radius: 7px;
+  background: var(--brand-100);
+  color: var(--brand-400);
+  font-size: 11.5px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.fluxo-titulo {
+  font-weight: 650;
+  font-size: 13px;
+}
+.fluxo-desc {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin-top: 2px;
+  line-height: 1.5;
+}
+
+.fluxo-horizontal {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+}
+.fluxo-passo-topo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.fluxo-linha {
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* ---------- módulos e arquitetura ---------- */
+
+.modulos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 10px;
+}
+.modulo {
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-muted);
+}
+.modulo-nome {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 650;
+  font-size: 13px;
+}
+.modulo-nome svg {
+  color: var(--brand-400);
+  flex-shrink: 0;
+}
+.modulo-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  line-height: 1.5;
+}
+
+.arquitetura {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.arquitetura-camada {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 11px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-muted);
+  flex-wrap: wrap;
+}
+.arquitetura-nome {
+  min-width: 130px;
+  font-weight: 700;
+  font-size: 12.5px;
+}
+.arquitetura-itens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex: 1;
+}
+
+.decisoes {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.decisao-titulo {
+  font-weight: 700;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+.decisao-texto {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  line-height: 1.65;
+  max-width: 720px;
+}
+
+.problemas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 9px;
+}
+.problema {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 11px 13px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+.problema svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--orange);
+}
+
+/* ============================================================
+   ONBOARDING
+   ============================================================ */
+
+.onboarding-barra {
+  height: 7px;
+  border-radius: 999px;
+  background: var(--surface-muted);
+  overflow: hidden;
+}
+.onboarding-barra-fill {
+  height: 100%;
+  background: var(--brand-500);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+.onboarding-percentual {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+
+.onboarding-proximo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--brand-500);
+  border-radius: 11px;
+  background: var(--brand-100);
+}
+.onboarding-proximo-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--brand-400);
+}
+.onboarding-proximo-titulo {
+  font-weight: 700;
+  font-size: 14.5px;
+  margin-top: 2px;
+}
+.onboarding-proximo-porque {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin-top: 3px;
+  line-height: 1.5;
+  max-width: 520px;
+}
+
+.onboarding-lista {
+  list-style: none;
+  margin: 18px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.onboarding-lista li {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--border);
+}
+.onboarding-lista li:last-child {
+  border-bottom: none;
+}
+.onboarding-marca {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-faint);
+}
+.onboarding-lista li.concluido .onboarding-marca {
+  background: var(--brand-500);
+  border-color: var(--brand-500);
+  color: #06120d;
+}
+.onboarding-item-texto {
+  flex: 1;
+  min-width: 0;
+}
+.onboarding-item-titulo {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 650;
+  font-size: 13px;
+}
+.onboarding-lista li.concluido .onboarding-item-titulo {
+  color: var(--text-muted);
+}
+.onboarding-item-desc {
+  font-size: 12px;
+  color: var(--text-faint);
+  margin-top: 2px;
+}
+.onboarding-tag {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--orange-bg);
+  color: var(--orange);
+}
+.onboarding-rodape {
+  font-size: 12px;
+  color: var(--text-faint);
+  line-height: 1.55;
+  margin: 16px 0 0;
+}
+
+/* Link do portfólio no rodapé da barra lateral. */
+.sidebar-foot-link {
+  color: rgba(234, 243, 238, 0.75);
+  text-decoration: none;
+  font-weight: 600;
+}
+.sidebar-foot-link:hover {
+  color: var(--brand-400);
+}
+
+/* Estado de carregamento entre rotas (code splitting). */
+.carregando-rota {
+  padding: 40px 24px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+/* Ações dentro de um estado vazio — os caminhos possíveis a partir dali. */
+.empty-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+/* ============================================================
+   RESPONSIVIDADE
+   ============================================================ */
+
+@media (max-width: 640px) {
+  .portao {
+    padding: 20px 14px;
+  }
+  .publico-conteudo,
+  .publico-topo {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+  .projeto {
+    padding: 18px 15px;
+  }
+  .hero-frase {
+    font-size: 20px;
+  }
+  .publico-titulo {
+    font-size: 23px;
+  }
+  .arquitetura-nome {
+    min-width: 0;
+  }
+  .onboarding-proximo {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .portao-form-acoes .btn {
+    flex: 1;
+    justify-content: center;
+  }
+}
+
+/* ---------------------------------------------------------------- entrada e cadastro (Fase 4) */
+
+.portao-conteudo--estreito {
+  max-width: 440px;
+}
+
+.btn-voltar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 18px;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.btn-voltar:hover {
+  color: var(--text);
+}
+
+.portao-saudacao {
+  font-size: 13.5px;
+  color: var(--text-muted);
+  margin-bottom: 14px;
+}
+
+/* O aviso de servidor ausente é informação, não erro do usuário: cor de atenção, nunca vermelho
+   de falha — não há nada que a pessoa tenha feito de errado. */
+.portao-aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin-top: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-muted);
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+.portao-aviso svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--orange);
+}
+
+.portao-nota--destaque {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-muted);
+}
+.portao-nota--destaque svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--text-faint);
+}
+
+/* Empresa suspensa no portão. Cor de atenção, nunca de erro: o acesso está pausado por decisão
+   comercial, não por defeito nem por culpa de quem está entrando. E continua clicável de
+   propósito — quem clica recebe a explicação completa em vez de um botão morto. */
+.portao-opcao--suspensa {
+  border-color: var(--orange);
+  background: var(--orange-bg);
+}
+.portao-opcao--suspensa > svg:first-child {
+  color: var(--orange);
+}
+
+.portao-alternativas {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 18px;
+  font-size: 12.5px;
+  color: var(--text-faint);
+}

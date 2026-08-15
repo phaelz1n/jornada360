@@ -1,0 +1,2194 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Assistente de HE diário</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --ink:#1c2b3a;
+    --paper:#f6f4ef;
+    --card:#ffffff;
+    --line:#e2e0d8;
+    --blue:#2e5f8a;
+    --blue-dark:#1f4664;
+    --green:#3f9142;
+    --green-bg:#e9f5e9;
+    --amber:#b8850a;
+    --amber-bg:#fdf3dd;
+    --red:#c0442c;
+    --red-bg:#fbe9e4;
+    --gray-bg:#eceae3;
+    --muted:#6b7280;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; font-family:'Segoe UI', system-ui, -apple-system, sans-serif; background:var(--paper); color:var(--ink);}
+  .wrap{max-width:820px; margin:0 auto; padding:28px 20px 80px;}
+  h1{font-size:1.5rem; margin:0 0 4px; letter-spacing:-0.01em;}
+  .subtitle{color:var(--muted); font-size:0.92rem; margin-bottom:22px;}
+
+  /* ---------- Upload screen ---------- */
+  .upload-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px;}
+  @media(max-width:600px){.upload-grid{grid-template-columns:1fr;}}
+  .drop{
+    background:var(--card); border:1.5px dashed var(--line); border-radius:12px;
+    padding:18px; text-align:left; cursor:pointer; transition:border-color .15s, background .15s;
+    position:relative;
+  }
+  .drop:hover{border-color:var(--blue);}
+  .drop.filled{border-style:solid; border-color:var(--green); background:var(--green-bg);}
+  .drop .label{font-weight:700; font-size:0.9rem; margin-bottom:2px;}
+  .drop .req{font-size:0.72rem; color:var(--muted); text-transform:uppercase; letter-spacing:.03em;}
+  .drop .filename{font-size:0.8rem; color:var(--green); margin-top:6px; word-break:break-all;}
+  .drop .hint{font-size:0.78rem; color:var(--muted); margin-top:6px;}
+  .drop input{position:absolute; inset:0; opacity:0; cursor:pointer;}
+  .drop.optional{border-style:dotted;}
+
+  .process-btn{
+    width:100%; padding:13px; margin-top:10px;
+    background:var(--blue); color:#fff; border:none; border-radius:10px;
+    font-size:0.95rem; font-weight:700; cursor:pointer;
+  }
+  .process-btn:disabled{background:var(--gray-bg); color:var(--muted); cursor:not-allowed;}
+  .process-btn:not(:disabled):hover{background:var(--blue-dark);}
+
+  .status-msg{font-size:0.85rem; color:var(--muted); margin-top:10px; min-height:20px;}
+  .error-msg{font-size:0.85rem; color:var(--red); margin-top:10px; background:var(--red-bg); padding:10px 12px; border-radius:8px; display:none;}
+
+  /* ---------- Dashboard ---------- */
+  .dash-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:20px;}
+  @media(max-width:700px){.dash-grid{grid-template-columns:1fr 1fr;}}
+  .dash-card{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 16px;}
+  .dash-card .num{font-size:1.5rem; font-weight:800; line-height:1.1;}
+  .dash-card .lbl{font-size:0.74rem; color:var(--muted); margin-top:4px; line-height:1.3;}
+  .dash-card.accent-blue .num{color:var(--blue);}
+  .dash-card.accent-red .num{color:var(--red);}
+  .dash-card.accent-green .num{color:var(--green);}
+
+  .progress-card{
+    background:var(--card); border:1px solid var(--line); border-radius:12px;
+    padding:16px 20px; margin-bottom:18px; display:flex; align-items:center; gap:18px;
+  }
+  .ring{position:relative; width:54px; height:54px; flex:none;}
+  .ring svg{transform:rotate(-90deg);}
+  .ring circle{fill:none; stroke-width:6;}
+  .ring .bg{stroke:var(--gray-bg);}
+  .ring .fg{stroke:var(--green); stroke-linecap:round; transition:stroke-dashoffset .4s ease;}
+  .ring-label{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:0.72rem; font-weight:700;}
+  .progress-text div:last-child{color:var(--muted); font-size:0.85rem; margin-top:2px;}
+
+  .filters{display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;}
+  .filter-btn{border:1px solid var(--line); background:var(--card); color:var(--ink); padding:6px 12px; border-radius:999px; font-size:0.82rem; cursor:pointer; display:flex; align-items:center; gap:6px;}
+  .filter-btn.active{background:var(--blue); color:#fff; border-color:var(--blue);}
+  .filter-btn .count{opacity:.75; font-size:.78rem;}
+
+  .item{background:var(--card); border:1px solid var(--line); border-left:4px solid var(--gray-bg); border-radius:10px; margin-bottom:10px; overflow:hidden;}
+  .item.status-forte{border-left-color:var(--red);}
+  .item.status-leve{border-left-color:var(--amber);}
+  .item.status-ok{border-left-color:var(--green);}
+  .item.status-sem_dado{border-left-color:var(--gray-bg);}
+  .item.done{opacity:.45;}
+  .item-head{display:flex; align-items:flex-start; gap:12px; padding:13px 16px; cursor:pointer;}
+  .check{width:22px; height:22px; flex:none; border:2px solid var(--line); border-radius:6px; display:flex; align-items:center; justify-content:center; margin-top:2px; cursor:pointer; background:#fff;}
+  .check.checked{background:var(--green); border-color:var(--green); color:#fff; font-size:14px;}
+  .item-main{flex:1; min-width:0;}
+  .item-top{display:flex; justify-content:space-between; gap:8px; align-items:baseline; flex-wrap:wrap;}
+  .motorista{font-weight:700; font-size:.98rem;}
+  .motorista.done{text-decoration:line-through; color:var(--muted);}
+  .he1{font-size:.82rem; color:var(--muted); white-space:nowrap;}
+  .status-line{margin-top:4px; font-size:.82rem; display:flex; align-items:center; gap:6px; flex-wrap:wrap;}
+  .badge{display:inline-block; font-size:.72rem; font-weight:700; padding:2px 8px; border-radius:999px;}
+  .badge.forte{background:var(--red-bg); color:var(--red);}
+  .badge.leve{background:var(--amber-bg); color:var(--amber);}
+  .badge.ok{background:var(--green-bg); color:var(--green);}
+  .badge.sem_dado{background:var(--gray-bg); color:var(--muted);}
+  .badge.programado{background:var(--green-bg); color:var(--green);}
+  .badge.acima{background:var(--red-bg); color:var(--red);}
+  .chevron{color:var(--muted); font-size:.8rem; margin-left:6px; transition:transform .2s;}
+  .item.open .chevron{transform:rotate(90deg);}
+  .item-detail{max-height:0; overflow:hidden; transition:max-height .25s ease; padding:0 16px;}
+  .item.open .item-detail{max-height:500px; padding:0 16px 14px 50px;}
+  .detail-row{margin-bottom:8px; font-size:.86rem; line-height:1.4;}
+  .detail-label{font-size:.72rem; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin-bottom:2px;}
+  .batidas{font-family:'SF Mono',Consolas,monospace; font-size:.85rem; letter-spacing:.02em;}
+  .setor-row{display:flex; gap:8px; align-items:center; margin-top:10px;}
+  .setor-row select{flex:1; font-size:.85rem; padding:6px 8px; border-radius:6px; border:1px solid var(--line); background:#fff; font-family:inherit;}
+  .setor-custom-input{flex:1; font-size:.85rem; padding:6px 8px; border-radius:6px; border:1px solid var(--line); background:#fff; font-family:inherit;}
+  .justificativa-input{width:100%; box-sizing:border-box; font-size:.85rem; padding:8px; border-radius:6px; border:1px solid var(--line); background:#fff; font-family:inherit; resize:vertical; min-height:52px;}
+
+  .empty-state{text-align:center; padding:50px 20px; color:var(--muted);}
+  .empty-state .big{font-size:2rem; margin-bottom:8px;}
+  .back-link{display:inline-block; margin-bottom:14px; color:var(--blue); font-size:.85rem; cursor:pointer; text-decoration:underline;}
+  footer{text-align:center; color:var(--muted); font-size:.78rem; margin-top:24px;}
+  .hidden{display:none !important;}
+
+  /* ---------- Relatórios ---------- */
+  .top-nav{text-align:right; margin-bottom:6px;}
+  .report-link{color:var(--blue); font-size:.85rem; cursor:pointer; text-decoration:underline;}
+  .report-tabs{display:flex; gap:8px; margin-bottom:16px;}
+  .report-tab{border:1px solid var(--line); background:var(--card); color:var(--ink); padding:7px 14px; border-radius:999px; font-size:.85rem; cursor:pointer; font-weight:600;}
+  .report-tab.active{background:var(--blue); color:#fff; border-color:var(--blue);}
+  .report-select{width:100%; padding:9px 10px; border-radius:8px; border:1px solid var(--line); background:#fff; font-size:.9rem; font-family:inherit; margin-bottom:16px;}
+  .report-setor-list{background:var(--card); border:1px solid var(--line); border-radius:10px; overflow:hidden;}
+  .report-setor-row{display:flex; justify-content:space-between; padding:10px 14px; font-size:.88rem; border-bottom:1px solid var(--line);}
+  .report-setor-row-click:hover{background:#f3f6fb;}
+  .report-setor-row:last-child{border-bottom:none;}
+  .report-driver-list{background:var(--card); border:1px solid var(--line); border-radius:10px; overflow:hidden;}
+  .report-driver-row{display:flex; align-items:center; gap:10px; padding:10px 14px; font-size:.85rem; border-bottom:1px solid var(--line); flex-wrap:wrap;}
+  .report-driver-row:last-child{border-bottom:none;}
+  .report-driver-row > span:first-child{font-weight:600; flex:1; min-width:140px;}
+
+  /* ---------- Transferir progresso ---------- */
+  .transfer-box{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px; margin-bottom:6px;}
+  #transferPanel{margin:14px 0 20px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div id="uploadScreen">
+    <div class="top-nav"><span class="report-link" id="openReportFromUpload">📊 Ver relatórios (dia / mês)</span></div>
+    <h1>Assistente de HE diário</h1>
+    <div class="subtitle">Sobe os arquivos do dia, cruza ponto × rastreio × escala, e monta o checklist. Tudo roda aqui no navegador.</div>
+
+    <div class="upload-grid">
+      <label class="drop" id="drop-espelho">
+        <div class="label">📋 Espelho de ponto (hoje)</div>
+        <div class="req">obrigatório · .xlsx</div>
+        <div class="filename" id="fn-espelho"></div>
+        <input type="file" accept=".xlsx" id="file-espelho">
+      </label>
+
+      <label class="drop" id="drop-escala">
+        <div class="label">🗓️ Escala</div>
+        <div class="req">obrigatório · .xlsx</div>
+        <div class="filename" id="fn-escala"></div>
+        <input type="file" accept=".xlsx" id="file-escala">
+      </label>
+
+      <label class="drop" id="drop-rastreio">
+        <div class="label">📍 Rastreio (Cobli)</div>
+        <div class="req">obrigatório · .xlsx</div>
+        <div class="filename" id="fn-rastreio"></div>
+        <input type="file" accept=".xlsx" id="file-rastreio">
+      </label>
+
+      <label class="drop" id="drop-padrao">
+        <div class="label">📐 Horário padrão dos motoristas</div>
+        <div class="req">obrigatório · define o que é "acima do programado"</div>
+        <div class="filename" id="fn-padrao"></div>
+        <input type="file" accept=".xlsx" id="file-padrao">
+      </label>
+
+      <label class="drop optional" id="drop-espelho-ontem">
+        <div class="label">📋 Espelho de ontem</div>
+        <div class="req">opcional · pra checar interjornada</div>
+        <div class="filename" id="fn-espelho-ontem"></div>
+        <input type="file" accept=".xlsx" id="file-espelho-ontem">
+      </label>
+    </div>
+
+    <button class="process-btn" id="processBtn" disabled>Processar dia</button>
+    <div class="status-msg" id="statusMsg"></div>
+    <div class="error-msg" id="errorMsg"></div>
+  </div>
+
+  <div id="resultScreen" class="hidden">
+    <span class="back-link" id="backLink">← processar outro dia</span>
+    <span class="back-link" id="openReportFromResult" style="float:right;">📊 relatórios</span>
+    <span class="back-link" id="openTransfer" style="float:right; margin-right:14px;">⇅ transferir progresso</span>
+    <h1 id="dayTitle">Checklist de HE</h1>
+
+    <div id="transferPanel" class="hidden">
+      <div class="transfer-box">
+        <div class="detail-label">Exportar progresso deste dia</div>
+        <div class="subtitle" style="margin-bottom:8px;">Copia o texto abaixo e cola na assistente antiga (se ela também tiver essa opção) ou guarda pra colar aqui depois.</div>
+        <textarea id="exportBox" class="justificativa-input" readonly style="min-height:70px;"></textarea>
+        <button class="process-btn" id="copyExportBtn" style="margin-top:8px;">Copiar</button>
+      </div>
+      <div class="transfer-box" style="margin-top:14px;">
+        <div class="detail-label">Importar progresso (colar aqui)</div>
+        <div class="subtitle" style="margin-bottom:8px;">Cola aqui o texto exportado de outra assistente pra esse mesmo dia. Isso preenche os checks, setor e justificativa já feitos, sem apagar o que já está aqui.</div>
+        <textarea id="importBox" class="justificativa-input" style="min-height:70px;" placeholder="Cole aqui o texto exportado..."></textarea>
+        <button class="process-btn" id="importBtn" style="margin-top:8px;">Importar e mesclar</button>
+        <div class="status-msg" id="importStatus"></div>
+      </div>
+    </div>
+    <div class="subtitle" id="daySubtitle"></div>
+    <div class="error-msg" id="avisoPadrao" style="display:none;"></div>
+
+    <div class="dash-grid">
+      <div class="dash-card accent-blue">
+        <div class="num" id="dashTotalHE">—</div>
+        <div class="lbl">HE.1 total do dia</div>
+      </div>
+      <div class="dash-card" id="cardMeta">
+        <div class="num" id="dashMeta">—</div>
+        <!-- Placeholder neutro: o valor real vem de META_MIN (Configurações → Regras) quando um dia
+             é renderizado. Antes havia um horário fixo aqui, herdado de uma operação específica. -->
+        <div class="lbl">Excedente vs meta <span id="metaLabel">—</span></div>
+      </div>
+      <div class="dash-card accent-red">
+        <div class="num" id="dashAcima">—</div>
+        <div class="lbl">HE acima do padrão cadastrado</div>
+      </div>
+      <div class="dash-card accent-green">
+        <div class="num" id="dashProgramado">—</div>
+        <div class="lbl">HE dentro do padrão cadastrado</div>
+      </div>
+      <div class="dash-card">
+        <div class="num" id="dashCasos">—</div>
+        <div class="lbl">motoristas com HE hoje <span id="dashSemPadrao" style="color:var(--amber)"></span></div>
+      </div>
+    </div>
+
+    <div class="progress-card">
+      <div class="ring">
+        <svg width="54" height="54" viewBox="0 0 54 54">
+          <circle class="bg" cx="27" cy="27" r="22"></circle>
+          <circle class="fg" id="ringFg" cx="27" cy="27" r="22" stroke-dasharray="138.2" stroke-dashoffset="138.2"></circle>
+        </svg>
+        <div class="ring-label" id="ringLabel">0%</div>
+      </div>
+      <div class="progress-text">
+        <div><b id="doneCount">0</b> de <span id="totalCount">0</span> resolvidos</div>
+        <div id="progressSub">bora começar</div>
+      </div>
+    </div>
+
+    <div class="filters" id="filters"></div>
+    <select class="report-select" id="sortSelect" style="width:auto; margin:0 0 14px; display:inline-block; padding:8px 10px;">
+      <option value="pendentes">Pendentes primeiro (padrão)</option>
+      <option value="nome_az">Nome (A → Z)</option>
+      <option value="nome_za">Nome (Z → A)</option>
+      <option value="he_desc">HE.1 (maior → menor)</option>
+      <option value="he_asc">HE.1 (menor → maior)</option>
+      <option value="excedente_desc">Excedente do padrão (maior → menor)</option>
+    </select>
+    <div id="list"></div>
+    <footer>Progresso salvo automaticamente por dia. <span style="opacity:.5">v2026-08-10.4 — clique no setor pra ver casos</span></footer>
+  </div>
+
+  <div id="reportScreen" class="hidden">
+    <span class="back-link" id="reportBackLink">← voltar</span>
+    <h1>Relatórios</h1>
+    <div class="subtitle">Veja o resultado de um dia específico, ou o total do mês (inclusive por setor). <span style="opacity:.5">v2026-08-10.4</span></div>
+
+    <div class="report-tabs">
+      <button class="report-tab active" data-tab="dia">Por dia</button>
+      <button class="report-tab" data-tab="mes">Por mês</button>
+      <button class="report-tab" data-tab="ciclo">Por ciclo (28-27)</button>
+    </div>
+
+    <div id="reportDiaPane">
+      <select class="report-select" id="reportDiaSelect"></select>
+      <div id="reportDiaBody"></div>
+    </div>
+
+    <div id="reportMesPane" class="hidden">
+      <select class="report-select" id="reportMesSelect"></select>
+      <div id="reportMesBody"></div>
+    </div>
+
+    <div id="reportCicloPane" class="hidden">
+      <select class="report-select" id="reportCicloSelect"></select>
+      <div id="reportCicloBody"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ================= UTILITIES ================= */
+function normName(s){
+  if(!s) return '';
+  return s.toString().toUpperCase().trim()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/\s+/g,' ');
+}
+function dice(a,b){
+  if(a===b) return 1;
+  if(a.length<2 || b.length<2) return 0;
+  const bigrams = s=>{ const m={}; for(let i=0;i<s.length-1;i++){ const bg=s.substr(i,2); m[bg]=(m[bg]||0)+1;} return m; };
+  const ba=bigrams(a), bb=bigrams(b);
+  let inter=0, total=0;
+  for(const k in ba) total+=ba[k];
+  for(const k in bb) total+=bb[k];
+  for(const k in ba) if(bb[k]) inter += Math.min(ba[k], bb[k]);
+  return total ? (2*inter/total) : 0;
+}
+function bestMatch(nameNorm, keys, threshold){
+  threshold = threshold===undefined ? 0.82 : threshold;
+  let best=null, bestScore=0;
+  for(const k of keys){
+    const s = dice(nameNorm, k);
+    if(s>bestScore){ bestScore=s; best=k; }
+  }
+  return bestScore>=threshold ? {key:best, score:bestScore} : {key:null, score:bestScore};
+}
+function parseHHMMtoMin(str){
+  if(!str) return 0;
+  const clean = str.toString().replace(/[^0-9:]/g,'');
+  const parts = clean.split(':');
+  if(parts.length<2) return 0;
+  return (parseInt(parts[0])||0)*60 + (parseInt(parts[1])||0);
+}
+function minToStr(m){
+  const h = Math.floor(m/60), mm = m%60;
+  return String(h).padStart(2,'0')+':'+String(mm).padStart(2,'0');
+}
+function minToStrSigned(m){
+  if(m<0) return '-'+minToStr(-m);
+  return minToStr(m);
+}
+function fmtHM(date){
+  return String(date.getHours()).padStart(2,'0')+':'+String(date.getMinutes()).padStart(2,'0');
+}
+function dateKey(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function addDays(d, n){ const r = new Date(d); r.setDate(r.getDate()+n); return r; }
+
+/* parse "28/07/2026" -> Date at local midnight */
+function parseBRDate(str){
+  if(!str) return null;
+  const m = str.toString().trim().match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if(!m) return null;
+  return new Date(parseInt(m[3]), parseInt(m[2])-1, parseInt(m[1]));
+}
+/* parse "28/07/2026 - 14:28" -> Date. Tolera espaço não separável e travessão/en-dash/em-dash. */
+function parseBRDateTime(str){
+  if(!str) return null;
+  const norm = str.toString().replace(/\u00A0/g,' ').trim();
+  const m = norm.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})\s*[-–—]\s*(\d{1,2}):(\d{2})/);
+  if(!m) return null;
+  return new Date(parseInt(m[3]), parseInt(m[2])-1, parseInt(m[1]), parseInt(m[4]), parseInt(m[5]));
+}
+
+/* ================= KNOWN SETOR MAPPING ================= */
+/* Opções de setor/causa vêm do Workspace configurado no Jornada360, passadas por querystring
+   (?setores=A|B|C&causas=X|Y|Z) pela página que incorpora este arquivo — nunca uma lista fixa da
+   operação atual. Sem o parâmetro (arquivo aberto direto, fora do Jornada360), cai numa lista
+   mínima genérica só pra não deixar os campos vazios. */
+function listaDaQuerystring(nome, fallback){
+  const v = new URLSearchParams(location.search).get(nome);
+  if(!v) return fallback;
+  const itens = v.split('|').map(s=>s.trim()).filter(Boolean);
+  return itens.length ? itens : fallback;
+}
+const SETOR_OPTS = listaDaQuerystring('setores', ['Outro']);
+const CAUSA_OPTS = listaDaQuerystring('causas', ['Outro']);
+/* SETOR_MAP fica vazio de propósito: mapear nome->setor fixo no código prendia este arquivo a uma
+   empresa/operação específica. A atribuição de setor por colaborador agora é 100% feita pela UI
+   (setor por caso, editável), o que já funcionava antes como fallback e agora é o único caminho —
+   nenhuma funcionalidade foi perdida, só a portabilidade foi ganha. */
+const SETOR_MAP = {};
+
+/* Mesmo princípio de listaDaQuerystring, para os parâmetros numéricos das regras de jornada:
+   quem manda é o Workspace configurado no Jornada360 (Configurações → Regras), não um número
+   fixo aqui. O fallback só vale quando este arquivo é aberto direto, fora do Jornada360. */
+function numeroDaQuerystring(nome, fallback){
+  const v = new URLSearchParams(location.search).get(nome);
+  if(v===null || v==='') return fallback;
+  const n = Number(v);
+  return isNaN(n) ? fallback : n;
+}
+
+/* ================= REGRAS DE JORNADA (vêm do workspace) ================= */
+/* META_MIN nasce em 0 = "não configurada": nenhuma empresa tem sua meta assumida por padrão.
+   Quem define é Configurações → Regras (dailyGoalMin). Os painéis que comparam com a meta ficam
+   ocultos enquanto ela for 0 (ver metaConfigurada()). */
+let META_MIN = numeroDaQuerystring('meta', 0);
+let TOLERANCIA_PADRAO_MIN = numeroDaQuerystring('tol', 10); // só conta como "acima do padrão" quem passar de X minutos além do EXTRA cadastrado
+/* Interjornada mínima (horas) e intervalo mínimo intrajornada (minutos) — antes 11h fixo no código
+   (CLT), agora configuráveis por empresa, que pode ter acordo coletivo diferente. */
+let INTERJORNADA_MIN_H = numeroDaQuerystring('interj', 11);
+let INTERVALO_MIN_MIN = numeroDaQuerystring('intervalo', 60);
+
+function metaConfigurada(){ return META_MIN > 0; }
+
+/* HE corrigida manualmente (quando, ao resolver o caso, descobre que o valor real era outro)
+   sempre tem prioridade sobre o HE.1 original lido do espelho. */
+function heEfetivo(it, c){
+  const cor = c && c.heCorrigida;
+  return (cor!==undefined && cor!==null && cor!=='' && !isNaN(cor)) ? cor : it.he1min;
+}
+/* Recalcula status/padrão/excedente com base no HE efetivo (original ou corrigido) — pra tudo
+   (painel, filtros, relatórios) refletir a correção na hora, sem ficar desatualizado. */
+function reclassificar(it, heMin){
+  if(it.padraoMin===null || it.padraoMin===undefined){
+    // sem padrão cadastrado/válido: mantém como estava, não dá pra reclassificar
+    return {status: it.status, padraoStatus: it.padraoStatus, excedenteMin: it.excedenteMin};
+  }
+  const excedenteMin = heMin - it.padraoMin;
+  const padraoStatus = excedenteMin > TOLERANCIA_PADRAO_MIN ? 'acima' : 'dentro';
+  const status = padraoStatus==='dentro' ? 'ok' : (it.rastreioStatus || it.status);
+  return {status, padraoStatus, excedenteMin};
+}
+/* Soma a HE de um caso na lista de setores: quando passou do padrão, só o EXCEDENTE vai pro
+   setor que a pessoa marcou (ex: "Trânsito"), e o restante (a parte dentro do padrão, rotina
+   normal) entra como se fosse o próprio "Dentro do padrão" — assim os dois aparecem juntos na
+   mesma lista, ordenados por tamanho, prontos pra mostrar em reunião o que é excesso e por quê. */
+/* Chave de agrupamento robusta pra setor: ignora maiúscula/minúscula e espaços duplicados/nas
+   pontas, pra "Quebra de veículo", "quebra de veículo " e "Quebra  de veículo" caírem todos no
+   mesmo grupo, mesmo que a grafia exata varie de dia pra dia. */
+function setorGroupKey(s){
+  return (s||'').trim().replace(/\s+/g,' ').toLowerCase();
+}
+function somarNoSetor(bySetor, bySetorLabel, setor, reclass, heMin, casosPorSetor, casoInfo){
+  function add(label, min){
+    if(min<=0) return;
+    const key = setorGroupKey(label);
+    bySetor[key] = (bySetor[key]||0) + min;
+    if(!bySetorLabel[key]) bySetorLabel[key] = (label||'').trim().replace(/\s+/g,' ');
+    if(casosPorSetor && casoInfo){
+      if(!casosPorSetor[key]) casosPorSetor[key] = [];
+      casosPorSetor[key].push({...casoInfo, min});
+    }
+  }
+  if(reclass.padraoStatus==='acima'){
+    add(setor, reclass.excedenteMin);
+    add('Dentro do padrão', heMin - reclass.excedenteMin);
+  } else if(reclass.padraoStatus==='dentro'){
+    add('Dentro do padrão', heMin);
+  } else {
+    // sem padrão cadastrado/inválido: não dá pra separar excedente de rotina, soma tudo no setor
+    add(setor, heMin);
+  }
+}
+
+/* ================= FILE PARSERS ================= */
+async function readWorkbook(file){
+  const buf = await file.arrayBuffer();
+  return XLSX.read(buf, {type:'array', cellDates:true});
+}
+/* Leitura sem cellDates: valores de hora/data vêm como número serial puro do Excel (não Date).
+   Usado pra planilha de padrão, onde só precisamos de DURAÇÕES (serial*1440 = minutos) — isso
+   evita totalmente ter que adivinhar se o arquivo usa o sistema de data 1900 ou 1904 do Excel. */
+async function readWorkbookRaw(file){
+  const buf = await file.arrayBuffer();
+  return XLSX.read(buf, {type:'array'});
+}
+
+/* Espelho: Nome, CPF, Matrícula, Data, Entrada e Saída, H.N, H.E.1, ... */
+/* Antes assumia que o arquivo inteiro era de UM dia só (cada motorista só podia aparecer uma
+   vez, senão a linha anterior era perdida). Agora agrupa por data — se o espelho vier com vários
+   dias no mesmo arquivo (comum em exportações de período), processa todos, não só o último. */
+function parseEspelho(wb){
+  const sheet = wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(sheet, {header:1, raw:false, defval:null});
+  const byDate = {}; // dateKeyStr -> {byDriver:{norm(nome)->{...}}, refDate:Date}
+  for(let i=1;i<rows.length;i++){
+    const r = rows[i];
+    if(!r || !r[0] || !r[3]) continue;
+    const nome = r[0];
+    const dateBase = parseBRDate(r[3]);
+    if(!dateBase) continue;
+    const dk = dateKey(dateBase);
+    if(!byDate[dk]) byDate[dk] = {byDriver:{}, refDate: dateBase};
+    const entradaSaida = r[4] || '';
+    const he1 = r[6] || '00:00';
+    const tokens = entradaSaida.trim().split(/\s+/).filter(Boolean);
+    const times = tokens.map(t=>{
+      const clean = t.replace(/[^0-9:]/g,'');
+      const parts = clean.split(':');
+      if(parts.length<2) return null;
+      return {h:parseInt(parts[0]), m:parseInt(parts[1])};
+    }).filter(Boolean);
+    const datetimes = [];
+    let curDate = new Date(dateBase);
+    let prev = null;
+    for(const t of times){
+      if(prev!==null && (t.h*60+t.m) < (prev.h*60+prev.m)){
+        curDate = addDays(curDate,1);
+      }
+      const dt = new Date(curDate.getFullYear(), curDate.getMonth(), curDate.getDate(), t.h, t.m);
+      datetimes.push(dt);
+      prev = t;
+    }
+    byDate[dk].byDriver[normName(nome)] = {nomeOrig:nome, dateBase, datetimes, he1min: parseHHMMtoMin(he1)};
+  }
+  const dateKeys = Object.keys(byDate).sort();
+  return {byDate, dateKeys};
+}
+
+/* Trajetos (Detalhado sheet): header at row index 4 (0-based), data from row index 5 */
+function parseTrajetos(wb){
+  const sheetName = wb.SheetNames.includes('Detalhado') ? 'Detalhado' : wb.SheetNames[0];
+  const sheet = wb.Sheets[sheetName];
+  const rows = XLSX.utils.sheet_to_json(sheet, {header:1, raw:false, defval:null});
+  const out = {}; // norm(motorista) -> [{dtPartida, dtParada, dateKey}]
+  // find header row containing 'Motorista'
+  let headerIdx = -1;
+  for(let i=0;i<Math.min(rows.length,10);i++){
+    if(rows[i] && rows[i].includes('Motorista')){ headerIdx=i; break; }
+  }
+  if(headerIdx===-1) headerIdx = 4;
+  const header = rows[headerIdx];
+  const idxMotorista = header.indexOf('Motorista');
+  const idxPartidaDt = header.indexOf('Data e horário de partida');
+  const idxParadaDt = header.indexOf('Data e horário da parada');
+  for(let i=headerIdx+1;i<rows.length;i++){
+    const r = rows[i];
+    if(!r) continue;
+    const motorista = r[idxMotorista];
+    if(!motorista || motorista==='--') continue;
+    const dtPart = parseBRDateTime(r[idxPartidaDt]);
+    const dtPar = parseBRDateTime(r[idxParadaDt]);
+    if(!dtPart && !dtPar) continue; // linha sem nenhum horário aproveitável
+    const key = normName(motorista);
+    if(!out[key]) out[key]=[];
+    // dk (usado só pra filtrar candidatos por dia): usa a data de quem existir, priorizando partida
+    out[key].push({dtPartida:dtPart, dtParada:dtPar, dk:dateKey(dtPart || dtPar)});
+  }
+  return out;
+}
+
+/* Escala: returns {byDate: {dateKey: [{motorista,horario,descricao}]}} for the target date only (to keep light) */
+function parseEscalaForDate(wb, targetDate){
+  const targetKey = dateKey(targetDate);
+  const entries = [];
+  const sheetConfigs = [
+    {name:'Escala Diária seg a sex', hCol:2, dCol:3, mCol:4},
+    {name:'MENSAL sabado', hCol:1, dCol:2, mCol:3},
+    {name:'MENSAL domingo', hCol:1, dCol:2, mCol:3},
+  ];
+  for(const cfg of sheetConfigs){
+    if(!wb.SheetNames.includes(cfg.name)) continue;
+    const sheet = wb.Sheets[cfg.name];
+    const rows = XLSX.utils.sheet_to_json(sheet, {header:1, raw:false, cellDates:true, defval:null});
+    if(rows.length<3) continue;
+    const dateRow = rows[1]; // row index 1 = second row (0-based), matches Python ws[2]
+    const dateCols = [];
+    for(let c=0;c<dateRow.length;c++){
+      const v = dateRow[c];
+      if(v instanceof Date && dateKey(v)===targetKey){ dateCols.push(c); }
+    }
+    if(dateCols.length===0) continue;
+    for(let i=2;i<rows.length;i++){
+      const r = rows[i];
+      if(!r) continue;
+      const horario = r[cfg.hCol];
+      const descricao = r[cfg.dCol];
+      const baseMotorista = r[cfg.mCol];
+      for(const c of dateCols){
+        const override = r[c];
+        const motorista = override || baseMotorista;
+        if(motorista) entries.push({motorista, horario, descricao});
+      }
+    }
+  }
+  return entries;
+}
+
+/* Horário padrão: Nome, Horário1(x2), Horário2(x2), Horário3(x2), TOTAL, CARGA H, EXTRA, ...
+   EXTRA pode ser negativo (quando TOTAL < CARGA H) — o Excel mostra isso como uma data/hora
+   estranha tipo "23:55" que na verdade significa -00:05. Lemos o valor bruto (serial) da célula
+   pra tratar isso corretamente em vez de tentar interpretar a data formatada. */
+function parsePadrao(wb){
+  const sheetName = wb.SheetNames.find(n=>n.toLowerCase().includes('padr')) || wb.SheetNames[0];
+  const sheet = wb.Sheets[sheetName];
+  const rowsRaw = XLSX.utils.sheet_to_json(sheet, {header:1, raw:true, defval:null});
+  const out = {}; // norm(nome) -> {extraMin, valido}
+
+  // Localiza a coluna EXTRA pelo cabeçalho (fallback de índice fixo se não achar)
+  let extraCol = 9;
+  for(let i=0;i<Math.min(rowsRaw.length,4);i++){
+    const r = rowsRaw[i];
+    if(!r) continue;
+    const idx = r.findIndex(c=>c && c.toString().trim().toUpperCase()==='EXTRA');
+    if(idx>=0){ extraCol = idx; break; }
+  }
+
+  // Diferença em minutos entre duas células de horário (entrada/saída do mesmo turno).
+  // Subtrai os milissegundos brutos ANTES de converter pra minutos — dividir cada um
+  // separadamente primeiro (número grande, ~10^13) e só depois subtrair perde precisão
+  // por cancelamento catastrófico e dá resultados absurdos.
+  function msDiffMin(a,b){
+    if(a==null || b==null) return null;
+    if(a instanceof Date && b instanceof Date) return (a.getTime()-b.getTime())/60000;
+    return null;
+  }
+  // Duração "solta" (uma célula só, tipo CARGA H ou o fallback da própria EXTRA) — aqui não tem
+  // outra célula pra subtrair, então normaliza pelos minutos desde a meia-noite UTC do dia-base
+  // que o SheetJS usou pra essa célula.
+  // Epoch real da planilha (sistema de data 1900 x 1904 do Excel/Mac) — necessário pra durações
+  // negativas (ex: EXTRA de -10min) não desandarem se normalizarmos pela meia-noite errada.
+  // Em vez de confiar na bandeira interna do arquivo (wb.Workbook.WBProps.date1904, que nem
+  // sempre vem preenchida), deduzimos o epoch pelos próprios dados: pegamos a data mais comum
+  // entre as células de entrada (a maioria são horários normais dentro do mesmo dia, sem virar
+  // a noite), e usamos essa data como "dia zero".
+  function detectEpoch(){
+    const counts = {};
+    for(let i=2;i<rowsRaw.length;i++){
+      const r = rowsRaw[i];
+      if(!r) continue;
+      for(const idx of [1,3,5]){
+        const v = r[idx];
+        if(v instanceof Date){
+          const k = v.getUTCFullYear()+'-'+v.getUTCMonth()+'-'+v.getUTCDate();
+          counts[k] = (counts[k]||0)+1;
+        }
+      }
+    }
+    let bestKey=null, bestCount=0;
+    for(const k in counts){ if(counts[k]>bestCount){ bestCount=counts[k]; bestKey=k; } }
+    if(!bestKey) return Date.UTC(1899,11,30); // fallback: sistema padrão do Excel
+    const [y,m,d] = bestKey.split('-').map(Number);
+    return Date.UTC(y,m,d);
+  }
+  const excelEpochMs = detectEpoch();
+
+  function durationMin(v){
+    if(v==null) return null;
+    if(v instanceof Date) return (v.getTime() - excelEpochMs)/60000;
+    if(typeof v === 'number') return v*1440;
+    if(typeof v === 'string'){ const m = parseHHMMtoMin(v); return m || (v.trim()==='00:00' ? 0 : null); }
+    return null;
+  }
+
+  // Formata uma célula de horário (entrada/saída) como "HH:MM" só pra exibição — não usado nas
+  // contas, só pra mostrar o horário padrão junto das batidas do dia sem precisar abrir a planilha.
+  function fmtHorarioCell(v){
+    if(v instanceof Date){
+      const h = String(v.getUTCHours()).padStart(2,'0');
+      const m = String(v.getUTCMinutes()).padStart(2,'0');
+      return h+':'+m;
+    }
+    if(typeof v === 'string'){
+      const mm = v.match(/(\d{1,2}):(\d{2})/);
+      return mm ? mm[1].padStart(2,'0')+':'+mm[2] : null;
+    }
+    if(typeof v === 'number'){
+      const totalMin = Math.round((v%1)*1440);
+      const h = Math.floor(totalMin/60)%24, m = totalMin%60;
+      return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');
+    }
+    return null;
+  }
+
+  for(let i=2;i<rowsRaw.length;i++){
+    const r = rowsRaw[i];
+    if(!r || !r[0]) continue;
+    const nome = r[0];
+    let extraMin = null, valido = false;
+    const horarios = [];
+    for(const [ent,sai] of [[r[1],r[2]],[r[3],r[4]],[r[5],r[6]]]){
+      const e = fmtHorarioCell(ent), s = fmtHorarioCell(sai);
+      if(e && s) horarios.push(e+'–'+s);
+    }
+
+    // EXTRA na planilha é uma fórmula (TOTAL - CARGA H). Fórmulas às vezes não trazem valor
+    // calculado dependendo de como o Excel salvou o arquivo — em vez de confiar nessa célula,
+    // calculamos direto pelos horários fixos (entrada/saída de cada turno) e pela CARGA H,
+    // que são valores estáticos e não têm esse problema.
+    const d1 = msDiffMin(r[2], r[1]); // Horário 1: saída - entrada
+    const d2 = msDiffMin(r[4], r[3]); // Horário 2
+    const d3 = msDiffMin(r[6], r[5]); // Horário 3
+    const cargaH = durationMin(r[8]);
+    let totalMin = 0, temHorario = false;
+    if(d1!==null){ totalMin += d1; temHorario=true; }
+    if(d2!==null){ totalMin += d2; temHorario=true; }
+    if(d3!==null){ totalMin += d3; temHorario=true; }
+
+    if(temHorario && cargaH!==null){
+      extraMin = Math.round(totalMin - cargaH);
+      valido = extraMin >= -300 && extraMin <= 300;
+    }
+
+    // fallback: se não deu pra calcular pelos horários, tenta ler a célula EXTRA diretamente
+    if(!valido){
+      const extraCell = r[extraCol];
+      const d = durationMin(extraCell);
+      if(d!==null){
+        extraMin = Math.round(d);
+        valido = extraMin >= -300 && extraMin <= 300;
+      }
+    }
+
+    out[normName(nome)] = {extraMin, valido, nomeOrig: nome, horarios};
+  }
+  return out;
+}
+
+/* ================= VERIFICATION ENGINE ================= */
+function closestEvent(trajetosByDriver, driverKeys, driverKeyNorm, targetDt){
+  const match = bestMatch(driverKeyNorm, driverKeys, 0.82);
+  if(!match.key) return null;
+  const trips = trajetosByDriver[match.key];
+  if(!trips || !trips.length) return null;
+  const targetDay = dateKey(targetDt);
+  const dayBefore = dateKey(addDays(targetDt,-1));
+  const dayAfter = dateKey(addDays(targetDt,1));
+  const cand = trips.filter(t => t.dk===targetDay || t.dk===dayBefore || t.dk===dayAfter);
+  if(!cand.length) return null;
+  let bestDiff=null, bestEvt=null, minDt=null, maxDt=null;
+  for(const t of cand){
+    for(const [dt,label] of [[t.dtPartida,'partida'],[t.dtParada,'parada']]){
+      if(!dt) continue;
+      if(minDt===null || dt<minDt) minDt=dt;
+      if(maxDt===null || dt>maxDt) maxDt=dt;
+      const diff = Math.abs(dt - targetDt)/60000;
+      if(bestDiff===null || diff<bestDiff){ bestDiff=diff; bestEvt={dt,label}; }
+    }
+  }
+  if(bestDiff===null) return null;
+  // se a batida cai fora do período que o rastreio realmente cobre naquele dia (antes do
+  // primeiro sinal ou depois do último), a "divergência" pode ser só o export não cobrir
+  // aquele horário ainda — não necessariamente um problema real de ponto x rastreio.
+  const foraDeCobertura = targetDt > maxDt || targetDt < minDt;
+  return {diff:bestDiff, evt:bestEvt, foraDeCobertura};
+}
+
+function fullDayVerify(punchDatetimes, trajetosByDriver, driverKeys, driverKeyNorm){
+  return punchDatetimes.map(pdt=>{
+    const res = closestEvent(trajetosByDriver, driverKeys, driverKeyNorm, pdt);
+    if(!res) return {punch:pdt, status:'sem_rastreio', diff:null, evt:null, foraDeCobertura:false};
+    const status = res.diff<=15 ? 'bate' : (res.foraDeCobertura ? 'sem_cobertura' : 'nao_bate');
+    return {punch:pdt, status, diff:Math.round(res.diff), evt:res.evt, foraDeCobertura:res.foraDeCobertura};
+  });
+}
+
+/* Turnos que viram a noite podem estar com a "Data" do espelho um dia errada em relação ao
+   rastreio (ex: linha datada 28/07 mas todas as batidas realmente aconteceram na madrugada
+   de 29/07). A detecção de virada dentro da própria linha (batida menor que a anterior) não
+   pega esse caso porque as batidas continuam em ordem crescente. Por isso, testamos o dia
+   como veio no espelho e também +1/-1 dia contra o rastreio, e usamos o que realmente bate
+   mais — em vez de confiar cegamente na data bruta. Em empate, mantém a data original. */
+function bestDayShift(datetimes, trajetosByDriver, driverKeys, driverKeyNorm){
+  // Comparar só "quantos bateram (<=15min)" pode empatar por coincidência (um evento de outro
+  // trajeto passando perto por acaso) e mascarar o dia certo. Por isso o critério principal é
+  // quantas batidas ficaram MUITO próximas (<=5min) — sinal bem mais confiável de acerto real —
+  // e só depois usamos a contagem <=15min e a soma das diferenças como desempate.
+  const candidates = [0, 1, -1];
+  let best = null;
+  for(const shift of candidates){
+    const shifted = shift===0 ? datetimes : datetimes.map(d=>addDays(d, shift));
+    const verify = fullDayVerify(shifted, trajetosByDriver, driverKeys, driverKeyNorm);
+    const closeCount = verify.filter(v=>v.diff!==null && v.diff<=5).length;
+    const bateCount = verify.filter(v=>v.status==='bate').length;
+    const sumDiff = verify.reduce((s,v)=>s+(v.diff!==null?v.diff:9999),0);
+    const better = best===null || closeCount>best.closeCount ||
+      (closeCount===best.closeCount && bateCount>best.bateCount) ||
+      (closeCount===best.closeCount && bateCount===best.bateCount && best.shift!==0 && sumDiff<best.sumDiff);
+    if(better){
+      best = {shift, verify, closeCount, bateCount, sumDiff, datetimes:shifted};
+    }
+  }
+  return best;
+}
+
+function evtTxt(evt){
+  const label = evt.label==='partida' ? 'saída' : 'chegada';
+  return fmtHM(evt.dt) + ' (' + label + ')';
+}
+
+function resumoDia(results){
+  const total = results.length;
+  const bate = results.filter(r=>r.status==='bate').length;
+  const problemas = results.filter(r=>r.status==='nao_bate' || r.status==='sem_cobertura').sort((a,b)=>a.punch-b.punch);
+  if(problemas.length===0){
+    return {status: bate===total ? 'ok' : 'sem_dado', detalhe:'', bate, total, temLacuna:false};
+  }
+  const worst = Math.max(...problemas.map(r=>r.diff));
+  const status = worst>60 ? 'forte' : 'leve';
+  // group by evt (same dt+label = same event)
+  const groups = {};
+  for(const r of problemas){
+    const k = r.evt.dt.getTime()+'_'+r.evt.label;
+    if(!groups[k]) groups[k]=[];
+    groups[k].push(r);
+  }
+  const frases = [];
+  let temLacuna = false;
+  for(const k in groups){
+    const punches = groups[k].sort((a,b)=>a.punch-b.punch);
+    const isCobertura = punches.every(p=>p.status==='sem_cobertura');
+    if(isCobertura) temLacuna = true;
+    if(punches.length>1){
+      const maxdiff = Math.max(...punches.map(p=>p.diff));
+      if(isCobertura){
+        frases.push('Rastreio não tem nenhum dado depois de '+evtTxt(punches[0].evt)+' — possível export incompleto (tente reexportar mais tarde). Batidas '+fmtHM(punches[0].punch)+' a '+fmtHM(punches[punches.length-1].punch)+' ficaram sem checar');
+      } else {
+        frases.push('Rastreio não registra nada entre '+fmtHM(punches[0].punch)+' e '+fmtHM(punches[punches.length-1].punch)+
+          ' (último sinal: '+evtTxt(punches[0].evt)+', '+maxdiff+' min sem confirmação)');
+      }
+    } else {
+      const p = punches[0];
+      if(isCobertura){
+        frases.push('Ponto '+fmtHM(p.punch)+' está fora do período que o rastreio cobre nesse dia (último sinal: '+evtTxt(p.evt)+') — possível export incompleto, tente reexportar mais tarde');
+      } else {
+        frases.push('Ponto '+fmtHM(p.punch)+' não tem rastreio perto — mais próximo é '+evtTxt(p.evt)+' ('+p.diff+' min)');
+      }
+    }
+  }
+  return {status, detalhe: frases.join(' | '), bate, total, temLacuna};
+}
+
+/* ================= MAIN PROCESSING ================= */
+let APPDATA = null;
+const STORAGE_PREFIX = 'he_diario_';
+const SNAPSHOT_PREFIX = 'he_dia_snapshot_';
+
+/* window.storage só existe quando o arquivo roda dentro do Claude. Se o arquivo for aberto
+   direto no navegador (duplo-clique, file://), window.storage não existe e tudo falharia
+   em silêncio — checks, setor, justificativa e relatórios, tudo. Pra isso nunca acontecer de
+   novo, detectamos qual dos dois está disponível e usamos localStorage como rede de segurança. */
+/* Se a ponte com o armazenamento do Claude travar sem nunca responder, isso impede o app inteiro
+   de ficar preso pra sempre — depois de alguns segundos, desiste e trata como erro (que já cai
+   nos try/catch que existem em cada lugar que usa STORE). */
+function withTimeout(promise, ms){
+  return Promise.race([
+    promise,
+    new Promise((_, reject)=>setTimeout(()=>reject(new Error('Tempo esgotado esperando o armazenamento responder')), ms))
+  ]);
+}
+
+const STORE = (function(){
+  const hasCloud = typeof window!=='undefined' && window.storage && typeof window.storage.get==='function';
+  if(hasCloud){
+    return {
+      mode:'cloud',
+      get: (key)=>withTimeout(window.storage.get(key), 8000),
+      set: (key,value)=>withTimeout(window.storage.set(key,value), 8000),
+      list: (prefix)=>withTimeout(window.storage.list(prefix), 8000)
+    };
+  }
+  /* Prefixo por workspace — recebido via querystring (?ws=) pela página que incorpora este
+     arquivo (Jornada360). Isola completamente os dados de cada empresa/ambiente (Real x
+     Demonstração) mesmo rodando o mesmo arquivo. Sem o parâmetro, cai em 'real' por padrão
+     (compatível com quem abre este arquivo direto, fora do Jornada360). */
+  const WS_ID = new URLSearchParams(location.search).get('ws') || 'real';
+  const LS_PREFIX = 'assistente_he_local_' + WS_ID + '_';
+  return {
+    mode:'local',
+    async get(key){
+      try{
+        const raw = localStorage.getItem(LS_PREFIX+key);
+        return raw===null ? null : {key, value: raw};
+      }catch(e){ return null; }
+    },
+    async set(key,value){
+      try{ localStorage.setItem(LS_PREFIX+key, value); return {key,value}; }
+      catch(e){ console.error('Falha ao salvar localmente', e); return null; }
+    },
+    async list(prefix){
+      try{
+        const keys=[];
+        for(let i=0;i<localStorage.length;i++){
+          const k = localStorage.key(i);
+          if(k && k.indexOf(LS_PREFIX)===0){
+            const stripped = k.slice(LS_PREFIX.length);
+            if(!prefix || stripped.indexOf(prefix)===0) keys.push(stripped);
+          }
+        }
+        return {keys};
+      }catch(e){ return {keys:[]}; }
+    }
+  };
+})();
+
+/* Processa UM dia (dado o espelho já filtrado pra essa data) e salva o snapshot dele. Extraído
+   do processFiles original pra poder rodar em laço quando o espelho trouxer vários dias no mesmo
+   arquivo — comum em exportações de período. */
+async function processarDia(dk, refDate, espelhoHoje, trajetos, driverKeys, wbEscala, padraoMap, padraoKeys, historicoCausaMap, espelhoOntem){
+  const escalaEntries = parseEscalaForDate(wbEscala, refDate);
+  const escalaKeys = escalaEntries.map(e=>({e, key:normName(e.motorista)}));
+
+  const items = [];
+  let totalHE = 0, acimaHE = 0, programadoHE = 0, semPadraoCount = 0;
+
+  for(const key in espelhoHoje){
+    const entry = espelhoHoje[key];
+    const cal = bestDayShift(entry.datetimes, trajetos, driverKeys, key);
+    const verify = cal.verify;
+    entry.datetimes = cal.datetimes; // usa a data corrigida também na interjornada abaixo
+    const diaAjustado = cal.shift; // 0, 1 ou -1
+    const resumo = resumoDia(verify);
+    totalHE += entry.he1min;
+
+    // escala match (fuzzy) - context only, not used for the programado/acima classification anymore
+    let escMatch = bestMatch(key, escalaKeys.map(x=>x.key), 0.9);
+    let contexto = '';
+    if(escMatch.key){
+      const matches = escalaKeys.filter(x=>x.key===escMatch.key)
+        .sort((a,b)=>{
+          const ah = a.e.horario instanceof Date ? a.e.horario.getTime() : 0;
+          const bh = b.e.horario instanceof Date ? b.e.horario.getTime() : 0;
+          return ah-bh;
+        });
+      contexto = matches.map(x=>{
+        const hor = x.e.horario;
+        const horStr = hor instanceof Date ? fmtHM(hor) : (hor||'');
+        return horStr+' '+(x.e.descricao||'');
+      }).join(' | ');
+    }
+
+    // padrão match — define de verdade o que é "acima do programado"
+    let padraoStatus, padraoMin=null, excedenteMin=0, padraoDebug='', padraoHorarios=[];
+    const padMatch = bestMatch(key, padraoKeys, 0.9);
+    if(!padMatch.key){
+      padraoStatus = 'sem_cadastro';
+      if(padraoKeys.length){
+        const near = bestMatch(key, padraoKeys, 0);
+        padraoDebug = near.key
+          ? 'Mais parecido encontrado na planilha de padrão: "'+padraoMap[near.key].nomeOrig+'" ('+Math.round(near.score*100)+'% parecido — precisa de 90% pra bater sozinho)'
+          : 'Não achei nenhum nome parecido na planilha de padrão';
+      } else {
+        padraoDebug = 'A planilha de padrão não carregou nenhuma linha — confira se é o arquivo certo';
+      }
+    } else {
+      const pad = padraoMap[padMatch.key];
+      padraoHorarios = pad.horarios || [];
+      if(!pad.valido){
+        padraoStatus = 'invalido';
+        padraoDebug = 'Achei a linha de "'+pad.nomeOrig+'" na planilha, mas '+(pad.extraMin===null ? 'não tem horário nem EXTRA preenchido pra calcular' : 'o valor calculado ('+minToStrSigned(pad.extraMin)+') está fora de uma faixa plausível')+' — confere essa linha na planilha';
+      } else {
+        padraoMin = pad.extraMin;
+        excedenteMin = entry.he1min - padraoMin;
+        padraoStatus = excedenteMin > TOLERANCIA_PADRAO_MIN ? 'acima' : 'dentro';
+      }
+    }
+    if(padraoStatus==='dentro'){ programadoHE += entry.he1min; }
+    else if(padraoStatus==='acima'){ acimaHE += entry.he1min; }
+
+    // interjornada — limiar configurável por empresa (antes: 11h fixo)
+    let interjornada = '';
+    if(espelhoOntem){
+      const ontemMatch = bestMatch(key, Object.keys(espelhoOntem), 0.9);
+      if(ontemMatch.key){
+        const ontemEntry = espelhoOntem[ontemMatch.key];
+        if(ontemEntry.datetimes.length && entry.datetimes.length){
+          const ultimoOntem = ontemEntry.datetimes[ontemEntry.datetimes.length-1];
+          const primeiroHoje = entry.datetimes[0];
+          const gapH = (primeiroHoje - ultimoOntem)/3600000;
+          if(gapH < INTERJORNADA_MIN_H && gapH >= 0){
+            interjornada = 'Só '+gapH.toFixed(1)+'h de descanso entre '+fmtHM(ultimoOntem)+' (ontem) e '+fmtHM(primeiroHoje)+' (hoje) — mínimo configurado: '+INTERJORNADA_MIN_H+'h';
+          }
+        }
+      }
+    }
+
+    /* Intervalo intrajornada (pausa de refeição). Regra: com 4+ batidas no dia (pelo menos um ciclo
+       entra-sai-entra-sai), a pausa é o MAIOR intervalo entre batidas consecutivas. Com menos de 4
+       batidas não há pausa registrada no espelho — nesse caso não se conclui nada (`intervalo` fica
+       vazio), em vez de supor que a pessoa não descansou. */
+    let intervalo = '';
+    if(entry.datetimes.length >= 4){
+      let maiorGapMin = 0, gapIni = null, gapFim = null;
+      for(let i=1;i<entry.datetimes.length;i++){
+        const g = (entry.datetimes[i] - entry.datetimes[i-1])/60000;
+        if(g > maiorGapMin){ maiorGapMin = g; gapIni = entry.datetimes[i-1]; gapFim = entry.datetimes[i]; }
+      }
+      if(maiorGapMin < INTERVALO_MIN_MIN){
+        intervalo = 'Pausa de '+Math.round(maiorGapMin)+'min entre '+fmtHM(gapIni)+' e '+fmtHM(gapFim)+' — mínimo configurado: '+INTERVALO_MIN_MIN+'min';
+      }
+    }
+
+    const batidasTxt = verify.map(v=>{
+      const icon = v.status==='bate' ? '✅' : (v.status==='nao_bate' ? '❌' : '·');
+      return fmtHM(v.punch)+icon;
+    }).join(' ');
+
+    if(padraoStatus==='sem_cadastro' || padraoStatus==='invalido') semPadraoCount++;
+
+    // Só precisa aparecer como pendência (forte/leve) quem passou do HE programado.
+    // Dentro do padrão = não é overtime real pra investigar, então não força verificação
+    // mesmo que o rastreio tenha alguma diferença pontual naquele dia.
+    const statusFinal = padraoStatus==='dentro' ? 'ok' : resumo.status;
+    const detalheFinal = (padraoStatus==='dentro' && resumo.detalhe)
+      ? resumo.detalhe+' — dentro do padrão, não precisa verificar'
+      : resumo.detalhe;
+
+    // Causa provável: prioriza o histórico dessa pessoa (o que ela mais teve em dias
+    // anteriores); sem histórico, chuta pelo sinal mais forte do próprio caso de hoje.
+    let causaAtual = historicoCausaMap[key] || null;
+    let causaFonte = causaAtual ? 'historico' : null;
+    if(!causaAtual){
+      if(resumo.temLacuna){ causaAtual = 'Rastreador com defeito'; causaFonte='heuristica'; }
+      else if(padraoStatus==='acima' && resumo.status==='ok'){ causaAtual = 'Autorizado antecipadamente'; causaFonte='heuristica'; }
+      else if(padraoStatus==='acima' && (resumo.status==='forte'||resumo.status==='leve')){ causaAtual = 'Hábito de bater ponto errado'; causaFonte='heuristica'; }
+    }
+
+    items.push({
+      motorista: entry.nomeOrig,
+      he1min: entry.he1min,
+      he1str: minToStr(entry.he1min),
+      status: statusFinal,
+      rastreioStatus: resumo.status, // status "cru" do rastreio, antes do desconto por padrão — usado pra reclassificar se a HE for corrigida depois
+      detalhe: detalheFinal,
+      confirmadas: resumo.bate+'/'+resumo.total,
+      batidas: batidasTxt,
+      contexto,
+      padraoStatus, padraoMin, excedenteMin, padraoDebug, padraoHorarios,
+      setorAtual: SETOR_MAP[key] || '',
+      causaAtual, causaFonte,
+      interjornada,
+      intervalo,
+      diaAjustado,
+      temLacuna: resumo.temLacuna,
+      precisaVerificar: padraoStatus!=='dentro' // só quem passou do padrão (ou padrão incerto) precisa aparecer
+    });
+  }
+
+  items.sort((a,b)=>b.he1min - a.he1min);
+
+  const appDia = {
+    dateKey: dk,
+    dateLabel: String(refDate.getDate()).padStart(2,'0')+'/'+String(refDate.getMonth()+1).padStart(2,'0')+'/'+refDate.getFullYear(),
+    items, totalHE, acimaHE, programadoHE, semPadraoCount,
+    avisoPadrao: padraoKeys.length===0 ? 'A planilha de padrão não carregou nenhuma linha — confira se subiu o arquivo certo (e a aba certa dentro dele). Sem isso, todo mundo fica marcado como "sem padrão cadastrado".' : ''
+  };
+  try{ await STORE.set(SNAPSHOT_PREFIX+appDia.dateKey, JSON.stringify(appDia)); }catch(e){ console.error('Falha ao salvar snapshot do dia', dk, e); }
+  return appDia;
+}
+
+async function processFiles(){
+  const errorEl = document.getElementById('errorMsg');
+  const statusEl = document.getElementById('statusMsg');
+  errorEl.style.display='none';
+  try{
+    statusEl.textContent = 'Lendo arquivos...';
+    const fEspelho = document.getElementById('file-espelho').files[0];
+    const fEscala = document.getElementById('file-escala').files[0];
+    const fRastreio = document.getElementById('file-rastreio').files[0];
+    const fPadrao = document.getElementById('file-padrao').files[0];
+    const fEspelhoOntem = document.getElementById('file-espelho-ontem').files[0];
+
+    const wbEspelho = await readWorkbook(fEspelho);
+    const wbEscala = await readWorkbook(fEscala);
+    const wbRastreio = await readWorkbook(fRastreio);
+    const wbPadrao = await readWorkbookRaw(fPadrao);
+
+    statusEl.textContent = 'Processando ponto...';
+    // Se o espelho trouxer vários dias no mesmo arquivo (exportação de período), processa TODOS
+    // — não só o mais recente. Antes, um motorista que aparecesse em mais de uma data só ficava
+    // com a última linha, perdendo os outros dias inteiros.
+    const {byDate: espelhoPorDia, dateKeys: espelhoDateKeys} = parseEspelho(wbEspelho);
+    if(!espelhoDateKeys.length) throw new Error('Não consegui identificar nenhuma data no espelho. Confira o arquivo.');
+
+    statusEl.textContent = 'Processando rastreio...';
+    const trajetos = parseTrajetos(wbRastreio);
+    const driverKeys = Object.keys(trajetos);
+
+    statusEl.textContent = 'Lendo horário padrão...';
+    const padraoMap = parsePadrao(wbPadrao);
+    const padraoKeys = Object.keys(padraoMap);
+
+    // "Espelho de ontem" avulso só é necessário pro PRIMEIRO dia do lote — pros dias seguintes,
+    // o dia anterior já está dentro do próprio arquivo de espelho enviado (mais confiável).
+    let espelhoOntemAvulso = null;
+    if(fEspelhoOntem){
+      statusEl.textContent = 'Checando interjornada...';
+      const wbOntem = await readWorkbook(fEspelhoOntem);
+      const ontemParsed = parseEspelho(wbOntem);
+      const ultimaData = ontemParsed.dateKeys[ontemParsed.dateKeys.length-1];
+      espelhoOntemAvulso = ultimaData ? ontemParsed.byDate[ultimaData].byDriver : null;
+    }
+
+    statusEl.textContent = 'Verificando histórico de causas...';
+    const historicoCausaMap = await getHistoricalCausaMap();
+
+    let ultimoAppData = null;
+    for(let idx=0; idx<espelhoDateKeys.length; idx++){
+      const dk = espelhoDateKeys[idx];
+      const {byDriver: espelhoHoje, refDate} = espelhoPorDia[dk];
+      statusEl.textContent = espelhoDateKeys.length>1
+        ? 'Processando dia '+(idx+1)+'/'+espelhoDateKeys.length+' ('+dkToLabel(dk)+')...'
+        : 'Verificando cada motorista...';
+
+      const espelhoOntem = idx>0 ? espelhoPorDia[espelhoDateKeys[idx-1]].byDriver : espelhoOntemAvulso;
+
+      ultimoAppData = await processarDia(dk, refDate, espelhoHoje, trajetos, driverKeys, wbEscala, padraoMap, padraoKeys, historicoCausaMap, espelhoOntem);
+
+      // garante que dados antigos (formato "nome__índice") migrem mesmo em lote, não só quando
+      // o dia é aberto manualmente — assim reprocessar nunca embaralha ou perde justificativa
+      const csDia = await loadCaseStateFor(dk);
+      if(migrarChaves(csDia, ultimoAppData.items)){
+        try{ await STORE.set(STORAGE_PREFIX+dk, JSON.stringify(csDia)); }catch(e){ console.error('Falha ao salvar migração', dk, e); }
+      }
+    }
+
+    statusEl.textContent = '';
+
+    if(espelhoDateKeys.length>1){
+      // lote de vários dias: não dá pra mostrar um checklist só — manda direto pro relatório
+      // do período, que já junta tudo que acabou de ser processado (a própria tela de
+      // relatórios já mostra quantos dias entraram, não precisa de mensagem extra aqui)
+      await openReportScreen();
+    } else {
+      APPDATA = ultimoAppData;
+      showResults();
+    }
+
+  }catch(e){
+    console.error(e);
+    errorEl.textContent = 'Deu erro processando: '+e.message+'. Confira se os arquivos são os exportados certos (espelho, escala, rastreio).';
+    errorEl.style.display='block';
+    statusEl.textContent='';
+  }
+}
+/* ================= UI ================= */
+function checkFilesReady(){
+  const ready = document.getElementById('file-espelho').files.length &&
+                document.getElementById('file-escala').files.length &&
+                document.getElementById('file-rastreio').files.length &&
+                document.getElementById('file-padrao').files.length;
+  document.getElementById('processBtn').disabled = !ready;
+}
+['espelho','escala','rastreio','padrao','espelho-ontem'].forEach(id=>{
+  document.getElementById('file-'+id).addEventListener('change', function(e){
+    const f = e.target.files[0];
+    const fnEl = document.getElementById('fn-'+id);
+    const dropEl = document.getElementById('drop-'+id);
+    if(f){ fnEl.textContent = '✓ '+f.name; dropEl.classList.add('filled'); }
+    else { fnEl.textContent=''; dropEl.classList.remove('filled'); }
+    checkFilesReady();
+  });
+});
+document.getElementById('processBtn').addEventListener('click', processFiles);
+document.getElementById('backLink').addEventListener('click', ()=>{
+  document.getElementById('resultScreen').classList.add('hidden');
+  document.getElementById('uploadScreen').classList.remove('hidden');
+});
+document.getElementById('sortSelect').addEventListener('change', (e)=>{
+  currentSort = e.target.value;
+  render();
+});
+
+let caseState = {}; // key -> {done, setor, setorCustom, justificativa}
+let currentFilter = 'todos';
+let currentSort = 'pendentes';
+
+async function loadState(key){
+  try{
+    const res = await STORE.get(STORAGE_PREFIX+key);
+    const raw = res && res.value ? JSON.parse(res.value) : {};
+    caseState = {};
+    for(const k in raw){
+      const v = raw[k];
+      caseState[k] = (typeof v === 'boolean') ? {done:v} : (v || {});
+    }
+  }catch(e){ caseState = {}; }
+}
+async function saveState(key){
+  try{ await STORE.set(STORAGE_PREFIX+key, JSON.stringify(caseState)); }catch(e){}
+}
+function getCase(key){
+  if(!caseState[key]) caseState[key] = {};
+  return caseState[key];
+}
+/* Antes era motorista+índice na lista — quebrava toda vez que a lista reordenava (reprocessar
+   o mesmo dia com dado novo, ou só uma diferença de cálculo, já muda quem fica em que posição).
+   Agora é só o nome normalizado, que não muda mesmo se a ordem da lista mudar. */
+function itemKey(it,i){ return normName(it.motorista); }
+
+/* Migra dados salvos no formato antigo ("NOME__índice") pro formato novo (só o nome), pra nunca
+   perder justificativa/setor/causa já preenchidos quando o dia é reprocessado ou reaberto. Só
+   copia pra chave nova se ela ainda estiver vazia (não sobrescreve nada que já esteja lá). */
+function migrarChaves(cs, items){
+  let mudou = false;
+  items.forEach(it=>{
+    const chaveNova = itemKey(it);
+    if(cs[chaveNova] && Object.keys(cs[chaveNova]).length) return; // já tem dado, não mexe
+    for(const k in cs){
+      const idx = k.lastIndexOf('__');
+      if(idx<0) continue;
+      const suffix = k.slice(idx+2);
+      if(!/^\d+$/.test(suffix)) continue; // só migra sufixo numérico (formato antigo de posição)
+      const nomeAntigo = k.slice(0, idx);
+      if(normName(nomeAntigo)===chaveNova){
+        cs[chaveNova] = cs[k];
+        mudou = true;
+        break;
+      }
+    }
+  });
+  return mudou;
+}
+function migrarChavesAntigas(){
+  if(!APPDATA || !APPDATA.items) return false;
+  return migrarChaves(caseState, APPDATA.items);
+}
+
+function statusLabel(s){
+  return {forte:'Diverge forte', leve:'Diverge leve', ok:'Confirmado', sem_dado:'Sem dado'}[s]||s;
+}
+function padraoBadge(it){
+  if(it._padraoStatus==='acima') return `<span class="badge acima">acima do padrão (+${it._excedenteMin}min)</span>`;
+  if(it._padraoStatus==='dentro') return `<span class="badge programado">dentro do padrão</span>`;
+  if(it._padraoStatus==='invalido') return `<span class="badge sem_dado">padrão cadastrado parece errado</span>`;
+  return `<span class="badge sem_dado">sem padrão cadastrado</span>`;
+}
+function diaAjustadoBadge(it){
+  if(!it.diaAjustado) return '';
+  const sinal = it.diaAjustado>0 ? '+1 dia' : '-1 dia';
+  return `<span class="badge sem_dado" title="A data das batidas não batia com o rastreio no dia do espelho; corrigida automaticamente comparando com o rastreio.">📅 data corrigida (${sinal})</span>`;
+}
+function lacunaBadge(it){
+  if(!it.temLacuna) return '';
+  return `<span class="badge leve" title="A batida cai fora do período que o rastreio cobriu naquele dia — pode ser export tirado antes do fim do turno. Vale reexportar o rastreio mais tarde antes de tratar como divergência real.">📡 rastreio incompleto — reexportar</span>`;
+}
+function padraoDetailRow(it){
+  if(it.padraoMin===null || it.padraoMin===undefined){
+    if(it.padraoDebug) return `<div class="detail-row" style="color:var(--amber)"><div class="detail-label">Diagnóstico do padrão</div>${it.padraoDebug}</div>`;
+    return '';
+  }
+  return `<div class="detail-row"><div class="detail-label">Padrão cadastrado</div>Extra normal: ${minToStrSigned(it.padraoMin)} · Hoje: ${it._heStr} · ${it._excedenteMin>0 ? 'excedeu em '+it._excedenteMin+' min' : 'dentro do esperado'}</div>`;
+}
+
+async function showResults(){
+  document.getElementById('uploadScreen').classList.add('hidden');
+  document.getElementById('resultScreen').classList.remove('hidden');
+  await loadState(APPDATA.dateKey);
+  if(migrarChavesAntigas()) await saveState(APPDATA.dateKey);
+  currentFilter='todos';
+  currentSort='pendentes';
+  render();
+}
+
+function render(){
+  const d = APPDATA;
+  // chave estável: sempre calculada a partir do índice na lista ORIGINAL (não filtrada), pra
+  // não embaralhar setor/justificativa/check entre motoristas quando "mostrar todos" muda o que
+  // aparece na tela. Também já aplica a correção manual de HE (se houver) e reclassifica tudo
+  // com base nela, pra nada ficar desatualizado depois que um caso é resolvido.
+  const allItems = d.items.map((it,i)=>{
+    const key = itemKey(it,i);
+    const c = getCase(key);
+    const heMin = heEfetivo(it,c);
+    const reclass = reclassificar(it, heMin);
+    return {...it, _key:key, _heMin:heMin, _heStr:minToStr(heMin), _corrigido: heMin!==it.he1min,
+            _status:reclass.status, _padraoStatus:reclass.padraoStatus, _excedenteMin:reclass.excedenteMin};
+  });
+  const precisaCount = allItems.filter(it=>it._padraoStatus!=='dentro').length;
+  document.getElementById('dayTitle').textContent = 'Checklist de HE — '+d.dateLabel;
+  document.getElementById('daySubtitle').textContent = precisaCount+' motoristas passaram do padrão (de '+d.items.length+' com HE.1 hoje)';
+  const avisoEl = document.getElementById('avisoPadrao');
+  if(d.avisoPadrao){
+    avisoEl.textContent = '⚠️ '+d.avisoPadrao;
+    avisoEl.style.display = 'block';
+  } else {
+    avisoEl.style.display = 'none';
+  }
+
+  // totais do painel somados AGORA a partir do HE efetivo de cada caso (original ou corrigido) —
+  // nunca usa os totais estáticos salvos no processamento, pra não ficar desatualizado.
+  const totalHEAtual = allItems.reduce((s,it)=>s+it._heMin, 0);
+  const acimaHEAtual = allItems.filter(it=>it._padraoStatus==='acima').reduce((s,it)=>s+it._heMin, 0);
+  const programadoHEAtual = allItems.filter(it=>it._padraoStatus==='dentro').reduce((s,it)=>s+it._heMin, 0);
+
+  document.getElementById('dashTotalHE').textContent = minToStr(totalHEAtual);
+  const metaExced = totalHEAtual - META_MIN;
+  const metaEl = document.getElementById('dashMeta');
+  const cardMetaEl = document.getElementById('cardMeta');
+  cardMetaEl.classList.remove('accent-red','accent-green');
+  if(!metaConfigurada()){
+    // Sem meta definida em Configurações → Regras não há com o que comparar; não se inventa um alvo.
+    metaEl.textContent = '—';
+    metaEl.style.color = 'var(--muted)';
+    document.getElementById('metaLabel').textContent = 'não configurada';
+  } else if(metaExced > 0){
+    metaEl.textContent = '+'+minToStr(metaExced);
+    metaEl.style.color = 'var(--red)';
+    cardMetaEl.classList.add('accent-red');
+    document.getElementById('metaLabel').textContent = minToStr(META_MIN);
+  } else {
+    metaEl.textContent = minToStr(Math.abs(metaExced))+' abaixo';
+    metaEl.style.color = 'var(--green)';
+    cardMetaEl.classList.add('accent-green');
+    document.getElementById('metaLabel').textContent = minToStr(META_MIN);
+  }
+  document.getElementById('dashAcima').textContent = minToStr(acimaHEAtual);
+  document.getElementById('dashProgramado').textContent = minToStr(programadoHEAtual);
+  document.getElementById('dashCasos').textContent = precisaCount;
+  document.getElementById('dashSemPadrao').textContent = d.semPadraoCount ? '('+d.semPadraoCount+' sem padrão cadastrado)' : '';
+
+  const total = allItems.length;
+  const doneN = allItems.filter(it=>getCase(it._key).done).length;
+  document.getElementById('doneCount').textContent = doneN;
+  document.getElementById('totalCount').textContent = total;
+  const pct = total ? Math.round(doneN/total*100) : 0;
+  document.getElementById('ringLabel').textContent = pct+'%';
+  const circ = 138.2;
+  document.getElementById('ringFg').style.strokeDashoffset = circ - (circ*pct/100);
+  document.getElementById('progressSub').textContent = (doneN===total && total>0) ? 'tudo resolvido 🎉' : (total-doneN)+' restando';
+
+  const counts = {todos: total, acima_padrao: allItems.filter(it=>it._padraoStatus==='acima').length};
+  allItems.forEach(it=>counts[it._status]=(counts[it._status]||0)+1);
+  const filterDefs = [['todos','Todos'],['acima_padrao','🔺 Acima do padrão'],['forte','🔴 Forte'],['leve','🟡 Leve'],['ok','✅ Confirmado'],['sem_dado','⚪ Sem dado']];
+  const filtersEl = document.getElementById('filters');
+  filtersEl.innerHTML='';
+  filterDefs.forEach(([key,label])=>{
+    if(key!=='todos' && !counts[key]) return;
+    const btn = document.createElement('button');
+    btn.className = 'filter-btn'+(currentFilter===key?' active':'');
+    btn.innerHTML = label+' <span class="count">'+(counts[key]||0)+'</span>';
+    btn.onclick = ()=>{ currentFilter=key; render(); };
+    filtersEl.appendChild(btn);
+  });
+  document.getElementById('sortSelect').value = currentSort;
+
+  const listEl = document.getElementById('list');
+  listEl.innerHTML='';
+  let items = allItems.map(it=>({...it, _done: !!getCase(it._key).done}));
+  if(currentFilter==='acima_padrao') items = items.filter(it=>it._padraoStatus==='acima');
+  else if(currentFilter!=='todos') items = items.filter(it=>it._status===currentFilter);
+  const sortFns = {
+    pendentes: (a,b)=>(a._done-b._done) || (b._heMin-a._heMin),
+    nome_az: (a,b)=>a.motorista.localeCompare(b.motorista,'pt-BR'),
+    nome_za: (a,b)=>b.motorista.localeCompare(a.motorista,'pt-BR'),
+    he_desc: (a,b)=>b._heMin-a._heMin,
+    he_asc: (a,b)=>a._heMin-b._heMin,
+    excedente_desc: (a,b)=>(b._excedenteMin||0)-(a._excedenteMin||0)
+  };
+  items.sort(sortFns[currentSort] || sortFns.pendentes);
+
+  if(items.length===0){
+    listEl.innerHTML = '<div class="empty-state"><div class="big">✨</div>Nada aqui com esse filtro.</div>';
+    return;
+  }
+
+  items.forEach(it=>{
+    const div = document.createElement('div');
+    div.className = 'item status-'+it._status+(it._done?' done':'');
+    const head = document.createElement('div');
+    head.className='item-head';
+    const check = document.createElement('div');
+    check.className='check'+(it._done?' checked':'');
+    check.innerHTML = it._done?'✓':'';
+    check.onclick = (e)=>{ e.stopPropagation(); const c=getCase(it._key); c.done=!c.done; saveState(APPDATA.dateKey); render(); };
+    const main = document.createElement('div');
+    main.className='item-main';
+    main.innerHTML = `
+      <div class="item-top">
+        <span class="motorista ${it._done?'done':''}">${it.motorista}</span>
+        <span class="he1">HE.1 ${it._heStr}${it._corrigido ? ' <span style="font-size:.7em; color:var(--muted); font-weight:400;">(orig. '+it.he1str+')</span>' : ''}</span>
+      </div>
+      <div class="status-line">
+        <span class="badge ${it._status}">${statusLabel(it._status)}</span>
+        ${padraoBadge(it)}
+        ${diaAjustadoBadge(it)}
+        ${lacunaBadge(it)}
+        <span style="color:var(--muted)">${it.confirmadas} batidas confirmadas</span>
+        <span class="chevron">▸</span>
+      </div>
+    `;
+    head.appendChild(check); head.appendChild(main);
+    head.onclick = ()=>div.classList.toggle('open');
+
+    const detail = document.createElement('div');
+    detail.className='item-detail';
+    detail.innerHTML = `
+      <div class="detail-row"><div class="detail-label">Batidas do dia</div><div class="batidas">${it.batidas}</div></div>
+      ${it.padraoHorarios && it.padraoHorarios.length ? `<div class="detail-row"><div class="detail-label">Horário padrão</div><div class="batidas" style="color:var(--muted)">${it.padraoHorarios.join(' · ')}</div></div>` : ''}
+      ${it.interjornada ? `<div class="detail-row" style="color:var(--red)"><div class="detail-label">⚠️ Interjornada</div>${it.interjornada}</div>` : ''}
+      ${it.intervalo ? `<div class="detail-row" style="color:var(--red)"><div class="detail-label">⚠️ Intervalo</div>${it.intervalo}</div>` : ''}
+      ${padraoDetailRow(it)}
+      ${it.detalhe ? `<div class="detail-row"><div class="detail-label">Detalhe</div>${it.detalhe}</div>` : ''}
+      ${it.contexto ? `<div class="detail-row"><div class="detail-label">Escala</div>${it.contexto}</div>` : ''}
+    `;
+    const c = getCase(it._key);
+
+    // HE corrigida — quando, ao resolver o caso, descobre que o valor real era outro (ex: uma
+    // batida não devia contar). Recalcula tudo (painel, filtros, relatórios) na hora.
+    const heRow = document.createElement('div');
+    heRow.className = 'detail-row';
+    const heLabel = document.createElement('div');
+    heLabel.className = 'detail-label';
+    heLabel.textContent = 'HE corrigida (opcional)';
+    const heInput = document.createElement('input');
+    heInput.type = 'text';
+    heInput.className = 'setor-custom-input';
+    heInput.placeholder = 'ex: 00:30 — original: '+it.he1str;
+    heInput.value = (c.heCorrigida!==undefined && c.heCorrigida!==null && c.heCorrigida!=='') ? minToStr(c.heCorrigida) : '';
+    heInput.onblur = ()=>{
+      const raw = heInput.value.trim();
+      if(!raw){
+        delete c.heCorrigida;
+      } else {
+        const parsed = parseHHMMtoMin(raw);
+        if(parsed===null || parsed===undefined || isNaN(parsed)){
+          heInput.value = (c.heCorrigida!==undefined && c.heCorrigida!==null) ? minToStr(c.heCorrigida) : '';
+          return; // formato inválido — ignora e mantém o que tinha
+        }
+        c.heCorrigida = parsed;
+      }
+      saveState(APPDATA.dateKey);
+      render(); // precisa recalcular painel/filtros/badges, não só esse card
+    };
+    heRow.appendChild(heLabel);
+    heRow.appendChild(heInput);
+
+    // Setor responsável — lista conhecida + opção de digitar um nome/setor livre
+    const setorVal = (c.setor!==undefined && c.setor!=='') ? c.setor : (it.setorAtual || '');
+    const isCustom = !!setorVal && !SETOR_OPTS.includes(setorVal);
+    const setorRow = document.createElement('div');
+    setorRow.className = 'setor-row';
+    const select = document.createElement('select');
+    select.innerHTML = `
+      <option value="">Setor responsável...</option>
+      ${SETOR_OPTS.map(s=>`<option value="${s}" ${setorVal===s?'selected':''}>${s}</option>`).join('')}
+      <option value="__outro__" ${isCustom?'selected':''}>Outro (digitar)...</option>
+    `;
+    const customInput = document.createElement('input');
+    customInput.type = 'text';
+    customInput.placeholder = 'Digite o setor/responsável...';
+    customInput.className = 'setor-custom-input';
+    customInput.value = isCustom ? setorVal : '';
+    customInput.style.display = isCustom ? 'block' : 'none';
+    select.onchange = ()=>{
+      if(select.value==='__outro__'){
+        customInput.style.display='block';
+        customInput.focus();
+        c.setor = customInput.value || '';
+      } else {
+        customInput.style.display='none';
+        c.setor = select.value;
+      }
+      saveState(APPDATA.dateKey);
+    };
+    customInput.oninput = ()=>{ c.setor = customInput.value; };
+    customInput.onblur = ()=>{ c.setor = (c.setor||'').trim(); saveState(APPDATA.dateKey); };
+    setorRow.appendChild(select);
+    setorRow.appendChild(customInput);
+
+    // Causa provável — pré-preenchida automaticamente (histórico da pessoa ou padrão do caso),
+    // mas editável. "Outro" libera texto livre igual o setor.
+    const causaVal = (c.causa!==undefined && c.causa!=='') ? c.causa : (it.causaAtual || '');
+    const causaIsCustom = !!causaVal && !CAUSA_OPTS.includes(causaVal);
+    const causaRow = document.createElement('div');
+    causaRow.className = 'setor-row';
+    const causaSelect = document.createElement('select');
+    causaSelect.innerHTML = `
+      <option value="">Causa provável...</option>
+      ${CAUSA_OPTS.map(s=>`<option value="${s}" ${causaVal===s?'selected':''}>${s}</option>`).join('')}
+      <option value="__outro__" ${causaIsCustom?'selected':''}>Outro (digitar)...</option>
+    `;
+    const causaCustomInput = document.createElement('input');
+    causaCustomInput.type = 'text';
+    causaCustomInput.placeholder = 'Digite a causa...';
+    causaCustomInput.className = 'setor-custom-input';
+    causaCustomInput.value = causaIsCustom ? causaVal : '';
+    causaCustomInput.style.display = causaIsCustom ? 'block' : 'none';
+    causaSelect.onchange = ()=>{
+      if(causaSelect.value==='__outro__'){
+        causaCustomInput.style.display='block';
+        causaCustomInput.focus();
+        c.causa = causaCustomInput.value || '';
+      } else {
+        causaCustomInput.style.display='none';
+        c.causa = causaSelect.value;
+      }
+      saveState(APPDATA.dateKey);
+    };
+    causaCustomInput.oninput = ()=>{ c.causa = causaCustomInput.value; };
+    causaCustomInput.onblur = ()=>{ saveState(APPDATA.dateKey); };
+    causaRow.appendChild(causaSelect);
+    causaRow.appendChild(causaCustomInput);
+    if(it.causaAtual && (c.causa===undefined || c.causa==='')){
+      const causaTip = document.createElement('div');
+      causaTip.style.cssText = 'font-size:.75rem; color:var(--muted); margin-top:4px;';
+      causaTip.textContent = '💡 sugestão automática — ' + (it.causaFonte==='historico' ? 'baseada no histórico dessa pessoa' : 'baseada no padrão desse caso') + ', confira e corrija se precisar';
+      causaRow.appendChild(causaTip);
+    }
+
+    // Justificativa livre por caso
+    const justRow = document.createElement('div');
+    justRow.className = 'detail-row';
+    const justLabel = document.createElement('div');
+    justLabel.className = 'detail-label';
+    justLabel.textContent = 'Justificativa';
+    const justArea = document.createElement('textarea');
+    justArea.className = 'justificativa-input';
+    justArea.placeholder = 'Justificativa / observação sobre esse caso...';
+    justArea.value = c.justificativa || '';
+    justArea.oninput = ()=>{ c.justificativa = justArea.value; };
+    justArea.onblur = ()=>{ saveState(APPDATA.dateKey); };
+    justRow.appendChild(justLabel);
+    justRow.appendChild(justArea);
+
+    detail.appendChild(justRow);
+    detail.appendChild(causaRow);
+    detail.appendChild(setorRow);
+    detail.appendChild(heRow);
+    div.appendChild(head); div.appendChild(detail);
+    listEl.appendChild(div);
+  });
+}
+
+/* ================= RELATÓRIOS (dia / mês) ================= */
+function resolvedSetor(it, cs){
+  const c = cs || {};
+  const trimmed = c.setor ? c.setor.trim() : '';
+  return trimmed ? trimmed : (it.setorAtual || 'Sem setor definido');
+}
+function dkToLabel(dk){ const [y,m,d]=dk.split('-'); return d+'/'+m+'/'+y; }
+function mesLabel(mk){
+  const [y,m]=mk.split('-');
+  const nomes=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  return nomes[parseInt(m)-1]+'/'+y;
+}
+
+/* Ciclo de fechamento do ponto: sempre do dia 28 de um mês até o dia 27 do mês seguinte
+   (fechamento é sempre no 27). "cicloKey" é a data de início desse ciclo, no formato YYYY-MM-28. */
+function cicloKeyFor(dk){
+  const [y,m,d] = dk.split('-').map(Number);
+  if(d>=28) return y+'-'+String(m).padStart(2,'0')+'-28';
+  // antes do dia 28: pertence ao ciclo que começou no mês anterior
+  const prevM = m===1 ? 12 : m-1;
+  const prevY = m===1 ? y-1 : y;
+  return prevY+'-'+String(prevM).padStart(2,'0')+'-28';
+}
+function cicloLabel(cicloKey){
+  const [y,m] = cicloKey.split('-').map(Number);
+  const nextM = m===12 ? 1 : m+1;
+  const nextY = m===12 ? y+1 : y;
+  return '28/'+String(m).padStart(2,'0')+' a 27/'+String(nextM).padStart(2,'0')+'/'+nextY;
+}
+
+async function listSavedDateKeys(){
+  try{
+    const res = await STORE.list(SNAPSHOT_PREFIX);
+    if(!res || !res.keys) return [];
+    return res.keys.map(k=>k.slice(SNAPSHOT_PREFIX.length)).sort();
+  }catch(e){ return []; }
+}
+async function loadDaySnapshot(dk){
+  try{
+    const res = await STORE.get(SNAPSHOT_PREFIX+dk);
+    return res && res.value ? JSON.parse(res.value) : null;
+  }catch(e){ return null; }
+}
+async function loadCaseStateFor(dk){
+  try{
+    const res = await STORE.get(STORAGE_PREFIX+dk);
+    const raw = res && res.value ? JSON.parse(res.value) : {};
+    const out = {};
+    for(const k in raw){
+      const v = raw[k];
+      out[k] = (typeof v==='boolean') ? {done:v} : (v||{});
+    }
+    return out;
+  }catch(e){ return {}; }
+}
+
+/* Troca um nome de setor por outro em todos os dias de uma lista (mês OU ciclo de fechamento) de
+   uma vez — pra não precisar corrigir caso por caso quando o mesmo motivo foi digitado de formas
+   diferentes ao longo do período (ex: "Quebra de veículo", "quebra de veiculo", "Quebra"). */
+async function mesclarSetorEmDias(dateKeys, de, para){
+  if(!de || !para || de===para) return {trocados:0};
+  const deKey = setorGroupKey(de);
+  let trocados = 0;
+  for(const dk of dateKeys){
+    const cs = await loadCaseStateFor(dk);
+    let mudou = false;
+    for(const k in cs){
+      // compara pela mesma chave normalizada usada pra agrupar na tela (ignora maiúscula/
+      // minúscula e espaços) — assim pega qualquer variante de grafia do mesmo motivo
+      if(cs[k].setor && setorGroupKey(cs[k].setor)===deKey){ cs[k].setor = para; mudou = true; trocados++; }
+    }
+    if(mudou){
+      try{ await STORE.set(STORAGE_PREFIX+dk, JSON.stringify(cs)); }catch(e){ console.error('Falha ao salvar mesclagem de setor', dk, e); }
+      if(APPDATA && APPDATA.dateKey===dk) await loadState(dk);
+    }
+  }
+  return {trocados};
+}
+
+/* Olha os dias já processados e monta, por motorista, qual causa provável ela mais escolheu
+   nos casos anteriores — usado pra pré-preencher o campo novo sem ela ter que digitar de novo
+   o mesmo motivo toda vez que a mesma pessoa/veículo dá o mesmo problema. */
+async function getHistoricalCausaMap(){
+  try{
+    const dateKeys = await listSavedDateKeys();
+    const recentes = dateKeys.slice(-30); // até 30 dias mais recentes, pra não pesar
+    const contagem = {}; // normName -> {causa: vezes}
+    for(const dk of recentes){
+      const snap = await loadDaySnapshot(dk);
+      if(!snap || !snap.items) continue;
+      const cs = await loadCaseStateFor(dk);
+    if(snap && snap.items) migrarChaves(cs, snap.items);
+      snap.items.forEach((it,i)=>{
+        const c = cs[itemKey(it)];
+        if(c && c.causa && CAUSA_OPTS.includes(c.causa)){ // só conta opções da lista fixa, não texto livre variado
+          const key = normName(it.motorista);
+          if(!contagem[key]) contagem[key] = {};
+          contagem[key][c.causa] = (contagem[key][c.causa]||0)+1;
+        }
+      });
+    }
+    const resultado = {};
+    for(const key in contagem){
+      let best=null, bestN=0;
+      for(const causa in contagem[key]){ if(contagem[key][causa]>bestN){ best=causa; bestN=contagem[key][causa]; } }
+      if(best) resultado[key] = best;
+    }
+    return resultado;
+  }catch(e){ console.error('Falha ao carregar histórico de causas', e); return {}; }
+}
+
+async function renderReportDia(dk){
+  const body = document.getElementById('reportDiaBody');
+  if(!dk){ body.innerHTML = '<div class="empty-state">Nenhum dia processado ainda. Processe um dia na tela principal.</div>'; return; }
+  body.innerHTML = '<div class="empty-state">Carregando...</div>';
+  const snap = await loadDaySnapshot(dk);
+  if(!snap || !snap.items){ body.innerHTML = '<div class="empty-state">Sem dados salvos pra esse dia.</div>'; return; }
+  const cs = await loadCaseStateFor(dk);
+    if(snap && snap.items) migrarChaves(cs, snap.items);
+  let totalHEAtual = 0, pendentes = 0;
+  const bySetor = {};
+  const bySetorLabel = {};
+  const casosPorSetor = {};
+  snap.items.forEach((it,i)=>{
+    const c = cs[itemKey(it)] || {};
+    const heMin = heEfetivo(it, c);
+    const reclass = reclassificar(it, heMin);
+    totalHEAtual += heMin;
+    const setor = resolvedSetor(it, c);
+    somarNoSetor(bySetor, bySetorLabel, setor, reclass, heMin, casosPorSetor,
+      {dk, motorista: it.motorista, justificativa: c.justificativa||'', setorAtual: setor,
+       causaAtual: (c.causa&&c.causa.trim())?c.causa:(it.causaAtual||''), done: !!c.done});
+    if(reclass.padraoStatus!=='dentro' && !c.done) pendentes++;
+  });
+  const metaExced = totalHEAtual - META_MIN;
+  const setorRows = Object.entries(bySetor).sort((a,b)=>b[1]-a[1])
+    .map(([s,m])=>`<div class="report-setor-row report-setor-row-click" data-setorkey="${s}" style="cursor:pointer;"><span>${bySetorLabel[s]} <span style="color:var(--blue); font-size:.75em;">▾ ver casos</span></span><b>${minToStr(m)}</b></div>`).join('');
+  const driverRows = snap.items.map((it,i)=>{
+    const c = cs[itemKey(it)] || {};
+    const heMin = heEfetivo(it, c);
+    const reclass = reclassificar(it, heMin);
+    const setor = resolvedSetor(it, c);
+    return `<div class="report-driver-row">
+      <span>${it.motorista}</span>
+      <span class="badge ${reclass.status}">${statusLabel(reclass.status)}</span>
+      <span>${minToStr(heMin)}${heMin!==it.he1min ? ' <span style="color:var(--muted); font-size:.8em;">(orig. '+it.he1str+')</span>' : ''}</span>
+      <span style="color:var(--muted)">${setor}</span>
+      ${c.justificativa ? `<div style="width:100%; color:var(--muted); font-size:.8rem; margin-top:2px;">📝 ${c.justificativa}</div>` : ''}
+    </div>`;
+  }).join('');
+  body.innerHTML = `
+    <div class="dash-grid" style="margin-top:14px;">
+      <div class="dash-card accent-blue"><div class="num">${minToStr(totalHEAtual)}</div><div class="lbl">HE.1 total do dia</div></div>
+      ${metaConfigurada()
+        ? `<div class="dash-card ${metaExced>0?'accent-red':'accent-green'}"><div class="num">${metaExced>0?'+':''}${minToStr(Math.abs(metaExced))}</div><div class="lbl">vs meta ${minToStr(META_MIN)}</div></div>`
+        : `<div class="dash-card"><div class="num">—</div><div class="lbl">meta não configurada</div></div>`}
+      <div class="dash-card"><div class="num">${snap.items.length}</div><div class="lbl">motoristas com HE</div></div>
+      <div class="dash-card ${pendentes?'accent-red':''}"><div class="num">${pendentes}</div><div class="lbl">ainda pendentes</div></div>
+    </div>
+    <button class="process-btn" id="btnAbrirDiaChecklist" style="margin:14px 0;">📋 Abrir esse dia no checklist</button>
+    <h3 style="margin:18px 0 8px;">HE.1 por setor</h3>
+    <div class="report-setor-list">${setorRows || '<div class="empty-state">Sem setor atribuído ainda.</div>'}</div>
+    <h3 style="margin:18px 0 8px;">Motoristas</h3>
+    <div class="report-driver-list">${driverRows}</div>
+  `;
+  document.getElementById('btnAbrirDiaChecklist').addEventListener('click', ()=>openDayFromSnapshot(dk));
+  anexarDrillDownSetor(body, casosPorSetor, bySetorLabel, ()=>renderReportDia(dk));
+}
+
+/* Abre um dia já salvo direto no checklist interativo, sem precisar reprocessar os arquivos. */
+/* Constrói o painel que abre quando clica numa linha de setor: lista os casos individuais que
+   compõem aquele total (motorista, dia, minutos), com um campo pra editar o setor de cada um
+   direto ali. Reaproveitado no relatório de um dia e no de período (mês/ciclo). */
+/* Salva um campo (setor/causa/justificativa/done) de um caso específico (dia+motorista) sem
+   precisar abrir o dia inteiro. Reaproveitado pelos quatro campos do drill-down. */
+async function salvarCampoCaso(dk, motorista, campo, valor){
+  const csCaso = await loadCaseStateFor(dk);
+  const chave = normName(motorista);
+  if(!csCaso[chave]) csCaso[chave] = {};
+  csCaso[chave][campo] = valor;
+  try{ await STORE.set(STORAGE_PREFIX+dk, JSON.stringify(csCaso)); }catch(e){ console.error('Falha ao salvar '+campo+' via drill-down', e); }
+  if(APPDATA && APPDATA.dateKey===dk) await loadState(dk);
+}
+
+function anexarDrillDownSetor(body, casosPorSetor, bySetorLabel, aoEditar){
+  let painel = body.querySelector('.setor-drilldown-painel');
+  if(!painel){
+    painel = document.createElement('div');
+    painel.className = 'transfer-box setor-drilldown-painel';
+    painel.style.marginTop = '10px';
+    painel.style.display = 'none';
+    const listaSetor = body.querySelector('.report-setor-list');
+    if(listaSetor && listaSetor.parentNode){
+      listaSetor.parentNode.insertBefore(painel, listaSetor.nextSibling);
+    } else {
+      body.appendChild(painel);
+    }
+  }
+
+  body.querySelectorAll('.report-setor-row-click').forEach(row=>{
+    row.addEventListener('click', ()=>{
+      const key = row.dataset.setorkey;
+      const casos = (casosPorSetor[key] || []).slice().sort((a,b)=>a.dk.localeCompare(b.dk));
+      painel.style.display = 'block';
+      painel.innerHTML = '';
+
+      const topo = document.createElement('div');
+      topo.innerHTML = `<span class="detail-label">📂 Casos em "${bySetorLabel[key]}" (${casos.length})</span>`;
+      const fechar = document.createElement('span');
+      fechar.className = 'back-link';
+      fechar.style.float = 'right';
+      fechar.textContent = 'fechar ✕';
+      fechar.onclick = ()=>{ painel.style.display='none'; };
+      topo.appendChild(fechar);
+      painel.appendChild(topo);
+
+      const sub = document.createElement('div');
+      sub.className = 'subtitle';
+      sub.style.margin = '4px 0 10px';
+      sub.textContent = 'Setor, causa provável, justificativa e resolvido — edita qualquer um aqui, sem abrir o dia inteiro.';
+      painel.appendChild(sub);
+
+      casos.forEach(caso=>{
+        const card = document.createElement('div');
+        card.className = 'report-driver-row';
+        card.style.cssText = 'flex-wrap:wrap; align-items:flex-start; gap:8px;';
+
+        // cabeçalho: check de resolvido + nome + data + minutos
+        const cabecalho = document.createElement('div');
+        cabecalho.style.cssText = 'display:flex; align-items:center; gap:8px; width:100%;';
+        const checkDone = document.createElement('input');
+        checkDone.type = 'checkbox';
+        checkDone.checked = !!caso.done;
+        checkDone.style.cssText = 'width:18px; height:18px; flex-shrink:0;';
+        checkDone.onchange = async ()=>{
+          await salvarCampoCaso(caso.dk, caso.motorista, 'done', checkDone.checked);
+          caso.done = checkDone.checked;
+        };
+        cabecalho.appendChild(checkDone);
+        const nomeEl = document.createElement('span');
+        nomeEl.style.fontWeight = '600';
+        nomeEl.textContent = caso.motorista;
+        cabecalho.appendChild(nomeEl);
+        const dataEl = document.createElement('span');
+        dataEl.style.cssText = 'color:var(--muted); margin-left:auto;';
+        dataEl.textContent = dkToLabel(caso.dk);
+        cabecalho.appendChild(dataEl);
+        const minEl = document.createElement('span');
+        minEl.style.fontWeight = '700';
+        minEl.textContent = minToStr(caso.min);
+        cabecalho.appendChild(minEl);
+        const btnAbrirDia = document.createElement('button');
+        btnAbrirDia.className = 'filter-btn';
+        btnAbrirDia.style.cssText = 'padding:5px 10px; font-size:.78rem; white-space:nowrap;';
+        btnAbrirDia.textContent = 'Abrir dia →';
+        btnAbrirDia.onclick = ()=>abrirCasoNoDia(caso.dk, caso.motorista);
+        cabecalho.appendChild(btnAbrirDia);
+        card.appendChild(cabecalho);
+
+        // setor + causa provável lado a lado
+        const linhaCampos = document.createElement('div');
+        linhaCampos.className = 'setor-row';
+        linhaCampos.style.width = '100%';
+
+        const inputSetor = document.createElement('input');
+        inputSetor.type = 'text';
+        inputSetor.className = 'setor-custom-input';
+        inputSetor.placeholder = 'Setor';
+        inputSetor.value = caso.setorAtual;
+        inputSetor.style.flex = '1';
+        inputSetor.onblur = async ()=>{
+          const novo = inputSetor.value.trim();
+          if(!novo || novo===caso.setorAtual) return;
+          await salvarCampoCaso(caso.dk, caso.motorista, 'setor', novo);
+          caso.setorAtual = novo;
+          await aoEditar(); // recalcula os totais de setor, já que esse campo afeta agrupamento
+        };
+
+        const causaIsCustom = !!caso.causaAtual && !CAUSA_OPTS.includes(caso.causaAtual);
+        const selectCausa = document.createElement('select');
+        selectCausa.style.flex = '1';
+        selectCausa.innerHTML = `
+          <option value="">Causa provável...</option>
+          ${CAUSA_OPTS.map(o=>`<option value="${o}" ${caso.causaAtual===o?'selected':''}>${o}</option>`).join('')}
+          <option value="__outro__" ${causaIsCustom?'selected':''}>Outro (digitar)...</option>
+        `;
+        const inputCausaCustom = document.createElement('input');
+        inputCausaCustom.type = 'text';
+        inputCausaCustom.className = 'setor-custom-input';
+        inputCausaCustom.placeholder = 'Digite a causa...';
+        inputCausaCustom.value = causaIsCustom ? caso.causaAtual : '';
+        inputCausaCustom.style.cssText = 'flex:1; display:'+(causaIsCustom?'block':'none')+';';
+        selectCausa.onchange = async ()=>{
+          if(selectCausa.value==='__outro__'){
+            inputCausaCustom.style.display = 'block';
+            inputCausaCustom.focus();
+          } else {
+            inputCausaCustom.style.display = 'none';
+            await salvarCampoCaso(caso.dk, caso.motorista, 'causa', selectCausa.value);
+            caso.causaAtual = selectCausa.value;
+          }
+        };
+        inputCausaCustom.onblur = async ()=>{
+          const novo = inputCausaCustom.value.trim();
+          if(!novo) return;
+          await salvarCampoCaso(caso.dk, caso.motorista, 'causa', novo);
+          caso.causaAtual = novo;
+        };
+
+        linhaCampos.appendChild(inputSetor);
+        linhaCampos.appendChild(selectCausa);
+        linhaCampos.appendChild(inputCausaCustom);
+        card.appendChild(linhaCampos);
+
+        // justificativa
+        const areaJust = document.createElement('textarea');
+        areaJust.className = 'justificativa-input';
+        areaJust.placeholder = 'Justificativa / observação sobre esse caso...';
+        areaJust.value = caso.justificativa || '';
+        areaJust.style.cssText = 'width:100%; margin-top:6px; min-height:44px;';
+        areaJust.onblur = async ()=>{
+          if(areaJust.value===caso.justificativa) return;
+          await salvarCampoCaso(caso.dk, caso.motorista, 'justificativa', areaJust.value);
+          caso.justificativa = areaJust.value;
+        };
+        card.appendChild(areaJust);
+
+        painel.appendChild(card);
+      });
+    });
+  });
+}
+
+async function openDayFromSnapshot(dk){
+  const snap = await loadDaySnapshot(dk);
+  if(!snap){ return; }
+  APPDATA = snap;
+  document.getElementById('reportScreen').classList.add('hidden');
+  await showResults();
+}
+
+/* Abre o dia inteiro de um motorista específico (a partir do drill-down de setor) já com o card
+   dele expandido e centralizado na tela — pra conferir batidas/rastreio sem precisar procurar
+   manualmente na lista. */
+async function abrirCasoNoDia(dk, motorista){
+  await openDayFromSnapshot(dk);
+  const alvo = normName(motorista);
+  setTimeout(()=>{
+    const cards = document.querySelectorAll('#list .item');
+    for(const card of cards){
+      const nomeEl = card.querySelector('.motorista');
+      if(nomeEl && normName(nomeEl.textContent)===alvo){
+        card.classList.add('open');
+        card.scrollIntoView({behavior:'smooth', block:'center'});
+        card.style.outline = '3px solid var(--blue)';
+        card.style.borderRadius = '10px';
+        setTimeout(()=>{ card.style.outline=''; }, 2500);
+        break;
+      }
+    }
+  }, 60); // pequena espera pro render() terminar de desenhar a lista
+}
+
+/* Mais que isso no período = sinalizar pra mensagem/termo. Vem de Configurações → Regras
+   (recurrenceLimit) — o mesmo parâmetro que recurrenceService/priorizacaoService já usam do lado
+   do Jornada360, pra motor e telas nunca discordarem sobre quem é reincidente. */
+const LIMITE_REINCIDENCIA = numeroDaQuerystring('reinc', 5);
+
+/* Monta o relatório completo (setor, causa, reincidência, pendências, mesclagem) pra QUALQUER
+   lista de dias — usado tanto pelo relatório "Por mês" quanto pelo "Por ciclo (28-27)", já que a
+   lógica de agregação é idêntica, só muda quais dias entram na conta. */
+async function montarRelatorioPeriodo(body, periodoKeys, tituloTotal, onMesclar){
+  if(!periodoKeys.length){ body.innerHTML = '<div class="empty-state">Sem dias processados nesse período.</div>'; return; }
+  body.innerHTML = '<div class="empty-state">Carregando...</div>';
+  let totalHE=0, diasAcimaMeta=0;
+  const bySetor = {};
+  const bySetorLabel = {};
+  const casosPorSetor = {}; // groupKey -> [{dk, motorista, min, justificativa, setor}]
+  const byCausa = {}; // causa -> {n, min}
+  const diaRows = []; // {dk, totalHE, n, pendentes}
+  const reincidencia = {}; // normName -> {nome, dias:[dk...], excedenteTotal}
+  const justificativas = []; // {motorista, dk, setor, justificativa, excedenteMin}
+
+  for(const dk of periodoKeys){
+    const snap = await loadDaySnapshot(dk);
+    if(!snap || !snap.items) continue;
+    const cs = await loadCaseStateFor(dk);
+    if(snap && snap.items) migrarChaves(cs, snap.items);
+    let totalHEDia = 0, pendentesDia = 0;
+    snap.items.forEach((it,i)=>{
+      const c = cs[itemKey(it)] || {};
+      const heMin = heEfetivo(it, c);
+      const reclass = reclassificar(it, heMin);
+      totalHEDia += heMin;
+      const setor = resolvedSetor(it, c);
+      const causaResolvida = (c.causa && c.causa.trim()) ? c.causa : (it.causaAtual || '');
+      somarNoSetor(bySetor, bySetorLabel, setor, reclass, heMin, casosPorSetor,
+        {dk, motorista: it.motorista, justificativa: c.justificativa||'', setorAtual: setor,
+         causaAtual: causaResolvida, done: !!c.done});
+
+      const causa = causaResolvida || null;
+      if(causa && reclass.padraoStatus==='acima'){
+        if(!byCausa[causa]) byCausa[causa] = {n:0, min:0};
+        byCausa[causa].n++;
+        byCausa[causa].min += (reclass.excedenteMin||0);
+      }
+
+      if(reclass.padraoStatus==='acima'){
+        const key = normName(it.motorista);
+        if(!reincidencia[key]) reincidencia[key] = {nome: it.motorista, dias: [], excedenteTotal: 0};
+        reincidencia[key].dias.push(dk);
+        reincidencia[key].excedenteTotal += (reclass.excedenteMin||0);
+        if(!c.done) pendentesDia++;
+      }
+      if(c.justificativa && c.justificativa.trim()){
+        justificativas.push({motorista: it.motorista, dk, setor, justificativa: c.justificativa, excedenteMin: reclass.excedenteMin||0});
+      }
+    });
+    totalHE += totalHEDia;
+    if(metaConfigurada() && totalHEDia > META_MIN) diasAcimaMeta++;
+    diaRows.push({dk, totalHE: totalHEDia, n: snap.items.length, pendentes: pendentesDia});
+  }
+
+  const setorRows = Object.entries(bySetor).sort((a,b)=>b[1]-a[1])
+    .map(([s,m])=>`<div class="report-setor-row report-setor-row-click" data-setorkey="${s}" style="cursor:pointer;"><span>${bySetorLabel[s]} <span style="color:var(--blue); font-size:.75em;">▾ ver casos</span></span><b>${minToStr(m)}</b></div>`).join('');
+  const causaRows = Object.entries(byCausa).sort((a,b)=>b[1].n-a[1].n)
+    .map(([causa,v])=>`<div class="report-setor-row"><span>${causa}</span><b>${v.n}x · ${minToStr(v.min)} de excedente</b></div>`).join('');
+  const diaRowsOrdenados = diaRows.sort((a,b)=>a.dk.localeCompare(b.dk));
+  const diaTable = diaRowsOrdenados.map(r=>
+    `<div class="report-driver-row"><span>${dkToLabel(r.dk)}</span><span>${minToStr(r.totalHE)}</span><span style="color:var(--muted)">${r.n} motoristas</span></div>`
+  ).join('');
+
+  const totalPendentes = diaRowsOrdenados.reduce((s,r)=>s+r.pendentes,0);
+  const pendenciasTable = diaRowsOrdenados.filter(r=>r.pendentes>0).map(r=>
+    `<div class="report-driver-row">
+      <span>${dkToLabel(r.dk)}</span>
+      <span class="badge forte">${r.pendentes} pendente${r.pendentes>1?'s':''}</span>
+      <button class="filter-btn" data-dk="${r.dk}" style="padding:6px 12px;">Abrir e resolver →</button>
+    </div>`
+  ).join('');
+
+  const reincidentes = Object.values(reincidencia).sort((a,b)=>b.dias.length-a.dias.length);
+  const reincidentesFlag = reincidentes.filter(r=>r.dias.length>LIMITE_REINCIDENCIA);
+  const reincidenciaTable = reincidentes.map(r=>{
+    const flag = r.dias.length>LIMITE_REINCIDENCIA;
+    return `<div class="report-driver-row">
+      <span>${flag?'⚠️ ':''}${r.nome}</span>
+      <span class="badge ${flag?'forte':'sem_dado'}">${r.dias.length}x acima do padrão</span>
+      <span style="color:var(--muted)">excedente total: ${minToStr(r.excedenteTotal)}</span>
+      ${flag ? `<div style="width:100%; color:var(--red); font-size:.8rem; margin-top:2px;">Passou de ${LIMITE_REINCIDENCIA}x no período — recomendado enviar mensagem ou termo</div>` : ''}
+    </div>`;
+  }).join('');
+
+  const justTable = justificativas.sort((a,b)=>b.dk.localeCompare(a.dk)).map(j=>
+    `<div class="report-driver-row">
+      <span>${j.motorista}</span>
+      <span style="color:var(--muted)">${dkToLabel(j.dk)}</span>
+      <span style="color:var(--muted)">${j.setor}</span>
+      <div style="width:100%; font-size:.85rem; margin-top:2px;">📝 ${j.justificativa}${j.excedenteMin>0?' · excedeu '+j.excedenteMin+' min':''}</div>
+    </div>`
+  ).join('');
+
+  const setorKeys = Object.keys(bySetor).sort((a,b)=>bySetor[b]-bySetor[a]);
+  const dentroPadraoKey = setorGroupKey('Dentro do padrão');
+  const setorKeysReal = setorKeys.filter(s=>s!==dentroPadraoKey); // não é um valor salvo de verdade, é calculado — não dá pra mesclar "a partir" dele
+  const renomearOptions = setorKeysReal.map(s=>`<option value="${bySetorLabel[s]}">${bySetorLabel[s]} (${minToStr(bySetor[s])})</option>`).join('');
+  const renomearDatalist = setorKeys.map(s=>`<option value="${bySetorLabel[s]}">`).join('');
+  const renomearId = 'renomear_'+Math.random().toString(36).slice(2); // ids únicos pra não colidir entre as abas mês/ciclo
+
+  body.innerHTML = `
+    <div class="dash-grid" style="margin-top:14px;">
+      <div class="dash-card accent-blue"><div class="num">${minToStr(totalHE)}</div><div class="lbl">${tituloTotal}</div></div>
+      <div class="dash-card"><div class="num">${periodoKeys.length}</div><div class="lbl">dias processados</div></div>
+      ${metaConfigurada()
+        ? `<div class="dash-card accent-red"><div class="num">${diasAcimaMeta}</div><div class="lbl">dias acima da meta (${minToStr(META_MIN)})</div></div>`
+        : `<div class="dash-card"><div class="num">—</div><div class="lbl">meta diária não configurada</div></div>`}
+      <div class="dash-card ${reincidentesFlag.length?'accent-red':''}"><div class="num">${reincidentesFlag.length}</div><div class="lbl">motoristas com mais de ${LIMITE_REINCIDENCIA}x acima do padrão</div></div>
+      <div class="dash-card ${totalPendentes?'accent-red':'accent-green'}"><div class="num">${totalPendentes}</div><div class="lbl">casos pendentes no período</div></div>
+    </div>
+    <h3 style="margin:18px 0 8px;">Pendências do período (por dia)</h3>
+    <div class="report-driver-list">${pendenciasTable || '<div class="empty-state">Nada pendente nesse período 🎉</div>'}</div>
+    <h3 style="margin:18px 0 8px;">HE.1 por setor</h3>
+    <div class="report-setor-list">${setorRows || '<div class="empty-state">Sem setor atribuído.</div>'}</div>
+    ${setorKeysReal.length>0 ? `
+    <div class="transfer-box" style="margin-top:10px;">
+      <div class="detail-label">🔧 Renomear/mesclar setores duplicados</div>
+      <div class="subtitle" style="margin-bottom:8px;">Junta nomes parecidos (ex: "Quebra de veículo" e "Quebra") em todos os dias desse período de uma vez.</div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+        <select id="${renomearId}_de" class="report-select" style="flex:1; min-width:160px; margin-bottom:0;">${renomearOptions}</select>
+        <span style="color:var(--muted)">→</span>
+        <input id="${renomearId}_para" list="${renomearId}_lista" placeholder="Nome final (existente ou novo)" class="setor-custom-input" style="flex:1; min-width:160px;">
+        <datalist id="${renomearId}_lista">${renomearDatalist}</datalist>
+        <button class="process-btn" id="${renomearId}_btn" style="white-space:nowrap;">Mesclar</button>
+      </div>
+      <div class="status-msg" id="${renomearId}_status"></div>
+    </div>` : ''}
+    <h3 style="margin:18px 0 8px;">Causa provável do excedente</h3>
+    <div class="report-setor-list">${causaRows || '<div class="empty-state">Sem causa registrada ainda.</div>'}</div>
+    <h3 style="margin:18px 0 8px;">Reincidência por motorista</h3>
+    <div class="report-driver-list">${reincidenciaTable || '<div class="empty-state">Ninguém passou do padrão nesse período.</div>'}</div>
+    <h3 style="margin:18px 0 8px;">Justificativas do período</h3>
+    <div class="report-driver-list">${justTable || '<div class="empty-state">Nenhuma justificativa registrada ainda.</div>'}</div>
+    <h3 style="margin:18px 0 8px;">Por dia</h3>
+    <div class="report-driver-list">${diaTable}</div>
+  `;
+  body.querySelectorAll('button[data-dk]').forEach(btn=>{
+    btn.addEventListener('click', ()=>openDayFromSnapshot(btn.dataset.dk));
+  });
+  const btnRenomear = document.getElementById(renomearId+'_btn');
+  if(btnRenomear){
+    btnRenomear.addEventListener('click', async ()=>{
+      const de = document.getElementById(renomearId+'_de').value;
+      const para = document.getElementById(renomearId+'_para').value.trim();
+      const statusEl = document.getElementById(renomearId+'_status');
+      if(!para){ statusEl.textContent='Digite o nome final antes de mesclar.'; statusEl.style.color='var(--red)'; return; }
+      if(de===para){ statusEl.textContent='Os dois nomes são iguais.'; statusEl.style.color='var(--red)'; return; }
+      btnRenomear.disabled = true;
+      statusEl.textContent = 'Mesclando...';
+      statusEl.style.color = 'var(--muted)';
+      try{
+        const r = await withTimeout(mesclarSetorEmDias(periodoKeys, de, para), 15000);
+        statusEl.textContent = r.trocados+' caso(s) atualizado(s) — "'+de+'" agora é "'+para+'".';
+        statusEl.style.color = 'var(--green)';
+        await withTimeout(onMesclar(), 15000); // recarrega com os totais já mesclados
+      }catch(e){
+        console.error('Falha ao mesclar setor', e);
+        statusEl.textContent = 'Erro: '+(e && e.message ? e.message : String(e))+' — tenta de novo. Se persistir, manda um print dessa mensagem.';
+        statusEl.style.color = 'var(--red)';
+      }finally{
+        btnRenomear.disabled = false; // nunca fica travado, mesmo se der erro
+      }
+    });
+  }
+  anexarDrillDownSetor(body, casosPorSetor, bySetorLabel, onMesclar);
+}
+
+async function renderReportMes(mk){
+  const body = document.getElementById('reportMesBody');
+  if(!mk){ body.innerHTML = '<div class="empty-state">Nenhum dia processado ainda.</div>'; return; }
+  const allKeys = await listSavedDateKeys();
+  const monthKeys = allKeys.filter(dk=>dk.startsWith(mk));
+  await montarRelatorioPeriodo(body, monthKeys, 'HE.1 total do mês', ()=>renderReportMes(mk));
+}
+
+async function renderReportCiclo(cicloKey){
+  const body = document.getElementById('reportCicloBody');
+  if(!cicloKey){ body.innerHTML = '<div class="empty-state">Nenhum dia processado ainda.</div>'; return; }
+  const allKeys = await listSavedDateKeys();
+  const cicloKeys = allKeys.filter(dk=>cicloKeyFor(dk)===cicloKey);
+  await montarRelatorioPeriodo(body, cicloKeys, 'HE.1 total do ciclo', ()=>renderReportCiclo(cicloKey));
+}
+
+async function populateReportSelectors(){
+  const dateKeys = await listSavedDateKeys();
+  const diaSelect = document.getElementById('reportDiaSelect');
+  diaSelect.innerHTML = dateKeys.slice().reverse().map(dk=>`<option value="${dk}">${dkToLabel(dk)}</option>`).join('');
+  if(dateKeys.length){
+    diaSelect.value = dateKeys[dateKeys.length-1];
+    await renderReportDia(diaSelect.value);
+  } else {
+    await renderReportDia(null);
+  }
+
+  const months = [...new Set(dateKeys.map(dk=>dk.slice(0,7)))].sort();
+  const mesSelect = document.getElementById('reportMesSelect');
+  mesSelect.innerHTML = months.slice().reverse().map(mk=>`<option value="${mk}">${mesLabel(mk)}</option>`).join('');
+  if(months.length){
+    mesSelect.value = months[months.length-1];
+    await renderReportMes(mesSelect.value);
+  } else {
+    await renderReportMes(null);
+  }
+
+  const ciclos = [...new Set(dateKeys.map(dk=>cicloKeyFor(dk)))].sort();
+  const cicloSelect = document.getElementById('reportCicloSelect');
+  cicloSelect.innerHTML = ciclos.slice().reverse().map(ck=>`<option value="${ck}">${cicloLabel(ck)}</option>`).join('');
+  if(ciclos.length){
+    cicloSelect.value = ciclos[ciclos.length-1];
+    await renderReportCiclo(cicloSelect.value);
+  } else {
+    await renderReportCiclo(null);
+  }
+}
+
+async function openReportScreen(){
+  document.getElementById('uploadScreen').classList.add('hidden');
+  document.getElementById('resultScreen').classList.add('hidden');
+  document.getElementById('reportScreen').classList.remove('hidden');
+  await populateReportSelectors();
+}
+document.getElementById('openReportFromUpload').addEventListener('click', openReportScreen);
+document.getElementById('openReportFromResult').addEventListener('click', openReportScreen);
+document.getElementById('reportBackLink').addEventListener('click', ()=>{
+  document.getElementById('reportScreen').classList.add('hidden');
+  if(APPDATA){
+    document.getElementById('resultScreen').classList.remove('hidden');
+    render();
+  } else {
+    document.getElementById('uploadScreen').classList.remove('hidden');
+  }
+});
+document.querySelectorAll('.report-tab').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.report-tab').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    const tab = btn.dataset.tab;
+    document.getElementById('reportDiaPane').classList.toggle('hidden', tab!=='dia');
+    document.getElementById('reportMesPane').classList.toggle('hidden', tab!=='mes');
+    document.getElementById('reportCicloPane').classList.toggle('hidden', tab!=='ciclo');
+  });
+});
+document.getElementById('reportDiaSelect').addEventListener('change', e=>renderReportDia(e.target.value));
+document.getElementById('reportMesSelect').addEventListener('change', e=>renderReportMes(e.target.value));
+document.getElementById('reportCicloSelect').addEventListener('change', e=>renderReportCiclo(e.target.value));
+
+/* ================= TRANSFERIR PROGRESSO (entre assistentes/versões) ================= */
+document.getElementById('openTransfer').addEventListener('click', ()=>{
+  const panel = document.getElementById('transferPanel');
+  panel.classList.toggle('hidden');
+  if(!panel.classList.contains('hidden')){
+    document.getElementById('exportBox').value = JSON.stringify(caseState);
+  }
+});
+document.getElementById('copyExportBtn').addEventListener('click', async ()=>{
+  const box = document.getElementById('exportBox');
+  box.select();
+  try{
+    await navigator.clipboard.writeText(box.value);
+    document.getElementById('copyExportBtn').textContent = 'Copiado ✓';
+    setTimeout(()=>{ document.getElementById('copyExportBtn').textContent='Copiar'; }, 1800);
+  }catch(e){
+    // clipboard pode não estar disponível — o texto já está selecionado, dá pra Ctrl+C manualmente
+  }
+});
+document.getElementById('importBtn').addEventListener('click', async ()=>{
+  const statusEl = document.getElementById('importStatus');
+  const raw = document.getElementById('importBox').value.trim();
+  if(!raw){ statusEl.textContent='Cola o texto exportado primeiro.'; statusEl.style.color='var(--red)'; return; }
+  try{
+    const imported = JSON.parse(raw);
+    // A chave antiga é "NOME__índice" — o índice depende da ORDEM da lista (por HE, maior pro
+    // menor), que muda toda vez que o dia é reprocessado (mesmo uma diferença de 1 minuto no
+    // cálculo já reordena quem fica em qual posição). Por isso casamos pelo NOME do motorista,
+    // não pela chave inteira — senão o setor/justificativa de uma pessoa gruda em outra.
+    const nomeParaChaveAtual = {};
+    APPDATA.items.forEach((it,i)=>{ nomeParaChaveAtual[normName(it.motorista)] = itemKey(it,i); });
+
+    let casados=0, semCorrespondencia=[];
+    for(const keyImportado in imported){
+      const inc = imported[keyImportado] || {};
+      const idx = keyImportado.lastIndexOf('__');
+      const nomeImportado = idx>=0 ? keyImportado.slice(0, idx) : keyImportado;
+      const chaveAtual = nomeParaChaveAtual[normName(nomeImportado)];
+      if(!chaveAtual){ semCorrespondencia.push(nomeImportado); continue; }
+      const cur = getCase(chaveAtual);
+      if(inc.done) cur.done = true;
+      if(inc.setor) cur.setor = inc.setor.trim();
+      if(inc.causa) cur.causa = inc.causa;
+      if(inc.heCorrigida!==undefined && inc.heCorrigida!==null) cur.heCorrigida = inc.heCorrigida;
+      if(inc.justificativa) cur.justificativa = cur.justificativa ? (cur.justificativa+' | '+inc.justificativa) : inc.justificativa;
+      casados++;
+    }
+    await saveState(APPDATA.dateKey);
+    render();
+    document.getElementById('exportBox').value = JSON.stringify(caseState);
+    statusEl.textContent = casados+' motorista(s) importado(s) com sucesso'+
+      (semCorrespondencia.length ? ' — '+semCorrespondencia.length+' não encontrados nessa lista hoje (nome mudou ou não tem HE hoje): '+semCorrespondencia.slice(0,5).join(', ')+(semCorrespondencia.length>5?'...':'') : '')+'.';
+    statusEl.style.color = 'var(--green)';
+  }catch(e){
+    statusEl.textContent = 'Não consegui ler esse texto — confere se colou certinho, do começo ao fim.';
+    statusEl.style.color = 'var(--red)';
+  }
+});
+</script>
+</body>
+</html>

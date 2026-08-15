@@ -1,0 +1,39 @@
+# Proxy do Jornada360.
+#
+# O Caddy resolve o item mais chato do deploy: HTTPS. Ele pede o certificado ao Let's Encrypt na
+# primeira subida, renova sozinho antes de vencer, e redireciona http → https. Não há passo manual
+# nem data de validade para alguém esquecer.
+#
+# Requisito: o domínio precisa apontar para o IP deste servidor ANTES de subir. O Let's Encrypt
+# confirma a posse do domínio conectando de volta — sem o DNS no lugar, a emissão falha.
+
+{
+	# Endereço para o Let's Encrypt avisar sobre certificado prestes a vencer.
+	email {$JORNADA_EMAIL_ADMIN}
+}
+
+{$JORNADA_DOMINIO} {
+	encode gzip zstd
+
+	# Cabeçalhos de segurança na borda. A aplicação também os define; aqui eles valem inclusive
+	# para respostas que nunca chegam ao Node (erro do proxy, arquivo servido em cache).
+	header {
+		Strict-Transport-Security "max-age=15552000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer"
+		# Não anunciar o servidor.
+		-Server
+	}
+
+	reverse_proxy app:3333 {
+		# Sem isto a aplicação vê o IP do proxy em toda requisição, e o limite de tentativas de
+		# senha passa a contar todo mundo junto — inútil.
+		header_up X-Real-IP {remote_host}
+	}
+
+	log {
+		output stdout
+		format json
+	}
+}

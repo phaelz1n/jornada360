@@ -1,0 +1,17 @@
+# Dispara o backup a cada 6 horas.
+#
+#   sudo systemctl enable --now jornada360-backup.timer
+#
+# `Persistent=true` faz o backup rodar assim que a máquina voltar, se ela estava desligada na hora
+# marcada — sem isso, um servidor que passa a noite fora perde a janela inteira.
+
+[Unit]
+Description=Backup periódico do Jornada360
+
+[Timer]
+OnCalendar=*-*-* 00,06,12,18:00:00
+Persistent=true
+RandomizedDelaySec=5m
+
+[Install]
+WantedBy=timers.target
