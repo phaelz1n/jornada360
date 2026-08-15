@@ -25,3 +25,6 @@ dist-ssr
 data/
 .env
 server/__*.db*
+
+# Relatório de cobertura — gerado por `npm run test:coverage`
+coverage
