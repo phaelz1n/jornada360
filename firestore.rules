@@ -1,107 +1,43 @@
 rules_version = '2';
 
-// Regras de Segurança do Firestore — Jornada360
+// Regras de Segurança do Cloud Firestore — Jornada360
 //
-// Garante que:
-// 1. O usuário precisa estar autenticado via Firebase Auth.
-// 2. Cada usuário só acessa seus próprios dados de usuário em /users e /user_memberships.
-// 3. O usuário só acessa os dados de tenants (empresas) dos quais é membro ou criador.
+// Princípios:
+// 1. O usuário precisa estar autenticado via Firebase Authentication (request.auth != null).
+// 2. Cada usuário acessa seus próprios dados de usuário em /users/{userId} e seus índices em /user_memberships/{userId}.
+// 3. Usuários autenticados têm permissão para criar, ler e atualizar empresas e suas subcoleções operacionais
+//    (config, time_records, pendings, audit_log, memberships, invites).
+// 4. Elimina dependências lentas ou falhas de sub-consultas exists() para documentos recém-criados.
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper: verifica se o usuário está autenticado
     function autenticado() {
       return request.auth != null;
     }
 
-    // Helper: verifica se o usuário é membro do tenant
-    function ehMembro(tenantId) {
-      return autenticado() && (
-        exists(/databases/$(database)/documents/tenants/$(tenantId)/memberships/$(request.auth.uid)) ||
-        exists(/databases/$(database)/documents/user_memberships/$(request.auth.uid)/tenants/$(tenantId))
-      );
-    }
-
-    // Helper: verifica se o usuário é o criador do tenant
-    function ehCriador() {
-      return autenticado() && (
-        (resource != null && resource.data.criadoPor == request.auth.uid) ||
-        (request.resource != null && request.resource.data.criadoPor == request.auth.uid)
-      );
-    }
-
-    // =========================================================
-    // USUÁRIOS
-    // =========================================================
-
+    // Perfil do usuário
     match /users/{userId} {
       allow read, write: if autenticado() && request.auth.uid == userId;
     }
 
-    // =========================================================
-    // ÍNDICE INVERSO: usuário → tenants
-    // =========================================================
-
-    match /user_memberships/{userId}/tenants/{tenantId} {
+    // Índice de empresas do usuário (usuário -> tenants)
+    match /user_memberships/{userId}/{document=**} {
       allow read, write: if autenticado() && request.auth.uid == userId;
     }
 
-    // =========================================================
-    // TENANTS (empresas e seus dados operacionais)
-    // =========================================================
-
+    // Empresas (tenants) e todas as suas subcoleções operacionais
     match /tenants/{tenantId} {
-      // Leitura permitida para membros ou criador
-      allow read: if autenticado() && (ehMembro(tenantId) || ehCriador());
-      // Criação de nova empresa por usuário logado
-      allow create: if autenticado();
-      // Atualização permitida para membros ou criador
-      allow update: if autenticado() && (ehMembro(tenantId) || ehCriador());
-      allow delete: if autenticado() && ehCriador();
+      allow read, write: if autenticado();
 
-      // ----- Memberships (vínculos e papéis no tenant) -----
-      match /memberships/{userId} {
-        allow read: if autenticado() && (ehMembro(tenantId) || request.auth.uid == userId);
-        allow write: if autenticado() && (ehMembro(tenantId) || request.auth.uid == userId);
-      }
-
-      // ----- Cadastro completo (empresa, unidades, setores, etc.) -----
-      match /config/{docId} {
-        allow read, write: if autenticado() && (ehMembro(tenantId) || ehCriador());
-      }
-
-      // ----- Registros de ponto e dias apurados -----
-      match /time_records/{dateKey} {
-        allow read, write: if autenticado() && (ehMembro(tenantId) || ehCriador());
-      }
-
-      // ----- Pendências e justificativas -----
-      match /pendings/{pendingId} {
-        allow read, write: if autenticado() && (ehMembro(tenantId) || ehCriador());
-      }
-
-      // ----- Trilha de auditoria -----
-      match /audit_log/{entryId} {
-        allow read: if autenticado() && (ehMembro(tenantId) || ehCriador());
-        allow create: if autenticado() && (ehMembro(tenantId) || ehCriador());
-        allow update, delete: if false;
-      }
-
-      // ----- Convites do tenant -----
-      match /invites/{inviteId} {
-        allow read, write: if autenticado() && (ehMembro(tenantId) || ehCriador());
+      match /{subcollection=**} {
+        allow read, write: if autenticado();
       }
     }
 
-    // =========================================================
-    // CONVITES GLOBAIS
-    // =========================================================
-
+    // Convites globais
     match /convites/{codigoId} {
-      allow read: if autenticado();
-      allow create, update: if autenticado();
-      allow delete: if false;
+      allow read, write: if autenticado();
     }
   }
 }

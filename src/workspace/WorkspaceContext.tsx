@@ -121,14 +121,27 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!workspaceIdAtivo || ehDemo) return;
     if (estadoSessao === 'verificando') return;
-    if (estadoSessao === 'anonimo' || !tenants.some((t) => t.id === workspaceIdAtivo)) {
+    // Se o usuário deslogou, limpa a empresa ativa imediatamente
+    if (estadoSessao === 'anonimo') {
+      localStorage.removeItem(CHAVE_ATIVA);
+      setIdAtivo(null);
+      return;
+    }
+    // NUNCA limpa empresa recém-criada (evita race condition enquanto o índice propaga)
+    if (recemCriadaId === workspaceIdAtivo) return;
+    // Só limpa se a lista de tenants já chegou e o id não pertence ao usuário
+    if (tenants.length > 0 && !tenants.some((t) => t.id === workspaceIdAtivo)) {
       localStorage.removeItem(CHAVE_ATIVA);
       setIdAtivo(null);
     }
-  }, [workspaceIdAtivo, ehDemo, estadoSessao, tenants]);
+  }, [workspaceIdAtivo, ehDemo, estadoSessao, tenants, recemCriadaId]);
 
   const podeCarregar =
-    !!workspaceIdAtivo && (ehDemo || (estadoSessao === 'autenticado' && tenants.some((t) => t.id === workspaceIdAtivo)));
+    !!workspaceIdAtivo && (
+      ehDemo ||
+      recemCriadaId === workspaceIdAtivo ||
+      (estadoSessao === 'autenticado' && (tenants.length === 0 || tenants.some((t) => t.id === workspaceIdAtivo)))
+    );
 
   const recurso = useRecurso<EstadoEmpresa>(
     () => repositorios.carregarTudo(workspaceIdAtivo as string),

@@ -31,7 +31,7 @@ interface AuthContextValue {
   cadastroAberto: boolean;
   entrar: (email: string, senha: string) => Promise<void>;
   entrarComGoogle: () => Promise<void>;
-  registrar: (dados: { email: string; nome: string; senha: string; nomeEmpresa: string }) => Promise<void>;
+  registrar: (dados: { email: string; nome: string; senha: string; nomeEmpresa: string }) => Promise<{ usuario: UsuarioAutenticado; tenants: TenantDoUsuario[] }>;
   sair: () => Promise<void>;
   criarEmpresa: (nome: string) => Promise<TenantDoUsuario>;
   resgatarConvite: (codigo: string) => Promise<void>;
@@ -62,12 +62,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  /* Escuta mudanças do Firebase Auth (login, logout, token refresh).
-   * Quando o Firebase não está configurado, declara-se como anônimo imediatamente
-   * (o modo demo continua disponível via localStorage). */
+  /* Escuta mudanças do Firebase Auth (login, logout, token refresh). */
   useEffect(() => {
     if (!firebaseConfigurado) {
-      // Firebase não configurado: modo demo disponível, modo real não
       setApiOnline(false);
       aplicar(null);
       return;
@@ -79,12 +76,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setApiOnline(true);
           const eu = await firebaseAuth.quemSouEu();
           aplicar(eu);
-        } catch {
+        } catch (err) {
+          console.error('[observarAuth] Erro ao carregar dados do usuário:', err);
           aplicar(null);
         }
       } else {
-        // Sem usuário Firebase = anônimo (inclui o primeiro acesso)
-        setApiOnline(true); // Firebase está disponível mesmo sem usuário logado
+        setApiOnline(true);
         aplicar(null);
       }
     });
@@ -105,6 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const registrar = useCallback(async (dados: { email: string; nome: string; senha: string; nomeEmpresa: string }) => {
     const r = await firebaseAuth.registrar(dados);
     aplicar({ usuario: r.usuario, tenants: r.tenants });
+    return r;
   }, [aplicar]);
 
   const sair = useCallback(async () => {
@@ -114,8 +112,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const criarEmpresa = useCallback(async (nome: string) => {
     const tenant = await firebaseAuth.criarEmpresaRemota(nome);
-    const eu = await firebaseAuth.quemSouEu();
-    if (eu) aplicar(eu);
+    // Atualiza imediatamente o estado de tenants local para prevenir race conditions no WorkspaceContext
+    setTenants((prev) => (prev.some((t) => t.id === tenant.id) ? prev : [...prev, tenant]));
+    // Revalida assincronamente com o Firestore
+    void firebaseAuth.quemSouEu().then((eu) => {
+      if (eu) {
+        const todos = eu.tenants.some((t) => t.id === tenant.id)
+          ? eu.tenants
+          : [...eu.tenants, tenant];
+        aplicar({ usuario: eu.usuario, tenants: todos });
+      }
+    });
     return tenant;
   }, [aplicar]);
 
@@ -138,7 +145,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const eu = await firebaseAuth.quemSouEu();
       aplicar(eu);
-      setApiOnline(true);
       return true;
     } catch {
       return false;
@@ -162,6 +168,7 @@ export function useAuth(): AuthContextValue {
 }
 
 export function mensagemDeErro(e: unknown): string {
+  console.error('[Jornada360] Erro capturado:', e);
   if (e instanceof Error) {
     // Mapeia erros do Firebase para mensagens em português
     const msg = e.message;
@@ -185,6 +192,9 @@ export function mensagemDeErro(e: unknown): string {
     }
     if (msg.includes('auth/unauthorized-domain')) {
       return 'Este domínio não está autorizado no Firebase Authentication. Adicione localhost e jornada360.phaelz.com em Authentication > Configurações > Domínios autorizados.';
+    }
+    if (msg.includes('permission-denied') || msg.includes('Missing or insufficient permissions')) {
+      return 'Permissão negada pelo banco de dados Firestore. Publique as regras de segurança no Firebase Console > Firestore Database > Rules.';
     }
     return e.message;
   }

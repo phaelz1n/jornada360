@@ -4,11 +4,13 @@ import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Loader2, UserPlus } from 'lucide-react';
 import { useAuth, mensagemDeErro } from '../auth/AuthContext';
+import { useSessao } from '../workspace/WorkspaceContext';
 
 const SENHA_MINIMA = 8;
 
 export default function CriarConta() {
   const { registrar } = useAuth();
+  const { setWorkspaceAtivo, marcarRecemCriada } = useSessao();
   const navigate = useNavigate();
 
   const [form, setForm] = useState({ nome: '', email: '', senha: '', nomeEmpresa: '' });
@@ -40,15 +42,22 @@ export default function CriarConta() {
     setErro(null);
     setEnviando(true);
     try {
-      await registrar({
+      const r = await registrar({
         nome: form.nome.trim(),
         email: form.email.trim(),
         senha: form.senha,
         nomeEmpresa: form.nomeEmpresa.trim(),
       });
       setForm((f) => ({ ...f, senha: '' }));
-      navigate('/bem-vindo');
+      if (r.tenants && r.tenants.length > 0) {
+        marcarRecemCriada(r.tenants[0].id);
+        setWorkspaceAtivo(r.tenants[0].id);
+        navigate('/');
+      } else {
+        navigate('/bem-vindo');
+      }
     } catch (err) {
+      console.error('[CriarConta] Erro ao registrar:', err);
       setErro(mensagemDeErro(err));
       setEnviando(false);
     }

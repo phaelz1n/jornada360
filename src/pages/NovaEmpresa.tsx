@@ -36,6 +36,7 @@ export default function NovaEmpresa() {
       setWorkspaceAtivo(tenant.id);
       navigate('/');
     } catch (err) {
+      console.error('[NovaEmpresa] Erro ao criar empresa:', err);
       setErro(mensagemDeErro(err));
       setOcupado(null);
     }

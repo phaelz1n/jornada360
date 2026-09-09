@@ -77,42 +77,50 @@ async function carregarTenants(uid: string): Promise<TenantDoUsuario[]> {
 
   for (const memberDoc of snap.docs) {
     const { tenantId, papel } = memberDoc.data() as { tenantId: string; papel: PapelUsuario };
-    const tenantSnap = await getDoc(doc(firestoreDb, 'tenants', tenantId));
-    if (!tenantSnap.exists()) continue;
-    const tenantData = tenantSnap.data();
+    try {
+      const tenantSnap = await getDoc(doc(firestoreDb, 'tenants', tenantId));
+      if (!tenantSnap.exists()) continue;
+      const tenantData = tenantSnap.data();
 
-    tenants.push({
-      id: tenantId,
-      nome: tenantData.nome ?? '',
-      environment: tenantData.environment ?? 'real',
-      papel: papel ?? 'administrador',
-      permissoes: [],
-      status: tenantData.status ?? 'ativa',
-    });
+      tenants.push({
+        id: tenantId,
+        nome: tenantData.nome ?? '',
+        environment: tenantData.environment ?? 'real',
+        papel: papel ?? 'administrador',
+        permissoes: [],
+        status: tenantData.status ?? 'ativa',
+      });
+    } catch (err) {
+      console.warn('[carregarTenants] Aviso ao carregar tenant', tenantId, err);
+    }
   }
 
   // 2. Fallback: busca por criador caso ainda não esteja no índice
   if (tenants.length === 0) {
-    const q = query(collection(firestoreDb, 'tenants'), where('criadoPor', '==', uid));
-    const createdSnap = await getDocs(q).catch(() => null);
-    if (createdSnap && !createdSnap.empty) {
-      for (const tDoc of createdSnap.docs) {
-        const tData = tDoc.data();
-        tenants.push({
-          id: tDoc.id,
-          nome: tData.nome ?? '',
-          environment: tData.environment ?? 'real',
-          papel: 'administrador',
-          permissoes: [],
-          status: tData.status ?? 'ativa',
-        });
-        // Sincroniza índice para consultas futuras
-        await setDoc(doc(firestoreDb, 'user_memberships', uid, 'tenants', tDoc.id), {
-          tenantId: tDoc.id,
-          papel: 'administrador',
-          criadoEm: serverTimestamp(),
-        }).catch(() => {});
+    try {
+      const q = query(collection(firestoreDb, 'tenants'), where('criadoPor', '==', uid));
+      const createdSnap = await getDocs(q);
+      if (!createdSnap.empty) {
+        for (const tDoc of createdSnap.docs) {
+          const tData = tDoc.data();
+          tenants.push({
+            id: tDoc.id,
+            nome: tData.nome ?? '',
+            environment: tData.environment ?? 'real',
+            papel: 'administrador',
+            permissoes: [],
+            status: tData.status ?? 'ativa',
+          });
+          // Sincroniza índice para consultas futuras
+          await setDoc(doc(firestoreDb, 'user_memberships', uid, 'tenants', tDoc.id), {
+            tenantId: tDoc.id,
+            papel: 'administrador',
+            criadoEm: serverTimestamp(),
+          }).catch(() => {});
+        }
       }
+    } catch (err) {
+      console.warn('[carregarTenants] Aviso na busca fallback por criadoPor:', err);
     }
   }
 
@@ -149,6 +157,40 @@ async function criarTenantFirestore(
     tenantId,
     papel,
     criadoEm: serverTimestamp(),
+  });
+
+  // Inicializa configuração padrão da empresa no Firestore
+  await setDoc(doc(firestoreDb, 'tenants', tenantId, 'config', 'workspace'), {
+    company: {
+      nome: nomeEmpresa.trim(),
+      cnpj: '',
+      identificacao: '',
+      logoUrl: '',
+      status: 'ativo',
+    },
+    units: [],
+    departments: [],
+    employees: [],
+    schedules: [],
+    causaOpts: ['Autorizado antecipadamente', 'Escala desatualizada', 'Erro de registro', 'Outro'],
+    rules: {
+      toleranciaGeralMinutos: 10,
+      limiteDiarioHEMinutos: 120,
+      intervaloMinimoInterjornadaHoras: 11,
+      intervaloMinimoIntrajornadaMinutos: 60,
+      horasSemanaisPadrao: 44,
+      bancoDeHorasAtivo: true,
+      compensacaoAutomatica: false,
+    },
+    integrations: {
+      folha: { ativa: false, provedor: null, ultimaSincronizacao: null },
+      relogio: { ativo: false, modelos: [] },
+      webhook: { ativo: false, url: null },
+    },
+    users: [],
+    criadoEm: serverTimestamp(),
+  }).catch((err) => {
+    console.warn('[criarTenantFirestore] Aviso ao criar config inicial:', err);
   });
 
   return {
@@ -248,7 +290,8 @@ export async function quemSouEu(): Promise<{ usuario: UsuarioAutenticado; tenant
   try {
     const tenants = await carregarTenants(user.uid);
     return { usuario: mapUser(user), tenants };
-  } catch {
+  } catch (err) {
+    console.error('[quemSouEu] Erro ao carregar tenants do usuário:', err);
     return { usuario: mapUser(user), tenants: [] };
   }
 }
