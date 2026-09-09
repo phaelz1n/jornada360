@@ -62,13 +62,16 @@ export default function Dashboard() {
 
     let cancelado = false;
     void (async () => {
-      for (const p of alteradas) {
-        if (cancelado) return;
-        try {
-          await gravar((repo, ctx) => repo.salvarPendencia(ctx.empresaId, p));
-        } catch {
-          return;
-        }
+      if (cancelado) return;
+      try {
+        await gravar(async (repo, ctx) => {
+          for (const p of alteradas) {
+            if (cancelado) return;
+            await repo.salvarPendencia(ctx.empresaId, p);
+          }
+        });
+      } catch (err) {
+        console.warn('[Dashboard] Aviso ao sincronizar pendências:', err);
       }
     })();
     return () => {

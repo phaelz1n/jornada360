@@ -102,8 +102,22 @@ function normalizeTimestamp(val: unknown): string | null {
   return null;
 }
 
+// Cache leve de metadados do tenant em memória (TTL: 15s)
+interface TenantMetaCacheItem {
+  tenantData: Record<string, unknown>;
+  papel: string;
+  ts: number;
+}
+const metaCache = new Map<string, TenantMetaCacheItem>();
+const CACHE_TTL_MS = 15_000;
+
+function invalidarCache(workspaceId: string) {
+  metaCache.delete(workspaceId);
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function patchConfig(workspaceId: string, updater: (raw: Record<string, any>) => Record<string, any>): Promise<void> {
+  invalidarCache(workspaceId);
   const cRef = configRef(workspaceId);
   const snap = await getDoc(cRef);
   const data = snap.exists() ? snap.data() : {};
@@ -125,17 +139,28 @@ export function criarConjuntoRemoto(): ConjuntoRepositorios {
       const user = firebaseAuth.currentUser;
       if (!user) throw new Error('Usuário não autenticado.');
 
-      // 1. Metadados do tenant (papel do usuário)
-      const tenantSnap = await getDoc(tenantRef(workspaceId));
-      if (!tenantSnap.exists()) {
-        throw new Error(`Empresa "${workspaceId}" não encontrada.`);
-      }
-      const tenantData = tenantSnap.data();
+      // 1. Metadados do tenant (papel do usuário) com cache de curta duração
+      const cached = metaCache.get(workspaceId);
+      let tenantData: Record<string, unknown>;
+      let papel: string;
 
-      // Papel do usuário neste tenant (salvo na subcoleção memberships)
-      const memberRef = doc(firestoreDb, 'tenants', workspaceId, 'memberships', user.uid);
-      const memberSnap = await getDoc(memberRef);
-      const papel = memberSnap.exists() ? (memberSnap.data().papel as string) : 'colaborador';
+      if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
+        tenantData = cached.tenantData;
+        papel = cached.papel;
+      } else {
+        const tenantSnap = await getDoc(tenantRef(workspaceId));
+        if (!tenantSnap.exists()) {
+          throw new Error(`Empresa "${workspaceId}" não encontrada.`);
+        }
+        tenantData = tenantSnap.data();
+
+        // Papel do usuário neste tenant (salvo na subcoleção memberships)
+        const memberRef = doc(firestoreDb, 'tenants', workspaceId, 'memberships', user.uid);
+        const memberSnap = await getDoc(memberRef);
+        papel = memberSnap.exists() ? (memberSnap.data().papel as string) : 'colaborador';
+
+        metaCache.set(workspaceId, { tenantData, papel, ts: Date.now() });
+      }
 
       // Permissões derivadas do papel
       const permissoes = permissoesDoPapel(papel);
@@ -165,7 +190,7 @@ export function criarConjuntoRemoto(): ConjuntoRepositorios {
         config = {
           id: workspaceId,
           environment: (tenantData.environment as 'real' | 'demo') ?? 'real',
-          company: { nome: tenantData.nome ?? '', cnpj: '', identificacao: '', logoUrl: '', status: 'ativo' },
+          company: { nome: (tenantData.nome as string) ?? '', cnpj: '', identificacao: '', logoUrl: '', status: 'ativo' },
           units: [],
           departments: [],
           employees: [],
@@ -250,7 +275,7 @@ export function criarConjuntoRemoto(): ConjuntoRepositorios {
       }
 
       // Versão do cadastro
-      const versao = normalizeTimestamp(tenantSnap.data()?.configVersao) ?? '';
+      const versao = normalizeTimestamp(tenantData.configVersao) ?? '';
 
       return { config, dias, pendencias, auditoria, versao, papel, permissoes };
     },
@@ -259,6 +284,7 @@ export function criarConjuntoRemoto(): ConjuntoRepositorios {
       workspaceId: string,
       patch: Partial<Omit<WorkspaceConfig, 'id' | 'environment' | 'criadoEm'>>,
     ): Promise<void> {
+      invalidarCache(workspaceId);
       await setDoc(configRef(workspaceId), patch, { merge: true });
       await updateDoc(tenantRef(workspaceId), {
         configVersao: serverTimestamp(),
