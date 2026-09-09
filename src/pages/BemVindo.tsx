@@ -17,7 +17,7 @@ import { useAuth } from '../auth/AuthContext';
 
 export default function BemVindo() {
   const { setWorkspaceAtivo, empresas } = useSessao();
-  const { estado, usuario, tenants, apiOnline, cadastroAberto, reconectar } = useAuth();
+  const { estado, usuario, tenants, apiOnline, cadastroAberto, reconectar, sair } = useAuth();
   const navigate = useNavigate();
 
   const [verificandoConexao, setVerificandoConexao] = useState(false);
@@ -54,10 +54,15 @@ export default function BemVindo() {
         ) : autenticado ? (
           /* ---------------------------------------------- já entrou: escolher empresa */
           <>
-            <div className="portao-saudacao">
-              Olá, <b>{usuario?.nome}</b>. {empresasReais.length === 1
-                ? 'Sua empresa está pronta.'
-                : `Você tem acesso a ${empresasReais.length} empresas.`}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <div className="portao-saudacao" style={{ marginBottom: 0 }}>
+                Olá, <b>{usuario?.nome}</b>. {empresasReais.length === 1
+                  ? 'Sua empresa está pronta.'
+                  : `Você tem acesso a ${empresasReais.length} empresas.`}
+              </div>
+              <button className="btn btn-sm" onClick={() => void sair()} style={{ fontSize: 13 }}>
+                Sair
+              </button>
             </div>
 
             <div className="portao-opcoes">

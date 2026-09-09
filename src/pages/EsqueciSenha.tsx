@@ -9,7 +9,7 @@
 import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, CheckCircle2, Loader2, Mail } from 'lucide-react';
-import { pedirRecuperacao } from '../api/authService';
+import { pedirRecuperacao } from '../firebase/auth';
 import { mensagemDeErro } from '../auth/AuthContext';
 
 export default function EsqueciSenha() {

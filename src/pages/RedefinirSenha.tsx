@@ -10,7 +10,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AlertTriangle, CheckCircle2, KeyRound, Loader2 } from 'lucide-react';
-import { redefinirSenha, verificarLinkRecuperacao } from '../api/authService';
+import { redefinirSenha, verificarLinkRecuperacao } from '../firebase/auth';
 import { mensagemDeErro } from '../auth/AuthContext';
 
 const SENHA_MINIMA = 8;
@@ -18,7 +18,7 @@ const SENHA_MINIMA = 8;
 export default function RedefinirSenha() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
-  const codigo = params.get('codigo') ?? '';
+  const codigo = params.get('oobCode') ?? params.get('codigo') ?? '';
 
   const [estadoLink, setEstadoLink] = useState<'verificando' | 'valido' | 'invalido'>('verificando');
   const [erroLink, setErroLink] = useState<string | null>(null);

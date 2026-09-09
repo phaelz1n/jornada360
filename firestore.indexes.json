@@ -1,0 +1,35 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "pendings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "atualizadaEm", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "pendings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "data", "order": "DESCENDING" },
+        { "fieldPath": "prioridade", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "audit_log",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "timestamp", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "time_records",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "atualizadoEm", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

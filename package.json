@@ -21,11 +21,13 @@
     "testar-restauracao": "node scripts/restaurar.js -- --testar",
     "smoke": "node scripts/smoke.js",
     "start": "node server/index.js",
-    "piloto": "node scripts/piloto.js"
+    "piloto": "node scripts/piloto.js",
+    "migrar:firebase": "node scripts/migrar-para-firebase.js"
   },
   "dependencies": {
     "cors": "^2.8.6",
     "express": "^5.2.1",
+    "firebase": "^11.10.0",
     "lucide-react": "^1.31.0",
     "nodemailer": "^7.0.13",
     "react": "^19.2.8",

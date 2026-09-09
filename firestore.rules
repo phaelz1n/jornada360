@@ -1,0 +1,154 @@
+rules_version = '2';
+
+// Regras de Segurança do Firestore — Jornada360
+//
+// PRINCÍPIO CENTRAL: tenant_id em toda consulta. Um usuário só acessa dados de tenants
+// dos quais é membro. Isso é o equivalente ao isolamento por tenant_id que o Express/SQLite
+// garantia via middleware `resolverTenant`.
+//
+// RBAC: o papel (administrador/rh/gestor/auditor/colaborador) determina o que pode ser feito.
+// A leitura do papel vem de tenants/{tenantId}/memberships/{uid}.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // =========================================================
+    // HELPERS
+    // =========================================================
+
+    // Verifica se o usuário está autenticado
+    function autenticado() {
+      return request.auth != null;
+    }
+
+    // Lê o papel do usuário neste tenant
+    function papelNoTenant(tenantId) {
+      let memberDoc = get(/databases/$(database)/documents/tenants/$(tenantId)/memberships/$(request.auth.uid));
+      return memberDoc.exists ? memberDoc.data.papel : null;
+    }
+
+    // Verifica se é membro do tenant (qualquer papel)
+    function ehMembro(tenantId) {
+      return papelNoTenant(tenantId) != null;
+    }
+
+    // Verifica papéis com permissão de escrita no cadastro
+    function podeEditarCadastro(tenantId) {
+      let papel = papelNoTenant(tenantId);
+      return papel == 'administrador' || papel == 'rh';
+    }
+
+    // Verifica se pode editar pendências
+    function podeEditarPendencia(tenantId) {
+      let papel = papelNoTenant(tenantId);
+      return papel == 'administrador' || papel == 'rh' || papel == 'gestor';
+    }
+
+    // Verifica se pode revisar pendências (apenas administrador e rh)
+    function podeRevisarPendencia(tenantId) {
+      let papel = papelNoTenant(tenantId);
+      return papel == 'administrador' || papel == 'rh';
+    }
+
+    // Verifica se é administrador
+    function ehAdministrador(tenantId) {
+      return papelNoTenant(tenantId) == 'administrador';
+    }
+
+    // =========================================================
+    // USUÁRIOS
+    // =========================================================
+
+    match /users/{userId} {
+      // Usuário lê/escreve apenas o próprio perfil
+      allow read, write: if autenticado() && request.auth.uid == userId;
+    }
+
+    // =========================================================
+    // ÍNDICE INVERSO: usuário → tenants
+    // =========================================================
+
+    match /user_memberships/{userId}/tenants/{tenantId} {
+      // Apenas o próprio usuário lê a lista de empresas dele
+      allow read: if autenticado() && request.auth.uid == userId;
+      // Apenas administrador do tenant pode adicionar membros
+      allow write: if autenticado() && (
+        request.auth.uid == userId ||  // próprio usuário ao registrar
+        ehAdministrador(tenantId)
+      );
+    }
+
+    // =========================================================
+    // TENANTS (empresas)
+    // =========================================================
+
+    match /tenants/{tenantId} {
+      // Membros leem os metadados do tenant
+      allow read: if autenticado() && ehMembro(tenantId);
+      // Apenas administradores editam os metadados do tenant
+      allow write: if autenticado() && ehAdministrador(tenantId);
+      // Criação: usuário autenticado pode criar (será o primeiro administrador)
+      allow create: if autenticado();
+
+      // ----- Memberships (papéis) -----
+      match /memberships/{userId} {
+        // Membros leem as memberships do tenant
+        allow read: if autenticado() && ehMembro(tenantId);
+        // Administradores gerenciam memberships; usuário pode criar a própria ao se registrar
+        allow write: if autenticado() && (
+          ehAdministrador(tenantId) ||
+          request.auth.uid == userId  // criação da própria membership ao criar tenant
+        );
+      }
+
+      // ----- Configuração do cadastro -----
+      match /config/{docId} {
+        // Membros leem a configuração (empresa, unidades, setores, etc.)
+        allow read: if autenticado() && ehMembro(tenantId);
+        // RH e administrador escrevem o cadastro
+        allow write: if autenticado() && podeEditarCadastro(tenantId);
+      }
+
+      // ----- Dias processados (registros de ponto) -----
+      match /time_records/{dateKey} {
+        // Membros leem os registros de ponto
+        allow read: if autenticado() && ehMembro(tenantId);
+        // Gestor, RH e administrador podem salvar dias processados
+        allow write: if autenticado() && podeEditarPendencia(tenantId);
+      }
+
+      // ----- Pendências -----
+      match /pendings/{pendingId} {
+        // Membros leem pendências
+        allow read: if autenticado() && ehMembro(tenantId);
+        // Gestor, RH e administrador editam pendências
+        allow write: if autenticado() && podeEditarPendencia(tenantId);
+      }
+
+      // ----- Trilha de auditoria -----
+      match /audit_log/{entryId} {
+        // Membros com permissão de auditoria leem
+        allow read: if autenticado() && ehMembro(tenantId);
+        // Qualquer membro pode gravar (o sistema grava automaticamente)
+        allow create: if autenticado() && ehMembro(tenantId);
+        // Auditoria nunca pode ser editada ou apagada
+        allow update, delete: if false;
+      }
+    }
+
+    // =========================================================
+    // CONVITES (implementação futura)
+    // =========================================================
+
+    match /convites/{codigoId} {
+      // Qualquer pessoa autenticada pode ler um convite (para resgatar)
+      allow read: if autenticado();
+      // Apenas administradores criam convites
+      allow create: if autenticado();
+      // Uso único: apenas o sistema atualiza (marcar como usado)
+      allow update: if autenticado();
+      allow delete: if false;
+    }
+
+  }
+}

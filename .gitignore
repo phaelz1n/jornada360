@@ -22,9 +22,15 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-data/
+/data/
 .env
 server/__*.db*
 
 # Relatório de cobertura — gerado por `npm run test:coverage`
 coverage
+
+# Firebase
+serviceAccountKey.json
+*serviceAccountKey*.json
+.firebase/
+firebase-debug.log
