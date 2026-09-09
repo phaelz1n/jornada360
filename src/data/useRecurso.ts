@@ -71,8 +71,10 @@ export function useRecurso<T>(
       setEstado('pronto');
       setPrimeiraCarga(false);
     } catch (e) {
+      console.error('[useRecurso] Erro ao carregar recurso:', e);
       if (!montadoRef.current || geracao !== geracaoRef.current) return;
-      const erroApi = e instanceof ErroApi ? e : new ErroApi('servidor', 'Erro inesperado ao carregar.');
+      const erroMsg = (e as Error)?.message || 'Erro inesperado ao carregar.';
+      const erroApi = e instanceof ErroApi ? e : new ErroApi('servidor', erroMsg);
       setErro(erroApi);
       setEstado('erro');
       setPrimeiraCarga(false);

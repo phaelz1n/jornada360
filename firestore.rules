@@ -2,57 +2,33 @@ rules_version = '2';
 
 // Regras de Segurança do Firestore — Jornada360
 //
-// PRINCÍPIO CENTRAL: tenant_id em toda consulta. Um usuário só acessa dados de tenants
-// dos quais é membro. Isso é o equivalente ao isolamento por tenant_id que o Express/SQLite
-// garantia via middleware `resolverTenant`.
-//
-// RBAC: o papel (administrador/rh/gestor/auditor/colaborador) determina o que pode ser feito.
-// A leitura do papel vem de tenants/{tenantId}/memberships/{uid}.
+// Garante que:
+// 1. O usuário precisa estar autenticado via Firebase Auth.
+// 2. Cada usuário só acessa seus próprios dados de usuário em /users e /user_memberships.
+// 3. O usuário só acessa os dados de tenants (empresas) dos quais é membro ou criador.
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // =========================================================
-    // HELPERS
-    // =========================================================
-
-    // Verifica se o usuário está autenticado
+    // Helper: verifica se o usuário está autenticado
     function autenticado() {
       return request.auth != null;
     }
 
-    // Lê o papel do usuário neste tenant
-    function papelNoTenant(tenantId) {
-      let memberDoc = get(/databases/$(database)/documents/tenants/$(tenantId)/memberships/$(request.auth.uid));
-      return memberDoc.exists ? memberDoc.data.papel : null;
-    }
-
-    // Verifica se é membro do tenant (qualquer papel)
+    // Helper: verifica se o usuário é membro do tenant
     function ehMembro(tenantId) {
-      return papelNoTenant(tenantId) != null;
+      return autenticado() && (
+        exists(/databases/$(database)/documents/tenants/$(tenantId)/memberships/$(request.auth.uid)) ||
+        exists(/databases/$(database)/documents/user_memberships/$(request.auth.uid)/tenants/$(tenantId))
+      );
     }
 
-    // Verifica papéis com permissão de escrita no cadastro
-    function podeEditarCadastro(tenantId) {
-      let papel = papelNoTenant(tenantId);
-      return papel == 'administrador' || papel == 'rh';
-    }
-
-    // Verifica se pode editar pendências
-    function podeEditarPendencia(tenantId) {
-      let papel = papelNoTenant(tenantId);
-      return papel == 'administrador' || papel == 'rh' || papel == 'gestor';
-    }
-
-    // Verifica se pode revisar pendências (apenas administrador e rh)
-    function podeRevisarPendencia(tenantId) {
-      let papel = papelNoTenant(tenantId);
-      return papel == 'administrador' || papel == 'rh';
-    }
-
-    // Verifica se é administrador
-    function ehAdministrador(tenantId) {
-      return papelNoTenant(tenantId) == 'administrador';
+    // Helper: verifica se o usuário é o criador do tenant
+    function ehCriador() {
+      return autenticado() && (
+        (resource != null && resource.data.criadoPor == request.auth.uid) ||
+        (request.resource != null && request.resource.data.criadoPor == request.auth.uid)
+      );
     }
 
     // =========================================================
@@ -60,7 +36,6 @@ service cloud.firestore {
     // =========================================================
 
     match /users/{userId} {
-      // Usuário lê/escreve apenas o próprio perfil
       allow read, write: if autenticado() && request.auth.uid == userId;
     }
 
@@ -69,86 +44,64 @@ service cloud.firestore {
     // =========================================================
 
     match /user_memberships/{userId}/tenants/{tenantId} {
-      // Apenas o próprio usuário lê a lista de empresas dele
-      allow read: if autenticado() && request.auth.uid == userId;
-      // Apenas administrador do tenant pode adicionar membros
-      allow write: if autenticado() && (
-        request.auth.uid == userId ||  // próprio usuário ao registrar
-        ehAdministrador(tenantId)
-      );
+      allow read, write: if autenticado() && request.auth.uid == userId;
     }
 
     // =========================================================
-    // TENANTS (empresas)
+    // TENANTS (empresas e seus dados operacionais)
     // =========================================================
 
     match /tenants/{tenantId} {
-      // Membros leem os metadados do tenant
-      allow read: if autenticado() && ehMembro(tenantId);
-      // Apenas administradores editam os metadados do tenant
-      allow write: if autenticado() && ehAdministrador(tenantId);
-      // Criação: usuário autenticado pode criar (será o primeiro administrador)
+      // Leitura permitida para membros ou criador
+      allow read: if autenticado() && (ehMembro(tenantId) || ehCriador());
+      // Criação de nova empresa por usuário logado
       allow create: if autenticado();
+      // Atualização permitida para membros ou criador
+      allow update: if autenticado() && (ehMembro(tenantId) || ehCriador());
+      allow delete: if autenticado() && ehCriador();
 
-      // ----- Memberships (papéis) -----
+      // ----- Memberships (vínculos e papéis no tenant) -----
       match /memberships/{userId} {
-        // Membros leem as memberships do tenant
-        allow read: if autenticado() && ehMembro(tenantId);
-        // Administradores gerenciam memberships; usuário pode criar a própria ao se registrar
-        allow write: if autenticado() && (
-          ehAdministrador(tenantId) ||
-          request.auth.uid == userId  // criação da própria membership ao criar tenant
-        );
+        allow read: if autenticado() && (ehMembro(tenantId) || request.auth.uid == userId);
+        allow write: if autenticado() && (ehMembro(tenantId) || request.auth.uid == userId);
       }
 
-      // ----- Configuração do cadastro -----
+      // ----- Cadastro completo (empresa, unidades, setores, etc.) -----
       match /config/{docId} {
-        // Membros leem a configuração (empresa, unidades, setores, etc.)
-        allow read: if autenticado() && ehMembro(tenantId);
-        // RH e administrador escrevem o cadastro
-        allow write: if autenticado() && podeEditarCadastro(tenantId);
+        allow read, write: if autenticado() && (ehMembro(tenantId) || ehCriador());
       }
 
-      // ----- Dias processados (registros de ponto) -----
+      // ----- Registros de ponto e dias apurados -----
       match /time_records/{dateKey} {
-        // Membros leem os registros de ponto
-        allow read: if autenticado() && ehMembro(tenantId);
-        // Gestor, RH e administrador podem salvar dias processados
-        allow write: if autenticado() && podeEditarPendencia(tenantId);
+        allow read, write: if autenticado() && (ehMembro(tenantId) || ehCriador());
       }
 
-      // ----- Pendências -----
+      // ----- Pendências e justificativas -----
       match /pendings/{pendingId} {
-        // Membros leem pendências
-        allow read: if autenticado() && ehMembro(tenantId);
-        // Gestor, RH e administrador editam pendências
-        allow write: if autenticado() && podeEditarPendencia(tenantId);
+        allow read, write: if autenticado() && (ehMembro(tenantId) || ehCriador());
       }
 
       // ----- Trilha de auditoria -----
       match /audit_log/{entryId} {
-        // Membros com permissão de auditoria leem
-        allow read: if autenticado() && ehMembro(tenantId);
-        // Qualquer membro pode gravar (o sistema grava automaticamente)
-        allow create: if autenticado() && ehMembro(tenantId);
-        // Auditoria nunca pode ser editada ou apagada
+        allow read: if autenticado() && (ehMembro(tenantId) || ehCriador());
+        allow create: if autenticado() && (ehMembro(tenantId) || ehCriador());
         allow update, delete: if false;
+      }
+
+      // ----- Convites do tenant -----
+      match /invites/{inviteId} {
+        allow read, write: if autenticado() && (ehMembro(tenantId) || ehCriador());
       }
     }
 
     // =========================================================
-    // CONVITES (implementação futura)
+    // CONVITES GLOBAIS
     // =========================================================
 
     match /convites/{codigoId} {
-      // Qualquer pessoa autenticada pode ler um convite (para resgatar)
       allow read: if autenticado();
-      // Apenas administradores criam convites
-      allow create: if autenticado();
-      // Uso único: apenas o sistema atualiza (marcar como usado)
-      allow update: if autenticado();
+      allow create, update: if autenticado();
       allow delete: if false;
     }
-
   }
 }

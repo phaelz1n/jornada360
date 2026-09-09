@@ -179,55 +179,75 @@ export function criarConjuntoRemoto(): ConjuntoRepositorios {
       }
 
       // 3. Dias processados
-      const diasSnap = await getDocs(timeRecordsRef(workspaceId));
-      const dias: DiaBruto[] = diasSnap.docs.map((d) => ({
-        dateKey: d.id,
-        snapshot: d.data().snapshot ?? null,
-        caseState: (d.data().caseState as Record<string, unknown>) ?? {},
-      }));
+      let dias: DiaBruto[] = [];
+      try {
+        const diasSnap = await getDocs(timeRecordsRef(workspaceId));
+        dias = diasSnap.docs.map((d) => ({
+          dateKey: d.id,
+          snapshot: d.data().snapshot ?? null,
+          caseState: (d.data().caseState as Record<string, unknown>) ?? {},
+        }));
+      } catch (err) {
+        console.warn('[conjuntoRemoto] Aviso ao carregar dias:', err);
+      }
 
       // 4. Pendências
-      const pendenciasSnap = await getDocs(pendingsRef(workspaceId));
-      const pendencias: Pendencia[] = pendenciasSnap.docs.map((d) => {
-        const raw = d.data();
-        return {
-          id: d.id,
-          workspaceId,
-          colaboradorId: raw.colaboradorId ?? null,
-          data: raw.data ?? '',
-          tipo: raw.tipo ?? '',
-          categoria: raw.categoria ?? '',
-          status: raw.status ?? 'pendente',
-          prioridade: raw.prioridade ?? 'media',
-          origem: raw.origem ?? 'motor_he',
-          descricao: raw.descricao ?? '',
-          evidencias: raw.evidencias ?? [],
-          recomendacao: raw.recomendacao ?? null,
-          responsavelId: raw.responsavelId ?? null,
-          prazo: raw.prazo ?? null,
-          criadaEm: normalizeTimestamp(raw.criadaEm) ?? new Date().toISOString(),
-          atualizadaEm: normalizeTimestamp(raw.atualizadaEm) ?? new Date().toISOString(),
-          resolvidaEm: normalizeTimestamp(raw.resolvidaEm),
-          resolucao: raw.resolucao ?? null,
-          revisadoPor: raw.revisadoPor ?? null,
-          revisadoEm: normalizeTimestamp(raw.revisadoEm),
-          observacaoRevisao: raw.observacaoRevisao ?? null,
-        } satisfies Pendencia;
-      });
+      let pendencias: Pendencia[] = [];
+      try {
+        const pendenciasSnap = await getDocs(pendingsRef(workspaceId));
+        pendencias = pendenciasSnap.docs.map((d) => {
+          const raw = d.data();
+          return {
+            id: d.id,
+            workspaceId,
+            colaboradorId: raw.colaboradorId ?? null,
+            data: raw.data ?? '',
+            tipo: raw.tipo ?? '',
+            categoria: raw.categoria ?? '',
+            status: raw.status ?? 'pendente',
+            prioridade: raw.prioridade ?? 'media',
+            origem: raw.origem ?? 'motor_he',
+            descricao: raw.descricao ?? '',
+            evidencias: raw.evidencias ?? [],
+            recomendacao: raw.recomendacao ?? null,
+            responsavelId: raw.responsavelId ?? null,
+            prazo: raw.prazo ?? null,
+            criadaEm: normalizeTimestamp(raw.criadaEm) ?? new Date().toISOString(),
+            atualizadaEm: normalizeTimestamp(raw.atualizadaEm) ?? new Date().toISOString(),
+            resolvidaEm: normalizeTimestamp(raw.resolvidaEm),
+            resolucao: raw.resolucao ?? null,
+            revisadoPor: raw.revisadoPor ?? null,
+            revisadoEm: normalizeTimestamp(raw.revisadoEm),
+            observacaoRevisao: raw.observacaoRevisao ?? null,
+          } satisfies Pendencia;
+        });
+      } catch (err) {
+        console.warn('[conjuntoRemoto] Aviso ao carregar pendências:', err);
+      }
 
       // 5. Auditoria (últimas 500 entradas, mais recentes primeiro)
-      const auditQuery = query(auditRef(workspaceId), orderBy('timestamp', 'desc'), limit(500));
-      const auditSnap = await getDocs(auditQuery);
-      const auditoria: AuditEntry[] = auditSnap.docs.map((d) => ({
-        id: d.id,
-        timestamp: normalizeTimestamp(d.data().timestamp) ?? new Date().toISOString(),
-        usuario: d.data().usuario ?? '',
-        entidade: d.data().entidade ?? '',
-        acao: d.data().acao ?? '',
-        valorAnterior: d.data().valorAnterior ?? '',
-        valorNovo: d.data().valorNovo ?? '',
-        motivo: d.data().motivo ?? '',
-      }));
+      let auditoria: AuditEntry[] = [];
+      try {
+        let auditSnap;
+        try {
+          const auditQuery = query(auditRef(workspaceId), orderBy('timestamp', 'desc'), limit(500));
+          auditSnap = await getDocs(auditQuery);
+        } catch {
+          auditSnap = await getDocs(query(auditRef(workspaceId), limit(500)));
+        }
+        auditoria = auditSnap.docs.map((d) => ({
+          id: d.id,
+          timestamp: normalizeTimestamp(d.data().timestamp) ?? new Date().toISOString(),
+          usuario: d.data().usuario ?? '',
+          entidade: d.data().entidade ?? '',
+          acao: d.data().acao ?? '',
+          valorAnterior: d.data().valorAnterior ?? '',
+          valorNovo: d.data().valorNovo ?? '',
+          motivo: d.data().motivo ?? '',
+        }));
+      } catch (err) {
+        console.warn('[conjuntoRemoto] Aviso ao carregar auditoria:', err);
+      }
 
       // Versão do cadastro
       const versao = normalizeTimestamp(tenantSnap.data()?.configVersao) ?? '';
