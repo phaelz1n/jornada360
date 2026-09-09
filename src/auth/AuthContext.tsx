@@ -177,8 +177,14 @@ export function mensagemDeErro(e: unknown): string {
     if (msg.includes('auth/too-many-requests')) {
       return 'Muitas tentativas. Aguarde alguns minutos antes de tentar de novo.';
     }
-    if (msg.includes('auth/network-request-failed')) {
-      return 'Não foi possível conectar. Verifique sua conexão e tente novamente.';
+    if (msg.includes('auth/configuration-not-found')) {
+      return 'O Firebase Authentication ainda não foi ativado no seu projeto Firebase. Acesse o Firebase Console > Authentication e clique em "Vamos começar" (Get started) ativando os provedores E-mail/Senha e Google.';
+    }
+    if (msg.includes('auth/popup-closed-by-user')) {
+      return 'A janela de login foi fechada antes de concluir.';
+    }
+    if (msg.includes('auth/unauthorized-domain')) {
+      return 'Este domínio não está autorizado no Firebase Authentication. Adicione localhost e jornada360.phaelz.com em Authentication > Configurações > Domínios autorizados.';
     }
     return e.message;
   }
