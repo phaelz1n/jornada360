@@ -14,6 +14,7 @@ import {
 } from 'react';
 import type { AuditItem } from '@/types/audit';
 import type { Pendencia, PendenciaStatus } from '@/types/pendencia';
+import type { PointRecord, TrackingRecord, StandardSchedule, ScaleEntry } from '@/types';
 import { useWorkspace } from './WorkspaceProvider';
 import { journeyService } from '@/services/journey-service';
 import { AuditEngine } from '@/services/audit-engine';
@@ -119,11 +120,11 @@ export function AuditDataProvider({ children }: { children: ReactNode }) {
       setIsProcessing(true);
 
       try {
-        let pontos: any[] = [];
-        let rastreios: any[] = [];
-        let horarios: any[] = [];
-        let escalas: any[] = [];
-        let pontosOntem: any[] = [];
+        let pontos: PointRecord[] = [];
+        let rastreios: TrackingRecord[] = [];
+        let horarios: StandardSchedule[] = [];
+        let escalas: ScaleEntry[] = [];
+        let pontosOntem: PointRecord[] = [];
 
         // 1. Espelho de Ponto
         if (files.espelho) {
@@ -180,7 +181,7 @@ export function AuditDataProvider({ children }: { children: ReactNode }) {
 
         // Gerar pendências automáticas
         const pendenciaService = new PendenciaService(adapter);
-        const novasPendencias = await pendenciaService.autoGerarDeAuditoria(audited, workspaceId);
+        await pendenciaService.autoGerarDeAuditoria(audited, workspaceId);
         const todasPendencias = await pendenciaService.listar(workspaceId);
         setPendencias(todasPendencias);
 
@@ -194,10 +195,11 @@ export function AuditDataProvider({ children }: { children: ReactNode }) {
 
         setIsProcessing(false);
         return { success: true };
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Falha ao processar arquivos:', err);
         setIsProcessing(false);
-        return { success: false, error: err?.message || 'Erro desconhecido ao processar' };
+        const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido ao processar';
+        return { success: false, error: errorMessage };
       }
     },
     [adapter, config, activeDate, workspaceId]

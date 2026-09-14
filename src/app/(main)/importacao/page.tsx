@@ -90,7 +90,6 @@ export default function ImportacaoPage() {
   const {
     processFiles,
     isProcessing,
-    lastProcessSummary,
     auditItems,
     resetToSampleData,
   } = useAuditData();
@@ -145,10 +144,10 @@ export default function ImportacaoPage() {
   );
 
   const handleDragLeave = useCallback(
-    (_key: FileTypeKey) => (e: DragEvent) => {
+    (key: FileTypeKey) => (e: DragEvent) => {
       e.preventDefault();
       e.stopPropagation();
-      setDraggingOver(null);
+      setDraggingOver(prev => (prev === key ? null : prev));
     },
     []
   );

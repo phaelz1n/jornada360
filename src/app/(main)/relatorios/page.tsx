@@ -4,7 +4,7 @@
 // Central de Relatórios & Analytics — Visão Executiva (Fase 5)
 // ============================================================
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo, useSyncExternalStore } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -24,17 +24,22 @@ import {
   Legend,
 } from 'recharts';
 
+const emptySubscribe = () => () => {};
+function useIsClient() {
+  return useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  );
+}
+
 const COLORS = ['#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'];
 
 export default function RelatoriosPage() {
   const { auditItems, activeDate } = useAuditData();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useIsClient();
   const [periodoView, setPeriodoView] = useState<'dia' | 'mes' | 'ciclo'>('dia');
   const [isExporting, setIsExporting] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   // Métricas consolidadas
   const resumo = useMemo(() => reportService.gerarResumo(auditItems), [auditItems]);
@@ -238,7 +243,7 @@ export default function RelatoriosPage() {
                     outerRadius={80}
                     innerRadius={45}
                     paddingAngle={3}
-                    label={({ name, percent }: any) => `${name} (${((percent || 0) * 100).toFixed(0)}%)`}
+                    label={({ name, percent }: { name?: string; percent?: number }) => `${name ?? ''} (${((percent || 0) * 100).toFixed(0)}%)`}
                   >
                     {chartSetores.map((_, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />

@@ -3,7 +3,7 @@
 // ============================================================
 
 import * as XLSX from 'xlsx';
-import { excelSerialToMinutes, minutesToHHMM } from './time';
+import { excelSerialToMinutes } from './time';
 
 /**
  * Lê um workbook a partir de um ArrayBuffer.
@@ -15,15 +15,15 @@ export function readWorkbook(buffer: ArrayBuffer): XLSX.WorkBook {
 /**
  * Obtém os dados de uma planilha como matriz 2D de strings/valores.
  */
-export function sheetToMatrix(worksheet: XLSX.WorkSheet): any[][] {
-  return XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' }) as any[][];
+export function sheetToMatrix(worksheet: XLSX.WorkSheet): unknown[][] {
+  return XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' }) as unknown[][];
 }
 
 /**
  * Localiza a linha de cabeçalho em uma matriz buscando por palavras-chave esperadas.
  * Retorna o índice da linha (0-indexed) ou -1 se não encontrado.
  */
-export function findHeaderRow(rows: any[][], keywords: string[], maxScanRows = 20): number {
+export function findHeaderRow(rows: unknown[][], keywords: string[], maxScanRows = 20): number {
   for (let i = 0; i < Math.min(rows.length, maxScanRows); i++) {
     const row = rows[i];
     if (!Array.isArray(row)) continue;
@@ -40,7 +40,7 @@ export function findHeaderRow(rows: any[][], keywords: string[], maxScanRows = 2
  * Extrai valor de tempo de uma célula que pode ser número serial, Date ou string HH:MM.
  * Retorna os minutos totais (ex: 8:00 -> 480).
  */
-export function parseCellToMinutes(val: any): number {
+export function parseCellToMinutes(val: unknown): number {
   if (val === null || val === undefined || val === '') return 0;
 
   if (typeof val === 'number') {
@@ -86,7 +86,7 @@ export function parseCellToMinutes(val: any): number {
 /**
  * Normaliza uma data para o formato YYYY-MM-DD a partir de Date, string DD/MM/AAAA ou serial.
  */
-export function parseCellToDateISO(val: any): string {
+export function parseCellToDateISO(val: unknown): string {
   if (!val) return '';
 
   if (val instanceof Date && !isNaN(val.getTime())) {
@@ -119,7 +119,7 @@ export function parseCellToDateISO(val: any): string {
 /**
  * Cria e dispara download de um arquivo Excel (.xlsx) com múltiplas abas.
  */
-export function downloadWorkbook(sheets: { name: string; data: any[][] }[], filename: string) {
+export function downloadWorkbook(sheets: { name: string; data: unknown[][] }[], filename: string) {
   const wb = XLSX.utils.book_new();
   for (const s of sheets) {
     const ws = XLSX.utils.aoa_to_sheet(s.data);

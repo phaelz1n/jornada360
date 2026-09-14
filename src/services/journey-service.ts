@@ -426,7 +426,7 @@ export class JourneyService {
   /**
    * Helper para converter strings ou Dates em objetos Date válidos.
    */
-  private parseDateTime(val: any): Date | null {
+  private parseDateTime(val: unknown): Date | null {
     if (!val) return null;
     if (val instanceof Date && !isNaN(val.getTime())) return val;
 

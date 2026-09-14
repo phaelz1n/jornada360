@@ -23,14 +23,15 @@ const ThemeContext = createContext<ThemeContextValue>({
 const STORAGE_KEY = 'jornada360-theme';
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>('dark');
-
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY) as Theme | null;
-    if (stored === 'light' || stored === 'dark') {
-      setThemeState(stored);
+  const [theme, setThemeState] = useState<Theme>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem(STORAGE_KEY) as Theme | null;
+      if (stored === 'light' || stored === 'dark') {
+        return stored;
+      }
     }
-  }, []);
+    return 'dark';
+  });
 
   useEffect(() => {
     const root = document.documentElement;

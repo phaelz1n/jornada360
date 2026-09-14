@@ -187,7 +187,7 @@ export class ReportService {
     XLSX.utils.book_append_sheet(wb, wsResumo, 'Resumo Geral');
 
     // 2. Aba Auditoria Detalhada
-    const detalhadoAoa: any[][] = [
+    const detalhadoAoa: (string | number)[][] = [
       [
         'Data',
         'Motorista',
@@ -230,7 +230,7 @@ export class ReportService {
     XLSX.utils.book_append_sheet(wb, wsDetalhado, 'Auditoria Detalhada');
 
     // 3. Aba Batidas Conciliadas
-    const batidasAoa: any[][] = [
+    const batidasAoa: (string | number)[][] = [
       [
         'Motorista',
         'Data',
@@ -262,7 +262,7 @@ export class ReportService {
 
     // 4. Aba Resumo por Setor
     const setorStats = this.gerarEstatisticasSetor(items);
-    const setorAoa: any[][] = [
+    const setorAoa: (string | number)[][] = [
       ['Setor', 'Total HE (min)', 'Total HE (HH:MM)', 'Excedente (min)', 'Excedente (HH:MM)', 'Qtd Motoristas', 'Ocorrências'],
     ];
     for (const st of setorStats) {

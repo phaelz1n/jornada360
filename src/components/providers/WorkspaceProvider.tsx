@@ -16,7 +16,6 @@ import type { Workspace, WorkspaceConfig } from '@/types/workspace';
 import { createDefaultConfig } from '@/types/workspace';
 import type { IDataAdapter } from '@/lib/db/adapter';
 import { getAdapter, isOfflineMode } from '@/lib/db';
-import { v4 as uuid } from 'uuid';
 
 interface WorkspaceContextValue {
   workspace: Workspace | null;
@@ -84,13 +83,17 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    setIsLoading(true);
     init();
 
     return () => {
       cancelled = true;
     };
   }, [workspaceId]);
+
+  const handleSetWorkspaceId = useCallback((id: string) => {
+    setIsLoading(true);
+    setWorkspaceId(id);
+  }, []);
 
   const updateConfig = useCallback(
     async (partial: Partial<WorkspaceConfig>) => {
@@ -112,7 +115,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         isOffline,
         isLoading,
         workspaceId,
-        setWorkspaceId,
+        setWorkspaceId: handleSetWorkspaceId,
         updateConfig,
       }}
     >

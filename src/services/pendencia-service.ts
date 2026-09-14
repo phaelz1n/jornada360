@@ -3,7 +3,7 @@
 // ============================================================
 
 import { v4 as uuidv4 } from 'uuid';
-import type { Pendencia, PendenciaFilters, PendenciaStatus, Prioridade, StatusChange } from '@/types/pendencia';
+import type { Pendencia, PendenciaFilters, PendenciaStatus, StatusChange } from '@/types/pendencia';
 import type { AuditItem } from '@/types/audit';
 import type { IDataAdapter } from '@/lib/db/adapter';
 

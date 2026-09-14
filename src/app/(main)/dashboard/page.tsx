@@ -13,7 +13,7 @@ import { ProgressRing } from '@/components/ui/ProgressRing';
 import { useAuditData } from '@/components/providers/AuditDataProvider';
 import { useWorkspace } from '@/components/providers/WorkspaceProvider';
 import { minutesToHHMM, hhmmToMinutes } from '@/lib/utils/time';
-import type { AuditItem, ConciliationStatus, ExcedenteClassificacao } from '@/types/audit';
+import type { AuditItem } from '@/types/audit';
 
 export default function DashboardPage() {
   const { config } = useWorkspace();

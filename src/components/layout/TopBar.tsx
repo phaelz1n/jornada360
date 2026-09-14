@@ -8,7 +8,7 @@ import { NAV_ROUTES } from '@/lib/constants';
 export function TopBar() {
   const pathname = usePathname();
   const { theme, toggleTheme } = useTheme();
-  const { workspace, isOffline } = useWorkspace();
+  const { workspace } = useWorkspace();
 
   // Find current route label
   const currentRoute = NAV_ROUTES.find(
