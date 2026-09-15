@@ -232,6 +232,26 @@ export default function ImportacaoPage() {
         </div>
       </div>
 
+      {/* Banner de Sincronização Automática via APIs */}
+      <div className="p-4 rounded-2xl bg-gradient-to-r from-cyan-950/40 via-slate-900 to-teal-950/30 border border-cyan-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 font-bold text-sm flex-shrink-0">
+            ⚡
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold text-white">Integração Contínua Ativa (Cobli & Ponto Icarus)</h2>
+            <p className="text-xs text-slate-400">
+              Você pode sincronizar batidas e telemetria diretamente via API, sem precisar fazer upload manual de planilhas.
+            </p>
+          </div>
+        </div>
+        <Link href="/configuracoes">
+          <Button variant="secondary" size="sm" className="whitespace-nowrap">
+            Gerenciar Conectores de API →
+          </Button>
+        </Link>
+      </div>
+
       {/* Feedback banner */}
       {feedback && (
         <Banner variant={feedback.type === 'success' ? 'success' : 'error'}>

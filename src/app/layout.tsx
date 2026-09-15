@@ -13,10 +13,14 @@ export const metadata: Metadata = {
     "Plataforma corporativa de auditoria, conciliação e gestão de jornada. Transforme arquivos de ponto, rastreamento e escalas em pendências acionáveis.",
 };
 
+import { AuthProvider } from "@/components/providers/AuthProvider";
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="pt-BR" className={`${inter.variable} dark h-full antialiased`}>
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <AuthProvider>{children}</AuthProvider>
+      </body>
     </html>
   );
 }

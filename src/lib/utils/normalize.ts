@@ -26,6 +26,8 @@ export function normalizeName(name: string): string {
     .replace(/\s+/g, ' ');
 }
 
+export const normalizeDriverName = normalizeName;
+
 /**
  * Normaliza CPF removendo pontos e traço.
  */

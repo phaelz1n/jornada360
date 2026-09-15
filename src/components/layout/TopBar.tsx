@@ -5,16 +5,29 @@ import { useTheme } from '@/components/providers/ThemeProvider';
 import { useWorkspace } from '@/components/providers/WorkspaceProvider';
 import { NAV_ROUTES } from '@/lib/constants';
 
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/components/providers/AuthProvider';
+
 export function TopBar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { theme, toggleTheme } = useTheme();
   const { workspace } = useWorkspace();
+  const { user, signOut, isFirebase } = useAuth();
 
   // Find current route label
   const currentRoute = NAV_ROUTES.find(
     r => pathname === r.href || pathname.startsWith(r.href + '/')
   );
   const pageTitle = currentRoute?.label || 'Jornada360';
+
+  const userInitial = user?.email ? user.email.charAt(0).toUpperCase() : 'U';
+  const userName = user?.displayName || user?.email?.split('@')[0] || 'Usuário';
+
+  const handleLogout = async () => {
+    await signOut();
+    router.push('/login');
+  };
 
   return (
     <header className="sticky top-0 z-30 h-16 flex items-center justify-between px-6 border-b border-white/5 bg-slate-950/60 backdrop-blur-xl">
@@ -50,9 +63,28 @@ export function TopBar() {
           )}
         </button>
 
-        {/* User avatar placeholder */}
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-teal-500 flex items-center justify-center text-white text-xs font-bold shadow-lg shadow-cyan-500/20">
-          U
+        {/* User Info & Avatar */}
+        <div className="flex items-center gap-2.5 pl-2 border-l border-white/10">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-teal-500 flex items-center justify-center text-white text-xs font-bold shadow-lg shadow-cyan-500/20">
+            {userInitial}
+          </div>
+          <div className="hidden md:flex flex-col">
+            <span className="text-xs font-medium text-slate-200 leading-tight truncate max-w-[120px]">
+              {userName}
+            </span>
+            <span className="text-[10px] text-cyan-400 leading-tight">
+              {isFirebase ? (user ? 'Autenticado' : 'Convidado') : 'Modo Local'}
+            </span>
+          </div>
+          <button
+            onClick={handleLogout}
+            title="Sair do sistema"
+            className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-white/5 rounded-lg transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+            </svg>
+          </button>
         </div>
       </div>
     </header>

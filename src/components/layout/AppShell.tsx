@@ -7,14 +7,26 @@ import { Banner } from '@/components/ui/Banner';
 import { useWorkspace } from '@/components/providers/WorkspaceProvider';
 import { Spinner } from '@/components/ui/Spinner';
 
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/components/providers/AuthProvider';
+
 interface AppShellProps {
   children: ReactNode;
 }
 
 export function AppShell({ children }: AppShellProps) {
-  const { isOffline, isLoading } = useWorkspace();
+  const router = useRouter();
+  const { isOffline, isLoading: wsLoading } = useWorkspace();
+  const { user, loading: authLoading, isFirebase } = useAuth();
 
-  if (isLoading) {
+  useEffect(() => {
+    if (!authLoading && isFirebase && !user) {
+      router.push('/login');
+    }
+  }, [user, authLoading, isFirebase, router]);
+
+  if (wsLoading || (isFirebase && authLoading)) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-slate-950">
         <div className="flex flex-col items-center gap-4">
@@ -27,6 +39,12 @@ export function AppShell({ children }: AppShellProps) {
       </div>
     );
   }
+
+  // Se o Firebase estiver ativo e o usuário não estiver logado, não renderizar o conteúdo antes do redirect
+  if (isFirebase && !user) {
+    return null;
+  }
+
 
   return (
     <div className="min-h-screen bg-slate-950">

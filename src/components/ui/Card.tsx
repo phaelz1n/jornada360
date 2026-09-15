@@ -9,6 +9,7 @@ interface CardProps {
   glass?: boolean;
   padding?: 'none' | 'sm' | 'md' | 'lg';
   hover?: boolean;
+  onClick?: () => void;
 }
 
 const paddingStyles = {
@@ -24,9 +25,11 @@ export function Card({
   glass = true,
   padding = 'md',
   hover = false,
+  onClick,
 }: CardProps) {
   return (
     <div
+      onClick={onClick}
       className={clsx(
         'rounded-2xl border transition-all duration-300',
         glass

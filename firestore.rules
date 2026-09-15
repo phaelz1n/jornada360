@@ -1,0 +1,49 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ============================================================
+    // Funções Auxiliares
+    // ============================================================
+    
+    // Verifica se o usuário está autenticado
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // ============================================================
+    // Coleções do Jornada360
+    // ============================================================
+
+    // Workspaces (Configurações e dados das empresas)
+    match /workspaces/{workspaceId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Snapshots diários de auditoria ({workspaceId}_{dateKey})
+    match /snapshots_dias/{docId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Gestão de Pendências e SLAs
+    match /pendencias/{pendenciaId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Histórico e Logs de Auditoria
+    match /historico_auditoria/{entryId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Justificativas e Auditoria de Horas Extras
+    match /justificativas_he/{docId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Logs de Sincronização Contínua de APIs (Cobli & Icarus)
+    match /sync_logs/{docId} {
+      allow read, write: if isAuthenticated();
+    }
+  }
+}

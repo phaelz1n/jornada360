@@ -9,6 +9,7 @@ import {
   persistentMultipleTabManager,
   type Firestore,
 } from 'firebase/firestore';
+import { getAuth, type Auth } from 'firebase/auth';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -21,6 +22,7 @@ const firebaseConfig = {
 
 let _app: FirebaseApp | null = null;
 let _db: Firestore | null = null;
+let _auth: Auth | null = null;
 
 /**
  * Verifica se as variáveis de ambiente do Firebase estão configuradas.
@@ -54,3 +56,14 @@ export function getFirestore(): Firestore {
   });
   return _db;
 }
+
+/**
+ * Retorna a instância do Firebase Auth (singleton).
+ */
+export function getFirebaseAuth(): Auth {
+  if (_auth) return _auth;
+  const app = getFirebaseApp();
+  _auth = getAuth(app);
+  return _auth;
+}
+

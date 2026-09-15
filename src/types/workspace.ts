@@ -30,6 +30,27 @@ export interface WorkspaceConfig {
   aliasesSetores: Record<string, string>;
   /** Configuração de intervalos obrigatórios */
   intervalos: IntervaloConfig;
+  /** Configuração das integrações de API (Cobli & Icarus) */
+  integracoes?: IntegracoesConfig;
+}
+
+export interface IntegracoesConfig {
+  cobli?: {
+    apiKey: string;
+    baseUrl?: string;
+    ativo: boolean;
+  };
+  icarus?: {
+    apiToken: string;
+    baseUrl: string;
+    empresaId?: string;
+    ativo: boolean;
+  };
+  agendamento?: {
+    autoSync: boolean;
+    horarios: string[]; // ex: ['03:00', '06:00']
+    ultimoSync?: string;
+  };
 }
 
 export interface CicloFechamento {
@@ -55,5 +76,10 @@ export function createDefaultConfig(): WorkspaceConfig {
     aliasesCausas: {},
     aliasesSetores: {},
     intervalos: { primeiroMin: 60, segundoMin: 15 },
+    integracoes: {
+      cobli: { apiKey: '', baseUrl: 'https://api.cobli.co', ativo: false },
+      icarus: { apiToken: '', baseUrl: 'https://api.pontoicarus.com.br/v1', ativo: false },
+      agendamento: { autoSync: true, horarios: ['03:00', '06:00'] },
+    },
   };
 }

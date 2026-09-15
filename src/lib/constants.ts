@@ -56,8 +56,10 @@ export const EXCEDENTE_LABELS: Record<string, string> = {
 /** Rotas de navegação do sistema */
 export const NAV_ROUTES = [
   { href: '/dashboard', label: 'Dashboard', icon: 'LayoutDashboard' },
+  { href: '/horas-extras', label: 'Horas Extras (Setembro)', icon: 'Clock' },
   { href: '/importacao', label: 'Importação', icon: 'Upload' },
   { href: '/pendencias', label: 'Pendências', icon: 'AlertTriangle' },
   { href: '/relatorios', label: 'Relatórios', icon: 'BarChart3' },
   { href: '/configuracoes', label: 'Configurações', icon: 'Settings' },
 ] as const;
+
