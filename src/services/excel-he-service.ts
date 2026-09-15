@@ -5,44 +5,14 @@
 import path from 'path';
 import fs from 'fs';
 import * as xlsx from 'xlsx';
+import {
+  isDentroDoPadrao,
+  type HoraExtraItem,
+  type HorasExtrasSummary,
+} from '@/lib/horas-extras-utils';
 
-export interface HoraExtraItem {
-  id: string;
-  tipo: 'HE1' | 'HE2' | 'HE3';
-  colaborador: string;
-  data: string; // DD/MM/YYYY
-  pontoRegistrado: string;
-  horasExtrasDecimal: number;
-  horasExtrasFormatada: string; // HH:mm
-  minutosTotais: number;
-  setorMotivo?: string;
-  responsavelOriginal?: string;
-  justificativaOriginal?: string;
-  // Campos dinâmicos / Auditados
-  justificativa: string;
-  temJustificativa: boolean;
-  possivelProblema: boolean;
-  problemaDescricao: string;
-  alteradoPor?: string;
-  alteradoPorUid?: string;
-  alteradoEm?: string;
-  historicoAlteracoes?: Array<{
-    justificativa: string;
-    alteradoPor: string;
-    alteradoEm: string;
-  }>;
-}
-
-export interface HorasExtrasSummary {
-  totalRegistros: number;
-  totalHE1: number;
-  totalHE2: number;
-  totalHE3: number;
-  pendentesJustificativa: number;
-  justificadas: number;
-  minutosTotaisGeral: number;
-  horasTotaisFormatada: string;
-}
+export type { HoraExtraItem, HorasExtrasSummary };
+export { isDentroDoPadrao };
 
 /**
  * Converte número serial do Excel para DD/MM/YYYY
@@ -94,6 +64,7 @@ export function excelFractionToTime(val: unknown): { formatado: string; minutos:
   const formatado = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
   return { formatado, minutos: totalMinutos };
 }
+
 
 /**
  * Gera um ID único e estável para cada linha de hora extra
@@ -153,11 +124,16 @@ export function loadSetembroHorasExtras(
       const override = overridesMap[id];
       const justificativaFinal = override?.justificativa !== undefined ? override.justificativa : colJust;
       const temJustificativa = !!justificativaFinal && justificativaFinal.trim().length > 0;
+      const dentroDoPadrao = isDentroDoPadrao(colSetor, justificativaFinal);
 
       let possivelProblema = false;
       let problemaDescricao = '';
 
-      if (!temJustificativa) {
+      if (dentroDoPadrao) {
+        // Conforme regra de negócio: HE dentro do padrão é programada e NÃO necessita justificativa
+        possivelProblema = false;
+        problemaDescricao = 'Dentro do padrão (Programado)';
+      } else if (!temJustificativa) {
         possivelProblema = true;
         problemaDescricao = 'Sem justificativa no ponto';
       } else if (minutos >= 120) {
@@ -181,6 +157,7 @@ export function loadSetembroHorasExtras(
         justificativaOriginal: colJust,
         justificativa: justificativaFinal,
         temJustificativa,
+        dentroDoPadrao,
         possivelProblema,
         problemaDescricao,
         alteradoPor: override?.alteradoPor,
@@ -216,10 +193,14 @@ export function loadSetembroHorasExtras(
       const override = overridesMap[id];
       const justificativaFinal = override?.justificativa !== undefined ? override.justificativa : colNotas;
       const temJustificativa = !!justificativaFinal && justificativaFinal.trim().length > 0;
+      const dentroDoPadrao = isDentroDoPadrao('HE 2', justificativaFinal);
 
       let possivelProblema = false;
       let problemaDescricao = '';
-      if (!temJustificativa) {
+      if (dentroDoPadrao) {
+        possivelProblema = false;
+        problemaDescricao = 'Dentro do padrão (Programado)';
+      } else if (!temJustificativa) {
         possivelProblema = true;
         problemaDescricao = 'HE 2 sem justificativa/nota';
       }
@@ -238,6 +219,7 @@ export function loadSetembroHorasExtras(
         justificativaOriginal: colNotas,
         justificativa: justificativaFinal,
         temJustificativa,
+        dentroDoPadrao,
         possivelProblema,
         problemaDescricao,
         alteradoPor: override?.alteradoPor,
@@ -272,10 +254,14 @@ export function loadSetembroHorasExtras(
       const override = overridesMap[id];
       const justificativaFinal = override?.justificativa !== undefined ? override.justificativa : colNotas;
       const temJustificativa = !!justificativaFinal && justificativaFinal.trim().length > 0;
+      const dentroDoPadrao = isDentroDoPadrao('HE 3', justificativaFinal);
 
       let possivelProblema = false;
       let problemaDescricao = '';
-      if (!temJustificativa) {
+      if (dentroDoPadrao) {
+        possivelProblema = false;
+        problemaDescricao = 'Dentro do padrão (Programado)';
+      } else if (!temJustificativa) {
         possivelProblema = true;
         problemaDescricao = 'HE 3 (Domingo/Feriado/Folga) sem justificativa';
       }
@@ -293,6 +279,7 @@ export function loadSetembroHorasExtras(
         justificativaOriginal: colNotas,
         justificativa: justificativaFinal,
         temJustificativa,
+        dentroDoPadrao,
         possivelProblema,
         problemaDescricao,
         alteradoPor: override?.alteradoPor,
@@ -309,6 +296,7 @@ export function loadSetembroHorasExtras(
   let totalHE2 = 0;
   let totalHE3 = 0;
   let pendentes = 0;
+  let dentroDoPadraoCount = 0;
   let justificadas = 0;
 
   for (const it of items) {
@@ -317,7 +305,9 @@ export function loadSetembroHorasExtras(
     if (it.tipo === 'HE2') totalHE2++;
     if (it.tipo === 'HE3') totalHE3++;
 
-    if (!it.temJustificativa) {
+    if (it.dentroDoPadrao) {
+      dentroDoPadraoCount++;
+    } else if (!it.temJustificativa) {
       pendentes++;
     } else {
       justificadas++;
@@ -334,6 +324,7 @@ export function loadSetembroHorasExtras(
     totalHE2,
     totalHE3,
     pendentesJustificativa: pendentes,
+    dentroDoPadrao: dentroDoPadraoCount,
     justificadas,
     minutosTotaisGeral: totalMinutos,
     horasTotaisFormatada,

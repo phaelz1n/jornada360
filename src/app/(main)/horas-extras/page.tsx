@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
 import { useAuth } from '@/components/providers/AuthProvider';
-import type { HoraExtraItem, HorasExtrasSummary } from '@/services/excel-he-service';
+import { isDentroDoPadrao, type HoraExtraItem, type HorasExtrasSummary } from '@/lib/horas-extras-utils';
 
 export default function HorasExtrasPage() {
   const { user } = useAuth();
@@ -18,7 +18,7 @@ export default function HorasExtrasPage() {
   // Filtros
   const [search, setSearch] = useState('');
   const [tipoFilter, setTipoFilter] = useState<'TODAS' | 'HE1' | 'HE2' | 'HE3'>('TODAS');
-  const [statusFilter, setStatusFilter] = useState<'TODAS' | 'PENDENTES' | 'JUSTIFICADAS' | 'ALERTAS'>('TODAS');
+  const [statusFilter, setStatusFilter] = useState<'TODAS' | 'PENDENTES' | 'DENTRO_PADRAO' | 'JUSTIFICADAS' | 'ALERTAS'>('TODAS');
   const [selectedDate, setSelectedDate] = useState('');
 
   // Paginação
@@ -61,8 +61,9 @@ export default function HorasExtrasPage() {
     return items.filter(item => {
       if (tipoFilter !== 'TODAS' && item.tipo !== tipoFilter) return false;
 
-      if (statusFilter === 'PENDENTES' && item.temJustificativa) return false;
-      if (statusFilter === 'JUSTIFICADAS' && !item.temJustificativa) return false;
+      if (statusFilter === 'PENDENTES' && (item.temJustificativa || item.dentroDoPadrao)) return false;
+      if (statusFilter === 'DENTRO_PADRAO' && !item.dentroDoPadrao) return false;
+      if (statusFilter === 'JUSTIFICADAS' && (!item.temJustificativa || item.dentroDoPadrao)) return false;
       if (statusFilter === 'ALERTAS' && !item.possivelProblema) return false;
 
       if (selectedDate && item.data !== selectedDate) return false;
@@ -133,13 +134,20 @@ export default function HorasExtrasPage() {
         setItems(prev =>
           prev.map(it => {
             if (it.id === modalItem.id) {
-              const temJust = justificativaInput.trim().length > 0;
+              const justTrim = justificativaInput.trim();
+              const temJust = justTrim.length > 0;
+              const dentroPadrao = isDentroDoPadrao(it.setorMotivo, justTrim);
               return {
                 ...it,
-                justificativa: justificativaInput.trim(),
+                justificativa: justTrim,
                 temJustificativa: temJust,
-                possivelProblema: !temJust,
-                problemaDescricao: temJust ? '' : 'Sem justificativa no ponto',
+                dentroDoPadrao: dentroPadrao,
+                possivelProblema: dentroPadrao ? false : !temJust,
+                problemaDescricao: dentroPadrao
+                  ? 'Dentro do padrão (Programado)'
+                  : temJust
+                  ? ''
+                  : 'Sem justificativa no ponto',
                 alteradoPor: currentUserEmail,
                 alteradoPorUid: currentUserUid,
                 alteradoEm: data.record?.alteradoEm || new Date().toLocaleString(),
@@ -272,9 +280,9 @@ export default function HorasExtrasPage() {
 
       {/* KPI Cards */}
       {summary && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3.5">
           <Card className="border-white/5 bg-slate-900/60 p-4">
-            <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Total de Registros</span>
+            <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Total Registros</span>
             <div className="text-2xl font-bold text-white mt-1">{summary.totalRegistros}</div>
             <div className="text-[11px] text-slate-500 mt-0.5">HE1: {summary.totalHE1} | HE2: {summary.totalHE2} | HE3: {summary.totalHE3}</div>
           </Card>
@@ -289,6 +297,16 @@ export default function HorasExtrasPage() {
             <div className="text-[11px] text-amber-400/80 mt-0.5">Exigem preenchimento</div>
           </Card>
 
+          <Card className="border-blue-500/20 bg-blue-500/5 p-4 cursor-pointer hover:bg-blue-500/10 transition-colors"
+                onClick={() => setStatusFilter('DENTRO_PADRAO')}>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-blue-400 uppercase tracking-wider">Dentro do Padrão</span>
+              <span className="w-2 h-2 rounded-full bg-blue-400"></span>
+            </div>
+            <div className="text-2xl font-bold text-blue-300 mt-1">{summary.dentroDoPadrao}</div>
+            <div className="text-[11px] text-blue-400/80 mt-0.5">Programado (não exige just.)</div>
+          </Card>
+
           <Card className="border-emerald-500/20 bg-emerald-500/5 p-4 cursor-pointer hover:bg-emerald-500/10 transition-colors"
                 onClick={() => setStatusFilter('JUSTIFICADAS')}>
             <span className="text-xs font-medium text-emerald-400 uppercase tracking-wider">Justificadas</span>
@@ -296,8 +314,8 @@ export default function HorasExtrasPage() {
             <div className="text-[11px] text-emerald-400/80 mt-0.5">No ponto ou auditadas</div>
           </Card>
 
-          <Card className="border-cyan-500/20 bg-cyan-500/5 p-4">
-            <span className="text-xs font-medium text-cyan-400 uppercase tracking-wider">Volume Total de Horas</span>
+          <Card className="border-cyan-500/20 bg-cyan-500/5 p-4 col-span-2 md:col-span-1">
+            <span className="text-xs font-medium text-cyan-400 uppercase tracking-wider">Volume de Horas</span>
             <div className="text-2xl font-bold text-cyan-300 mt-1">{summary.horasTotaisFormatada}</div>
             <div className="text-[11px] text-cyan-400/80 mt-0.5">Mês de Setembro</div>
           </Card>
@@ -361,6 +379,7 @@ export default function HorasExtrasPage() {
           {[
             { id: 'TODAS', label: 'Todos os Status' },
             { id: 'PENDENTES', label: '⚠️ Apenas Sem Justificativa' },
+            { id: 'DENTRO_PADRAO', label: '⏱️ Dentro do Padrão (Programado)' },
             { id: 'JUSTIFICADAS', label: '✅ Apenas Justificados' },
             { id: 'ALERTAS', label: '🔥 Horas Elevadas / Alertas' },
           ].map(f => (
@@ -415,7 +434,12 @@ export default function HorasExtrasPage() {
                   >
                     {/* Status */}
                     <td className="py-3 px-4">
-                      {item.possivelProblema ? (
+                      {item.dentroDoPadrao ? (
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20" title="Hora extra programada / dentro do padrão (não exige justificativa)">
+                          <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+                          No Padrão (Programado)
+                        </span>
+                      ) : item.possivelProblema ? (
                         <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
                           <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
                           {item.problemaDescricao || 'Atenção'}
@@ -423,7 +447,7 @@ export default function HorasExtrasPage() {
                       ) : (
                         <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                          Regular
+                          Justificada
                         </span>
                       )}
                     </td>
@@ -603,13 +627,40 @@ export default function HorasExtrasPage() {
                 </span>
               </div>
 
+              {/* Presets Rápidos */}
+              <div>
+                <span className="text-[11px] text-slate-400 block mb-1.5 font-medium">Preenchimento rápido:</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    'Dentro do padrão',
+                    'Ajuste de escala operacional',
+                    'Trânsito / Congestionamento',
+                    'Atraso no abastecimento / Garagem',
+                    'Socorro mecânico / Oficina',
+                  ].map(preset => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setJustificativaInput(preset)}
+                      className={`text-[11px] px-2.5 py-1 rounded-lg border transition-colors ${
+                        preset === 'Dentro do padrão'
+                          ? 'bg-blue-500/15 border-blue-500/30 text-blue-300 hover:bg-blue-500/25'
+                          : 'bg-white/5 border-white/10 text-slate-300 hover:text-white hover:bg-white/10'
+                      }`}
+                    >
+                      + {preset}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Campo de Justificativa */}
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1.5">
                   Descrição da Justificativa:
                 </label>
                 <textarea
-                  rows={4}
+                  rows={3}
                   value={justificativaInput}
                   onChange={e => setJustificativaInput(e.target.value)}
                   placeholder="Informe o motivo da hora extra (ex: Saída atrasada autorizada pela supervisão, socorro de veículo, trânsito)..."
