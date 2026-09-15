@@ -12,12 +12,12 @@ import {
 import { getAuth, type Auth } from 'firebase/auth';
 
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyDIB4UxoVHIUDRrfaOQppszXt_kQk7mUUE",
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "jornada360-3fb60.firebaseapp.com",
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "jornada360-3fb60",
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "jornada360-3fb60.firebasestorage.app",
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "614708163243",
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:614708163243:web:ad8123f025866e909c3dee",
 };
 
 let _app: FirebaseApp | null = null;
@@ -29,8 +29,8 @@ let _auth: Auth | null = null;
  */
 export function isFirebaseConfigured(): boolean {
   return !!(
-    process.env.NEXT_PUBLIC_FIREBASE_API_KEY &&
-    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    (process.env.NEXT_PUBLIC_FIREBASE_API_KEY || firebaseConfig.apiKey) &&
+    (process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || firebaseConfig.projectId)
   );
 }
 

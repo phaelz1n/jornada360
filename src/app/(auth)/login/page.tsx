@@ -123,6 +123,27 @@ export default function LoginPage() {
           </button>
         </div>
 
+        {!isFirebase && (
+          <div className="p-3.5 text-xs rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 space-y-2">
+            <div className="flex items-center gap-2 font-semibold">
+              <span>⚠️</span>
+              <span>Firebase ainda não configurado na Vercel</span>
+            </div>
+            <p className="text-[11px] text-slate-400">
+              As variáveis <code className="text-amber-300">NEXT_PUBLIC_FIREBASE_*</code> precisam ser adicionadas no painel da Vercel. Após salvar, clique em <strong>Redeploy</strong>.
+            </p>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="w-full text-xs"
+              onClick={() => router.push('/dashboard')}
+            >
+              Acessar em Modo Local (IndexedDB) →
+            </Button>
+          </div>
+        )}
+
         {error && (
           <div className="p-3 text-xs rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 flex items-center gap-2 animate-shake">
             <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -189,9 +210,18 @@ export default function LoginPage() {
           </Button>
         </form>
 
-        <div className="pt-2 text-center text-xs text-slate-500 border-t border-white/5 flex items-center justify-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-          <span>Firebase Auth Conectado ({isFirebase ? 'Cloud Firestore' : 'Modo Local'})</span>
+        <div className="pt-2 text-center text-xs text-slate-500 border-t border-white/5 flex flex-col items-center justify-center gap-1.5">
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span>Firebase Auth Conectado ({isFirebase ? 'Cloud Firestore' : 'Modo Local'})</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => router.push('/dashboard')}
+            className="text-[11px] text-slate-400 hover:text-cyan-400 underline underline-offset-2 transition-colors mt-1"
+          >
+            Acessar sem login (modo demonstração local) →
+          </button>
         </div>
       </Card>
     </div>
