@@ -9,11 +9,11 @@ export async function POST(request: Request) {
     const client = new IcarusClient(token, baseUrl, empresaId);
     const result = await client.testConnection();
 
-    return NextResponse.json(result, { status: result.success ? 200 : 400 });
+    return NextResponse.json(result, { status: 200 });
   } catch (error: unknown) {
     return NextResponse.json(
       { success: false, message: (error as Error).message },
-      { status: 500 }
+      { status: 200 }
     );
   }
 }

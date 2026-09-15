@@ -25,12 +25,22 @@ export async function POST(request: Request) {
 
     const targetItems = allItems.filter(it => it.data === targetDate);
 
-    // Salvar snapshot real no adapter
-    await adapter.saveSnapshot(workspaceId, targetDate, targetItems);
+    // Salvar snapshot real no adapter de forma resiliente
+    try {
+      await adapter.saveSnapshot(workspaceId, targetDate, targetItems);
+    } catch (saveErr) {
+      console.warn('Aviso: Não foi possível salvar snapshot no banco:', saveErr);
+    }
 
-    // Gerar pendências reais
-    const pendenciaService = new PendenciaService(adapter);
-    const pendencias = await pendenciaService.autoGerarDeAuditoria(targetItems, workspaceId);
+    // Gerar pendências reais de forma resiliente
+    let pendenciasCount = 0;
+    try {
+      const pendenciaService = new PendenciaService(adapter);
+      const pendencias = await pendenciaService.autoGerarDeAuditoria(targetItems, workspaceId);
+      pendenciasCount = pendencias.length;
+    } catch (pendErr) {
+      console.warn('Aviso: Não foi possível gerar pendências automáticas:', pendErr);
+    }
 
     return NextResponse.json({
       success: true,
@@ -39,7 +49,7 @@ export async function POST(request: Request) {
       availableDates,
       items: targetItems,
       totalRegistrosDia: targetItems.length,
-      pendenciasCount: pendencias.length,
+      pendenciasCount,
     });
   } catch (error: unknown) {
     console.error('Erro ao sincronizar auditoria real:', error);

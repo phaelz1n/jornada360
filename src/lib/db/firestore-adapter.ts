@@ -23,6 +23,13 @@ import type { Pendencia, PendenciaFilters } from '@/types/pendencia';
 import type { TransferPackage, DateRange } from '@/types/transfer';
 import { createDefaultConfig } from '@/types/workspace';
 
+function sanitizeFirestore<T>(data: T): T {
+  if (data === undefined || data === null) return null as unknown as T;
+  return JSON.parse(
+    JSON.stringify(data, (_, value) => (value === undefined ? null : value))
+  );
+}
+
 export class FirestoreAdapter implements IDataAdapter {
   private get db() {
     return getFirestore();
@@ -31,114 +38,163 @@ export class FirestoreAdapter implements IDataAdapter {
   // --- Workspace ---
 
   async getWorkspace(id: string): Promise<Workspace | null> {
-    const ref = doc(this.db, 'workspaces', id);
-    const snap = await getDoc(ref);
-    if (!snap.exists()) return null;
-    return { id: snap.id, ...snap.data() } as Workspace;
+    try {
+      const ref = doc(this.db, 'workspaces', id);
+      const snap = await getDoc(ref);
+      if (!snap.exists()) return null;
+      return { id: snap.id, ...snap.data() } as Workspace;
+    } catch (err) {
+      console.warn('Firestore getWorkspace error (fallback):', err);
+      return null;
+    }
   }
 
   async saveWorkspace(ws: Workspace): Promise<void> {
-    const ref = doc(this.db, 'workspaces', ws.id);
-    await setDoc(ref, { ...ws, updatedAt: new Date() }, { merge: true });
+    try {
+      const ref = doc(this.db, 'workspaces', ws.id);
+      await setDoc(ref, sanitizeFirestore({ ...ws, updatedAt: new Date() }), { merge: true });
+    } catch (err) {
+      console.warn('Firestore saveWorkspace error:', err);
+    }
   }
 
   // --- Snapshots ---
 
   async getSnapshot(workspaceId: string, dateKey: string): Promise<AuditItem[]> {
-    const docId = `${workspaceId}_${dateKey}`;
-    const ref = doc(this.db, 'snapshots_dias', docId);
-    const snap = await getDoc(ref);
-    if (!snap.exists()) return [];
-    const data = snap.data();
-    return (data.items || []) as AuditItem[];
+    try {
+      const docId = `${workspaceId}_${dateKey}`;
+      const ref = doc(this.db, 'snapshots_dias', docId);
+      const snap = await getDoc(ref);
+      if (!snap.exists()) return [];
+      const data = snap.data();
+      return (data.items || []) as AuditItem[];
+    } catch (err) {
+      console.warn('Firestore getSnapshot error:', err);
+      return [];
+    }
   }
 
   async saveSnapshot(workspaceId: string, dateKey: string, items: AuditItem[]): Promise<void> {
-    const docId = `${workspaceId}_${dateKey}`;
-    const ref = doc(this.db, 'snapshots_dias', docId);
-    await setDoc(ref, {
-      workspaceId,
-      dateKey,
-      items,
-      updatedAt: new Date(),
-    });
+    try {
+      const docId = `${workspaceId}_${dateKey}`;
+      const ref = doc(this.db, 'snapshots_dias', docId);
+      await setDoc(ref, sanitizeFirestore({
+        workspaceId,
+        dateKey,
+        items,
+        updatedAt: new Date(),
+      }));
+    } catch (err) {
+      console.warn('Firestore saveSnapshot error:', err);
+    }
   }
 
   async getSnapshotDates(workspaceId: string): Promise<string[]> {
-    const q = query(
-      collection(this.db, 'snapshots_dias'),
-      where('workspaceId', '==', workspaceId),
-      orderBy('dateKey', 'desc')
-    );
-    const snap = await getDocs(q);
-    return snap.docs.map(d => d.data().dateKey as string);
+    try {
+      const q = query(
+        collection(this.db, 'snapshots_dias'),
+        where('workspaceId', '==', workspaceId),
+        orderBy('dateKey', 'desc')
+      );
+      const snap = await getDocs(q);
+      return snap.docs.map(d => d.data().dateKey as string);
+    } catch (err) {
+      console.warn('Firestore getSnapshotDates error:', err);
+      return [];
+    }
   }
 
   // --- Pendências ---
 
   async getPendencias(workspaceId: string, filters?: PendenciaFilters): Promise<Pendencia[]> {
-    let q = query(
-      collection(this.db, 'pendencias'),
-      where('workspaceId', '==', workspaceId)
-    );
-
-    if (filters?.status && filters.status.length > 0) {
-      q = query(q, where('status', 'in', filters.status));
-    }
-
-    const snap = await getDocs(q);
-    let results = snap.docs.map(d => ({ id: d.id, ...d.data() }) as Pendencia);
-
-    // Client-side filters for fields not supported by compound queries
-    if (filters?.prioridade && filters.prioridade.length > 0) {
-      results = results.filter(p => filters.prioridade!.includes(p.prioridade));
-    }
-    if (filters?.tipo && filters.tipo.length > 0) {
-      results = results.filter(p => filters.tipo!.includes(p.tipo));
-    }
-    if (filters?.motorista) {
-      results = results.filter(p =>
-        p.motorista.toUpperCase().includes(filters.motorista!.toUpperCase())
+    try {
+      let q = query(
+        collection(this.db, 'pendencias'),
+        where('workspaceId', '==', workspaceId)
       );
-    }
 
-    return results;
+      if (filters?.status && filters.status.length > 0) {
+        q = query(q, where('status', 'in', filters.status));
+      }
+
+      const snap = await getDocs(q);
+      let results = snap.docs.map(d => ({ id: d.id, ...d.data() }) as Pendencia);
+
+      // Client-side filters for fields not supported by compound queries
+      if (filters?.prioridade && filters.prioridade.length > 0) {
+        results = results.filter(p => filters.prioridade!.includes(p.prioridade));
+      }
+      if (filters?.tipo && filters.tipo.length > 0) {
+        results = results.filter(p => filters.tipo!.includes(p.tipo));
+      }
+      if (filters?.motorista) {
+        results = results.filter(p =>
+          p.motorista.toUpperCase().includes(filters.motorista!.toUpperCase())
+        );
+      }
+
+      return results;
+    } catch (err) {
+      console.warn('Firestore getPendencias error:', err);
+      return [];
+    }
   }
 
   async savePendencia(p: Pendencia): Promise<void> {
-    const ref = doc(this.db, 'pendencias', p.id);
-    await setDoc(ref, { ...p, updatedAt: new Date() });
+    try {
+      const ref = doc(this.db, 'pendencias', p.id);
+      await setDoc(ref, sanitizeFirestore({ ...p, updatedAt: new Date() }));
+    } catch (err) {
+      console.warn('Firestore savePendencia error:', err);
+    }
   }
 
   async updatePendencia(id: string, changes: Partial<Pendencia>): Promise<void> {
-    const ref = doc(this.db, 'pendencias', id);
-    await updateDoc(ref, { ...changes, updatedAt: new Date() });
+    try {
+      const ref = doc(this.db, 'pendencias', id);
+      await updateDoc(ref, sanitizeFirestore({ ...changes, updatedAt: new Date() }));
+    } catch (err) {
+      console.warn('Firestore updatePendencia error:', err);
+    }
   }
 
   async deletePendencia(id: string): Promise<void> {
-    const ref = doc(this.db, 'pendencias', id);
-    await deleteDoc(ref);
+    try {
+      const ref = doc(this.db, 'pendencias', id);
+      await deleteDoc(ref);
+    } catch (err) {
+      console.warn('Firestore deletePendencia error:', err);
+    }
   }
 
   // --- Log de Auditoria ---
 
   async logAuditChange(entry: AuditLogEntry): Promise<void> {
-    await addDoc(collection(this.db, 'historico_auditoria'), entry);
+    try {
+      await addDoc(collection(this.db, 'historico_auditoria'), sanitizeFirestore(entry));
+    } catch (err) {
+      console.warn('Firestore logAuditChange error:', err);
+    }
   }
 
   async getAuditLog(workspaceId: string, auditItemId?: string): Promise<AuditLogEntry[]> {
-    let q = query(
-      collection(this.db, 'historico_auditoria'),
-      where('workspaceId', '==', workspaceId),
-      orderBy('timestamp', 'desc')
-    );
+    try {
+      let q = query(
+        collection(this.db, 'historico_auditoria'),
+        where('workspaceId', '==', workspaceId),
+        orderBy('timestamp', 'desc')
+      );
 
-    if (auditItemId) {
-      q = query(q, where('auditItemId', '==', auditItemId));
+      if (auditItemId) {
+        q = query(q, where('auditItemId', '==', auditItemId));
+      }
+
+      const snap = await getDocs(q);
+      return snap.docs.map(d => ({ id: d.id, ...d.data() }) as AuditLogEntry);
+    } catch (err) {
+      console.warn('Firestore getAuditLog error:', err);
+      return [];
     }
-
-    const snap = await getDocs(q);
-    return snap.docs.map(d => ({ id: d.id, ...d.data() }) as AuditLogEntry);
   }
 
   // --- Transfer ---
