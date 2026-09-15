@@ -13,18 +13,22 @@ import type { PointRecordNormalized } from '@/types/sync';
 import type { PointRecord, ClockEvent } from '@/types/point';
 import { normalizeDriverName } from '@/lib/utils/normalize';
 
-const DEFAULT_BASE_URL = process.env.ICARUS_BASE_URL || 'https://api.pontoicarus.com.br/v1';
+const DEFAULT_BASE_URL = process.env.ICARUS_BASE_URL || 'https://backendicarus.pontoicarus.com.br';
+const DEFAULT_REPORTS_URL = process.env.ICARUS_REPORTS_URL || 'https://backendicarusrelatorios.pontoicarus.com.br';
 
 export interface IcarusEspelhoRaw {
   colaborador?: {
-    id?: string;
+    id?: string | number;
     nome?: string;
     cpf?: string;
     matricula?: string;
   };
-  colaboradorId?: string;
+  colaboradorId?: string | number;
+  idMutuario?: string | number;
   colaboradorNome?: string;
+  nome?: string;
   cpf?: string;
+  documento?: string;
   matricula?: string;
   data?: string;
   marcacoes?: Array<{
@@ -39,32 +43,54 @@ export interface IcarusEspelhoRaw {
   hn_min?: number;
   he1_min?: number;
   he2_min?: number;
+  tempoNormal?: number;
+  tempoExtra50?: number;
+  tempoExtra100?: number;
+  tempoExtra150?: number;
 }
 
 export class IcarusClient {
   private apiToken: string;
   private baseUrl: string;
+  private reportsUrl: string;
   private empresaId?: string;
 
   constructor(token?: string, baseUrl?: string, empresaId?: string) {
     this.apiToken = (token || process.env.ICARUS_API_TOKEN || '').trim();
-    this.baseUrl = (baseUrl || DEFAULT_BASE_URL).replace(/\/$/, '').trim();
+    
+    // Auto-correção: se o usuário ou localStorage tiver o domínio antigo "api.pontoicarus.com.br"
+    // (que é pixel de marketing Stape.io e retorna 400), redireciona para o backend real
+    let url = (baseUrl || DEFAULT_BASE_URL).replace(/\/$/, '').trim();
+    if (url.includes('api.pontoicarus.com.br') || !url) {
+      url = 'https://backendicarus.pontoicarus.com.br';
+    }
+    this.baseUrl = url;
+    this.reportsUrl = DEFAULT_REPORTS_URL;
     this.empresaId = (empresaId || process.env.ICARUS_EMPRESA_ID || '').trim();
   }
 
-  private get headers(): HeadersInit {
+  private getAuthHeaders(overrideToken?: string): HeadersInit {
+    const tok = overrideToken || this.apiToken;
+    const bearer = tok.startsWith('Bearer ') ? tok : `Bearer ${tok}`;
+    const cleanToken = tok.replace(/^Bearer\s+/i, '');
+
     const h: Record<string, string> = {
       'Content-Type': 'application/json',
-      Authorization: this.apiToken.startsWith('Bearer ') ? this.apiToken : `Bearer ${this.apiToken}`,
-      token: this.apiToken,
-      'x-api-token': this.apiToken,
-      'User-Agent': 'Jornada360-Icarus-Connector/1.0',
+      Accept: 'application/json, text/plain, */*',
+      Authorization: bearer,
+      token: cleanToken,
+      'x-api-key': cleanToken,
+      'User-Agent': 'Jornada360-Icarus-Connector/2.3',
     };
     if (this.empresaId) {
       h['x-empresa-id'] = this.empresaId;
       h['empresa-id'] = this.empresaId;
     }
     return h;
+  }
+
+  private get headers(): HeadersInit {
+    return this.getAuthHeaders();
   }
 
   /**
@@ -98,9 +124,9 @@ export class IcarusClient {
   }
 
   /**
-   * Testa a conectividade e autenticação com a API do Ponto Icarus
+   * Testa a conectividade e autenticação com a API oficial do Ponto Icarus (REST 2.3)
    */
-  async testConnection(): Promise<IcarusApiResponse<{ empresa?: string; status: string }>> {
+  async testConnection(): Promise<IcarusApiResponse<{ empresa?: string; status: string; endpoint?: string }>> {
     if (!this.apiToken) {
       return {
         success: false,
@@ -109,57 +135,81 @@ export class IcarusClient {
     }
 
     try {
-      const endpointsToTest = [
-        `${this.baseUrl}/empresa`,
-        `${this.baseUrl}/colaboradores?limite=1`,
-        `${this.baseUrl}/colaboradores`,
-        `${this.baseUrl}/espelho?data=${new Date().toISOString().slice(0, 10)}`,
-        `${this.baseUrl}/pontos?data=${new Date().toISOString().slice(0, 10)}`,
+      const cleanToken = this.apiToken.replace(/^Bearer\s+/i, '');
+      const authVariants = [
+        { Authorization: `Bearer ${cleanToken}` },
+        { Authorization: cleanToken },
+      ];
+
+      // Endpoints oficiais do Swagger 2.3 Ponto Icarus
+      const probeEndpoints = [
+        { url: `${this.baseUrl}/motivoAbonoPonto/listarTodos`, method: 'GET', body: undefined },
+        { url: `${this.baseUrl}/documentoExigido/listar`, method: 'GET', body: undefined },
+        { url: `${this.baseUrl}/mutuario/pesquisa/0`, method: 'POST', body: JSON.stringify({}) },
+        { url: `${this.baseUrl}/integracaoRep/listarIntegracoes`, method: 'GET', body: undefined },
+        { url: `${this.reportsUrl}/turno/relatorioTurno`, method: 'GET', body: undefined },
+        { url: `${this.reportsUrl}/ponto/relatorioTotalizadorDeJornada/0`, method: 'POST', body: JSON.stringify({}) },
       ];
 
       let lastStatus = 0;
       let lastErrorDetail = '';
 
-      for (const endpoint of endpointsToTest) {
-        try {
-          const res = await this.fetchWithRetry(endpoint, {
-            method: 'GET',
-            headers: this.headers,
-          });
-
-          if (res.ok) {
-            const data = await res.json().catch(() => ({}));
-            return {
-              success: true,
-              message: 'Conexão com Ponto Icarus estabelecida com sucesso!',
-              data: {
-                empresa: data?.razaoSocial || data?.nome || this.empresaId || 'Empresa Conectada',
-                status: 'online',
-              },
-            };
-          }
-
-          lastStatus = res.status;
-          const text = await res.text().catch(() => '');
-          if (text) {
-            try {
-              const j = JSON.parse(text);
-              lastErrorDetail = j.message || j.error || j.msg || text;
-            } catch {
-              lastErrorDetail = text.slice(0, 150);
-            }
-          }
-
-          if (res.status === 401 || res.status === 403) {
-            return {
-              success: false,
-              statusCode: res.status,
-              message: `Token inválido ou sem permissão de acesso no Ponto Icarus (Status ${res.status}).`,
-            };
-          }
-        } catch {
-          // continuar testando próximo endpoint
+      for (const authHeader of authVariants) {
+        const testHeaders: Record<string, string> = {
+          'Content-Type': 'application/json',
+          Accept: 'application/json, text/plain, */*',
+          ...authHeader,
+          token: cleanToken,
+          'x-api-key': cleanToken,
+          'User-Agent': 'Jornada360-Icarus-Connector/2.3',
+        };
+        if (this.empresaId) {
+          testHeaders['x-empresa-id'] = this.empresaId;
         }
+
+        for (const probe of probeEndpoints) {
+          try {
+            const res = await this.fetchWithRetry(probe.url, {
+              method: probe.method,
+              headers: testHeaders,
+              body: probe.body,
+            });
+
+            if (res.ok) {
+              const data = await res.json().catch(() => ({}));
+              return {
+                success: true,
+                message: 'Conexão com API oficial do Ponto Icarus estabelecida com sucesso!',
+                data: {
+                  empresa: data?.razaoSocial || data?.nome || this.empresaId || 'Ponto Icarus Integrado',
+                  status: 'online',
+                  endpoint: probe.url,
+                },
+              };
+            }
+
+            lastStatus = res.status;
+            const text = await res.text().catch(() => '');
+            if (text) {
+              try {
+                const j = JSON.parse(text);
+                lastErrorDetail = j.message || j.error || j.msg || text;
+              } catch {
+                lastErrorDetail = text.slice(0, 150);
+              }
+            }
+          } catch {
+            // Continua testando próximo endpoint
+          }
+        }
+      }
+
+      if (lastStatus === 401 || lastStatus === 403) {
+        return {
+          success: false,
+          statusCode: lastStatus,
+          message: `Token do Ponto Icarus recusado (Status ${lastStatus} - Não Autorizado). Verifique se o token foi gerado em 'Minha Empresa > Token de Integração' no painel Ponto Icarus e se possui permissão de leitura.`,
+        };
       }
 
       return {
@@ -167,7 +217,7 @@ export class IcarusClient {
         statusCode: lastStatus || 400,
         message: lastErrorDetail
           ? `Servidor Ponto Icarus retornou status ${lastStatus}: ${lastErrorDetail}`
-          : `Servidor Ponto Icarus retornou status ${lastStatus || 400}.`,
+          : `Servidor Ponto Icarus retornou status ${lastStatus || 400}. Verifique a URL do backend (${this.baseUrl}).`,
       };
     } catch (err: unknown) {
       return {
@@ -209,6 +259,49 @@ export class IcarusClient {
     if (!this.apiToken) return [];
 
     try {
+      // 1. Tenta a API oficial de Relatórios 2.3 (Totalizador de Jornada)
+      const relatoriosRes = await this.fetchWithRetry(
+        `${this.reportsUrl}/ponto/relatorioTotalizadorDeJornada/0`,
+        {
+          method: 'POST',
+          headers: this.headers,
+          body: JSON.stringify({
+            dataInicio: startDate,
+            dataFim: endDate,
+          }),
+        }
+      ).catch(() => null);
+
+      if (relatoriosRes && relatoriosRes.ok) {
+        const data = await relatoriosRes.json().catch(() => ({}));
+        const list = Array.isArray(data) ? data : data?.content || data?.itens || [];
+        if (list.length > 0) {
+          return this.normalizeEspelhoData(list);
+        }
+      }
+
+      // 2. Tenta o endpoint REST de consulta de registros
+      const consultaRes = await this.fetchWithRetry(
+        `${this.baseUrl}/ponto/consultarRegistrosPonto`,
+        {
+          method: 'POST',
+          headers: this.headers,
+          body: JSON.stringify({
+            dataInicio: `${startDate}T00:00:00.000Z`,
+            dataFim: `${endDate}T23:59:59.000Z`,
+          }),
+        }
+      ).catch(() => null);
+
+      if (consultaRes && consultaRes.ok) {
+        const data = await consultaRes.json().catch(() => ({}));
+        const list = Array.isArray(data) ? data : data?.content || data?.itens || [];
+        if (list.length > 0) {
+          return this.normalizeEspelhoData(list);
+        }
+      }
+
+      // 3. Fallback legado para endpoints GET /espelho ou /pontos
       const url = new URL(`${this.baseUrl}/espelho`);
       url.searchParams.append('dataInicio', startDate);
       url.searchParams.append('dataFim', endDate);
@@ -216,30 +309,14 @@ export class IcarusClient {
       const res = await this.fetchWithRetry(url.toString(), {
         method: 'GET',
         headers: this.headers,
-      });
+      }).catch(() => null);
 
-      if (!res.ok) {
-        // Tentar endpoint alternativo /pontos ou /batidas
-        const altUrl = new URL(`${this.baseUrl}/pontos`);
-        altUrl.searchParams.append('dataInicio', startDate);
-        altUrl.searchParams.append('dataFim', endDate);
-
-        const altRes = await this.fetchWithRetry(altUrl.toString(), {
-          method: 'GET',
-          headers: this.headers,
-        });
-
-        if (!altRes.ok) {
-          console.error(`Icarus espelho/pontos error: ${altRes.status}`);
-          return [];
-        }
-
-        const data = await altRes.json();
+      if (res && res.ok) {
+        const data = await res.json().catch(() => []);
         return this.normalizeEspelhoData(Array.isArray(data) ? data : data?.itens || []);
       }
 
-      const data = await res.json();
-      return this.normalizeEspelhoData(Array.isArray(data) ? data : data?.itens || []);
+      return [];
     } catch (err) {
       console.error('Falha ao obter espelho de ponto do Icarus:', err);
       return [];
@@ -253,11 +330,13 @@ export class IcarusClient {
     const results: PointRecordNormalized[] = [];
 
     for (const item of items) {
-      const employeeId = item.colaboradorId || item.colaborador?.id || `emp_${Math.random().toString(36).slice(2, 7)}`;
-      const name = (item.colaboradorNome || item.colaborador?.nome || '').trim();
+      const employeeId = String(
+        item.colaboradorId || item.idMutuario || item.colaborador?.id || `emp_${Math.random().toString(36).slice(2, 7)}`
+      );
+      const name = (item.colaboradorNome || item.nome || item.colaborador?.nome || '').trim();
       if (!name) continue;
 
-      const cpf = item.cpf || item.colaborador?.cpf || '';
+      const cpf = item.cpf || item.documento || item.colaborador?.cpf || '';
       const registration = item.matricula || item.colaborador?.matricula || '';
       const date = item.data || new Date().toISOString().slice(0, 10);
 
@@ -286,9 +365,9 @@ export class IcarusClient {
         }
       }
 
-      const hnMin = item.horas_normais_minutos ?? item.hn_min ?? 440;
-      const he1Min = item.horas_extras_1_minutos ?? item.he1_min ?? 0;
-      const he2Min = item.horas_extras_2_minutos ?? item.he2_min ?? 0;
+      const hnMin = item.horas_normais_minutos ?? item.hn_min ?? item.tempoNormal ?? 440;
+      const he1Min = item.horas_extras_1_minutos ?? item.he1_min ?? item.tempoExtra50 ?? 0;
+      const he2Min = item.horas_extras_2_minutos ?? item.he2_min ?? item.tempoExtra100 ?? 0;
 
       results.push({
         employeeId,

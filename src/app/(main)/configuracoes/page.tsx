@@ -119,8 +119,11 @@ function IntegracoesApiSection() {
     return '';
   });
   const [icarusBaseUrl, setIcarusBaseUrl] = useState(() => {
-    if (typeof window !== 'undefined') return localStorage.getItem('icarus_base_url') || 'https://api.pontoicarus.com.br/v1';
-    return 'https://api.pontoicarus.com.br/v1';
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('icarus_base_url');
+      if (stored && !stored.includes('api.pontoicarus.com.br')) return stored;
+    }
+    return 'https://backendicarus.pontoicarus.com.br';
   });
   const [icarusEmpresaId, setIcarusEmpresaId] = useState(() => {
     if (typeof window !== 'undefined') return localStorage.getItem('icarus_empresa_id') || '';
@@ -128,6 +131,17 @@ function IntegracoesApiSection() {
   });
   const [icarusTesting, setIcarusTesting] = useState(false);
   const [icarusStatus, setIcarusStatus] = useState<{ ok: boolean; msg: string } | null>(null);
+
+  // Auto-migração de cache local que continha o domínio inválido "api.pontoicarus.com.br"
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('icarus_base_url');
+      if (!stored || stored.includes('api.pontoicarus.com.br')) {
+        localStorage.setItem('icarus_base_url', 'https://backendicarus.pontoicarus.com.br');
+        setIcarusBaseUrl('https://backendicarus.pontoicarus.com.br');
+      }
+    }
+  }, []);
 
   // Sync Global Trigger State
   const [syncing, setSyncing] = useState(false);
@@ -418,7 +432,7 @@ function IntegracoesApiSection() {
               </div>
             </div>
             <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-              v1 REST
+              REST 2.3
             </span>
           </div>
 
@@ -434,17 +448,21 @@ function IntegracoesApiSection() {
                 placeholder="Ex: eyJhbGciOiJIUzI1NiIs..."
                 className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
               />
+              <p className="text-[10px] text-slate-500 mt-1">
+                Obtido em <strong>Minha Empresa &gt; Token de Integração</strong> no painel web.pontoicarus.com.br.
+              </p>
             </div>
 
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="block text-slate-300 font-medium mb-1">
-                  URL Base:
+                  URL Base do Backend:
                 </label>
                 <input
                   type="text"
                   value={icarusBaseUrl}
                   onChange={e => setIcarusBaseUrl(e.target.value)}
+                  placeholder="https://backendicarus.pontoicarus.com.br"
                   className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
                 />
               </div>
@@ -460,6 +478,18 @@ function IntegracoesApiSection() {
                   className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
                 />
               </div>
+            </div>
+
+            <div className="flex items-center justify-between text-[11px] text-slate-400">
+              <span>Swagger API Docs:</span>
+              <a
+                href="https://backendicarus.pontoicarus.com.br/swagger-ui.html"
+                target="_blank"
+                rel="noreferrer"
+                className="text-cyan-400 hover:underline flex items-center gap-1"
+              >
+                backendicarus.pontoicarus.com.br/swagger-ui.html ↗
+              </a>
             </div>
 
             {icarusStatus && (
