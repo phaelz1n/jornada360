@@ -39,14 +39,19 @@ export class CobliClient {
     this.baseUrl = (baseUrl || process.env.COBLI_BASE_URL || DEFAULT_COBLI_BASE_URL).replace(/\/$/, '');
   }
 
-  private get headers(): HeadersInit {
-    return {
+  /**
+   * Cabeçalhos padronizados da Cobli.
+   * Conforme OpenAPI oficial: 'cobli-api-key: <chave>'
+   */
+  private getHeaders(useBearer = false): HeadersInit {
+    const h: Record<string, string> = {
       'Content-Type': 'application/json',
       'cobli-api-key': this.apiKey,
-      'Cobli-Api-Key': this.apiKey,
-      Authorization: `Bearer ${this.apiKey}`,
-      'User-Agent': 'Jornada360-Cobli-Connector/1.0',
     };
+    if (useBearer) {
+      h['Authorization'] = `Bearer ${this.apiKey}`;
+    }
+    return h;
   }
 
   /**
@@ -81,50 +86,66 @@ export class CobliClient {
   }
 
   /**
-   * Testa a conectividade com a API Cobli.
-   * Valida nos endpoints oficiais /public/v1/drivers e /public/v1/devices.
+   * Testa a conectividade com a API Cobli nos endpoints públicos oficiais
    */
   async testConnection(): Promise<{ success: boolean; message: string }> {
     if (!this.apiKey) {
       return { success: false, message: 'API Key da Cobli não configurada.' };
     }
 
-    try {
-      // 1. Tenta endpoint oficial /public/v1/drivers
-      const urlDrivers = `${this.baseUrl}/public/v1/drivers?limit=1`;
-      let res = await this.fetchWithRetry(urlDrivers, { method: 'GET', headers: this.headers });
+    const testEndpoints = [
+      '/public/v1/drivers?limit=1',
+      '/public/v1/vehicles?limit=1',
+      '/public/v1/devices?limit=1',
+    ];
 
-      if (res.ok) {
-        return { success: true, message: 'Conexão com Cobli estabelecida com sucesso! (API v1 ativa)' };
+    let lastError = '';
+
+    // 1. Testar com o cabeçalho oficial da Cobli: 'cobli-api-key'
+    for (const ep of testEndpoints) {
+      try {
+        const url = `${this.baseUrl}${ep}`;
+        const res = await this.fetchWithRetry(url, {
+          method: 'GET',
+          headers: this.getHeaders(false),
+        });
+
+        if (res.ok) {
+          return { success: true, message: 'Conexão com Cobli estabelecida com sucesso! (Frota autenticada)' };
+        }
+
+        if (res.status === 401 || res.status === 403) {
+          const body = await res.json().catch(() => null);
+          lastError = body?.message || body?.error || `HTTP ${res.status}: Não autorizado`;
+        } else {
+          lastError = `HTTP ${res.status}: ${res.statusText}`;
+        }
+      } catch (err) {
+        lastError = (err as Error).message;
       }
-
-      if (res.status === 401 || res.status === 403) {
-        return { success: false, message: 'Chave API da Cobli inválida ou sem permissão.' };
-      }
-
-      // 2. Tenta endpoint alternativo /public/v1/devices
-      const urlDevices = `${this.baseUrl}/public/v1/devices?limit=1`;
-      res = await this.fetchWithRetry(urlDevices, { method: 'GET', headers: this.headers });
-
-      if (res.ok) {
-        return { success: true, message: 'Conectado com sucesso à frota Cobli!' };
-      }
-
-      // 3. Tenta endpoint legado /v1/drivers
-      const urlLegacy = `${this.baseUrl}/v1/drivers?limit=1`;
-      res = await this.fetchWithRetry(urlLegacy, { method: 'GET', headers: this.headers });
-
-      if (res.ok) {
-        return { success: true, message: 'Conectado com sucesso à Cobli!' };
-      }
-
-      return {
-        success: false,
-        message: `Cobli retornou status HTTP ${res.status}: ${res.statusText}. Verifique se a URL Base é https://api.cobli.co`,
-      };
-    } catch (err: unknown) {
-      return { success: false, message: `Erro de rede ao conectar à Cobli: ${(err as Error).message}` };
     }
+
+    // 2. Se falhou, tentar com Authorization: Bearer
+    for (const ep of testEndpoints) {
+      try {
+        const url = `${this.baseUrl}${ep}`;
+        const res = await this.fetchWithRetry(url, {
+          method: 'GET',
+          headers: this.getHeaders(true),
+        });
+
+        if (res.ok) {
+          return { success: true, message: 'Conectado com sucesso à Cobli (via Bearer)!' };
+        }
+      } catch {
+        // ignora
+      }
+    }
+
+    return {
+      success: false,
+      message: `Cobli recusou a chave (${lastError || 'Não autorizado'}). Verifique se a chave em Configurações > Chaves de API foi copiada por completo e tem permissão de leitura.`,
+    };
   }
 
   /**
@@ -143,7 +164,7 @@ export class CobliClient {
       const urlTripsAndStops = `${this.baseUrl}/public/v1/trips-and-stops`;
       let res = await this.fetchWithRetry(urlTripsAndStops, {
         method: 'POST',
-        headers: this.headers,
+        headers: this.getHeaders(false),
         body: JSON.stringify({
           start_date: startIso,
           end_date: endIso,
@@ -164,7 +185,7 @@ export class CobliClient {
 
         const fallbackRes = await this.fetchWithRetry(fallbackUrl.toString(), {
           method: 'GET',
-          headers: this.headers,
+          headers: this.getHeaders(false),
         });
 
         if (fallbackRes.ok) {
