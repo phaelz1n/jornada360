@@ -17,12 +17,34 @@ import type { AuditItem } from '@/types/audit';
 
 export default function DashboardPage() {
   const { config } = useWorkspace();
-  const { auditItems, activeDate, stats, resolveAuditItem } = useAuditData();
+  const {
+    auditItems,
+    activeDate,
+    setActiveDate,
+    availableDates,
+    stats,
+    resolveAuditItem,
+    syncWithApis,
+    loadRealSystemData,
+    isProcessing,
+  } = useAuditData();
 
   const [search, setSearch] = useState('');
   const [filterSetor, setFilterSetor] = useState('todos');
   const [filterStatus, setFilterStatus] = useState('todos');
   const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  // Estados de Sincronização de APIs
+  const [syncModalOpen, setSyncModalOpen] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncStep, setSyncStep] = useState('');
+  const [syncFeedback, setSyncFeedback] = useState<{ ok: boolean; title: string; details: string } | null>(null);
+  const [syncStartDate, setSyncStartDate] = useState(activeDate);
+  const [syncEndDate, setSyncEndDate] = useState(activeDate);
+  const [icarusToken, setIcarusToken] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('icarus_api_token') || '' : '');
+  const [cobliApiKey, setCobliApiKey] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('cobli_api_key') || '' : '');
+  const [loadingRealData, setLoadingRealData] = useState(false);
+  const [realDataToast, setRealDataToast] = useState<string | null>(null);
 
   // Form states for active expanded item
   const [editSetor, setEditSetor] = useState('');
@@ -90,6 +112,67 @@ export default function DashboardPage() {
     setTimeout(() => setSaveSuccessId(null), 3000);
   };
 
+  const handleTriggerApiSync = async () => {
+    setSyncing(true);
+    setSyncFeedback(null);
+    setSyncStep('Iniciando conexão com as APIs...');
+
+    try {
+      setSyncStep('Conectando ao Ponto Icarus e buscando batidas de ponto...');
+      await new Promise(r => setTimeout(r, 600));
+
+      setSyncStep('Conectando à Cobli e obtendo trajetos e telemetria...');
+      await new Promise(r => setTimeout(r, 600));
+
+      setSyncStep('Auditando e cruzando no AuditEngine com regras CLT e de jornada...');
+
+      const result = await syncWithApis({
+        startDate: syncStartDate,
+        endDate: syncEndDate,
+        icarusToken: icarusToken.trim() || undefined,
+        cobliApiKey: cobliApiKey.trim() || undefined,
+      });
+
+      if (result.success) {
+        setSyncFeedback({
+          ok: true,
+          title: 'Sincronização de APIs concluída com sucesso!',
+          details: `Checklist atualizado com os colaboradores auditados no período ${syncStartDate}.`,
+        });
+      } else {
+        setSyncFeedback({
+          ok: false,
+          title: 'Sincronização concluída com avisos',
+          details: result.message || 'Verifique as credenciais da Cobli e do Ponto Icarus.',
+        });
+      }
+    } catch (err: unknown) {
+      setSyncFeedback({
+        ok: false,
+        title: 'Erro de comunicação',
+        details: (err as Error).message,
+      });
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const handleLoadRealData = async (targetDate?: string) => {
+    setLoadingRealData(true);
+    setRealDataToast(null);
+    try {
+      const res = await loadRealSystemData(targetDate);
+      if (res.success) {
+        setRealDataToast('Base de dados real carregada e calculada com sucesso!');
+        setTimeout(() => setRealDataToast(null), 3500);
+      } else {
+        setRealDataToast(res.message || 'Falha ao carregar dados.');
+      }
+    } finally {
+      setLoadingRealData(false);
+    }
+  };
+
   const resolutionRate = auditItems.length > 0
     ? Math.round((stats.motoristasResolvidos / auditItems.length) * 100)
     : 0;
@@ -98,6 +181,17 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6 animate-fade-in max-w-7xl mx-auto">
+      {/* Toast de Confirmação */}
+      {realDataToast && (
+        <div className="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs flex items-center justify-between animate-fade-in">
+          <div className="flex items-center gap-2">
+            <span>✅</span>
+            <span>{realDataToast}</span>
+          </div>
+          <button onClick={() => setRealDataToast(null)} className="text-slate-400 hover:text-white">✕</button>
+        </div>
+      )}
+
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -109,19 +203,91 @@ export default function DashboardPage() {
             Conferência diária, conciliação Ponto × Cobli e resolução colaborativa com gestores
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Botão Sincronizar APIs */}
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => {
+              setSyncFeedback(null);
+              setSyncModalOpen(true);
+            }}
+            className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 shadow-md shadow-cyan-500/20"
+          >
+            <span className="flex items-center gap-1.5">
+              <svg className="w-4 h-4 animate-spin-slow" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Sincronizar APIs (Icarus & Cobli)
+            </span>
+          </Button>
+
+          {/* Botão Carregar Dados Reais */}
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => handleLoadRealData()}
+            disabled={loadingRealData}
+          >
+            {loadingRealData ? 'Carregando...' : '📂 Base Real (Setembro)'}
+          </Button>
+
           <Link href="/importacao">
             <Button variant="secondary" size="sm">
-              📥 Importar Arquivos
+              📥 Importar
             </Button>
           </Link>
           <Link href="/relatorios">
-            <Button variant="primary" size="sm">
-              📊 Ver Analytics
+            <Button variant="secondary" size="sm">
+              📊 Analytics
             </Button>
           </Link>
         </div>
       </div>
+
+      {/* Barra de Status das Conexões de API e Seletor de Datas */}
+      <Card className="p-3.5 bg-slate-900/90 border-white/10 flex flex-col md:flex-row items-center justify-between gap-3 text-xs">
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="text-slate-400 font-medium">Status de Integração:</span>
+          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-medium border ${
+            cobliApiKey
+              ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400'
+              : 'bg-white/5 border-white/10 text-slate-400'
+          }`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${cobliApiKey ? 'bg-emerald-400' : 'bg-slate-500'}`}></span>
+            Cobli: {cobliApiKey ? 'Conectada' : 'Chave Pendente'}
+          </span>
+          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-medium border ${
+            icarusToken
+              ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400'
+              : 'bg-white/5 border-white/10 text-slate-400'
+          }`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${icarusToken ? 'bg-emerald-400' : 'bg-slate-500'}`}></span>
+            Ponto Icarus: {icarusToken ? 'Conectado' : 'Token Pendente'}
+          </span>
+        </div>
+
+        {/* Seletor de Datas Auditadas */}
+        {availableDates && availableDates.length > 0 && (
+          <div className="flex items-center gap-2 self-start md:self-auto">
+            <span className="text-slate-400">Ver Auditoria da Data:</span>
+            <select
+              value={activeDate}
+              onChange={e => {
+                setActiveDate(e.target.value);
+                handleLoadRealData(e.target.value);
+              }}
+              className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-cyan-300 font-mono text-xs focus:outline-none focus:ring-1 focus:ring-cyan-500"
+            >
+              {availableDates.map(d => (
+                <option key={d} value={d} className="bg-slate-900 text-slate-200">
+                  {d}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+      </Card>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
@@ -478,6 +644,139 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+
+      {/* Modal de Sincronização Contínua de APIs (Icarus & Cobli) */}
+      {syncModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-lg bg-slate-900 border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-scale-up">
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-cyan-400"></span>
+                  Sincronização Contínua — Icarus & Cobli
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Conexão direta aos serviços REST, cálculo no AuditEngine e atualização do checklist
+                </p>
+              </div>
+              <button
+                onClick={() => setSyncModalOpen(false)}
+                disabled={syncing}
+                className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/5"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 space-y-4 text-xs">
+              {/* Seleção do Período */}
+              <div className="space-y-2">
+                <span className="font-semibold text-slate-300 block">Período de Extração:</span>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[11px] text-slate-400 block mb-1">Data Início</label>
+                    <input
+                      type="date"
+                      value={syncStartDate}
+                      onChange={e => setSyncStartDate(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] text-slate-400 block mb-1">Data Fim</label>
+                    <input
+                      type="date"
+                      value={syncEndDate}
+                      onChange={e => setSyncEndDate(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Chaves Rápidas de Acesso às APIs */}
+              <div className="p-3.5 rounded-xl bg-white/5 border border-white/5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-slate-300">Credenciais das APIs</span>
+                  <Link href="/configuracoes" className="text-[11px] text-cyan-400 hover:underline">
+                    Gerenciar em Configurações →
+                  </Link>
+                </div>
+
+                <div>
+                  <label className="text-[11px] text-slate-400 block mb-1">Token Ponto Icarus:</label>
+                  <input
+                    type="password"
+                    value={icarusToken}
+                    onChange={e => setIcarusToken(e.target.value)}
+                    placeholder="Cole seu Bearer Token do Icarus..."
+                    className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-white/10 text-slate-200 text-xs focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[11px] text-slate-400 block mb-1">API Key Cobli (Telemetria):</label>
+                  <input
+                    type="password"
+                    value={cobliApiKey}
+                    onChange={e => setCobliApiKey(e.target.value)}
+                    placeholder="Cole sua API Key Cobli..."
+                    className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-white/10 text-slate-200 text-xs focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+              </div>
+
+              {/* Feedback e Progresso em Tempo Real */}
+              {syncing && (
+                <div className="p-3.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 space-y-2">
+                  <div className="flex items-center gap-2 font-semibold">
+                    <svg className="animate-spin h-4 w-4 text-cyan-400" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                    </svg>
+                    <span>Executando Pipeline de Sincronização</span>
+                  </div>
+                  <p className="text-[11px] text-slate-300 font-mono">{syncStep}</p>
+                </div>
+              )}
+
+              {syncFeedback && (
+                <div className={`p-3.5 rounded-xl border text-xs space-y-1 ${
+                  syncFeedback.ok
+                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300'
+                    : 'bg-amber-500/10 border-amber-500/20 text-amber-300'
+                }`}>
+                  <p className="font-semibold">{syncFeedback.title}</p>
+                  <p className="text-[11px] text-slate-300">{syncFeedback.details}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-3.5 border-t border-white/10 bg-slate-900/50 flex items-center justify-end gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setSyncModalOpen(false)}
+                disabled={syncing}
+              >
+                Fechar
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleTriggerApiSync}
+                disabled={syncing}
+                className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500"
+              >
+                {syncing ? 'Sincronizando...' : 'Iniciar Sincronização'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

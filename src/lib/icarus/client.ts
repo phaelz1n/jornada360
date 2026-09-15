@@ -44,18 +44,27 @@ export interface IcarusEspelhoRaw {
 export class IcarusClient {
   private apiToken: string;
   private baseUrl: string;
+  private empresaId?: string;
 
-  constructor(token?: string, baseUrl?: string) {
-    this.apiToken = token || process.env.ICARUS_API_TOKEN || '';
-    this.baseUrl = (baseUrl || DEFAULT_BASE_URL).replace(/\/$/, '');
+  constructor(token?: string, baseUrl?: string, empresaId?: string) {
+    this.apiToken = (token || process.env.ICARUS_API_TOKEN || '').trim();
+    this.baseUrl = (baseUrl || DEFAULT_BASE_URL).replace(/\/$/, '').trim();
+    this.empresaId = (empresaId || process.env.ICARUS_EMPRESA_ID || '').trim();
   }
 
   private get headers(): HeadersInit {
-    return {
+    const h: Record<string, string> = {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${this.apiToken}`,
+      Authorization: this.apiToken.startsWith('Bearer ') ? this.apiToken : `Bearer ${this.apiToken}`,
+      token: this.apiToken,
+      'x-api-token': this.apiToken,
       'User-Agent': 'Jornada360-Icarus-Connector/1.0',
     };
+    if (this.empresaId) {
+      h['x-empresa-id'] = this.empresaId;
+      h['empresa-id'] = this.empresaId;
+    }
+    return h;
   }
 
   /**
@@ -100,49 +109,65 @@ export class IcarusClient {
     }
 
     try {
-      const res = await this.fetchWithRetry(`${this.baseUrl}/empresa`, {
-        method: 'GET',
-        headers: this.headers,
-      });
+      const endpointsToTest = [
+        `${this.baseUrl}/empresa`,
+        `${this.baseUrl}/colaboradores?limite=1`,
+        `${this.baseUrl}/colaboradores`,
+        `${this.baseUrl}/espelho?data=${new Date().toISOString().slice(0, 10)}`,
+        `${this.baseUrl}/pontos?data=${new Date().toISOString().slice(0, 10)}`,
+      ];
 
-      if (res.ok) {
-        const data = await res.json().catch(() => ({}));
-        return {
-          success: true,
-          message: 'Conexão com Ponto Icarus estabelecida com sucesso!',
-          data: {
-            empresa: data?.razaoSocial || data?.nome || 'Empresa Conectada',
-            status: 'online',
-          },
-        };
-      }
+      let lastStatus = 0;
+      let lastErrorDetail = '';
 
-      if (res.status === 401 || res.status === 403) {
-        return {
-          success: false,
-          statusCode: res.status,
-          message: 'Token inválido ou sem permissão de acesso no Ponto Icarus.',
-        };
-      }
+      for (const endpoint of endpointsToTest) {
+        try {
+          const res = await this.fetchWithRetry(endpoint, {
+            method: 'GET',
+            headers: this.headers,
+          });
 
-      // Fallback para endpoint de colaboradores se /empresa não existir
-      const fallbackRes = await this.fetchWithRetry(`${this.baseUrl}/colaboradores?limite=1`, {
-        method: 'GET',
-        headers: this.headers,
-      });
+          if (res.ok) {
+            const data = await res.json().catch(() => ({}));
+            return {
+              success: true,
+              message: 'Conexão com Ponto Icarus estabelecida com sucesso!',
+              data: {
+                empresa: data?.razaoSocial || data?.nome || this.empresaId || 'Empresa Conectada',
+                status: 'online',
+              },
+            };
+          }
 
-      if (fallbackRes.ok) {
-        return {
-          success: true,
-          message: 'Conectado ao Ponto Icarus com sucesso!',
-          data: { status: 'online' },
-        };
+          lastStatus = res.status;
+          const text = await res.text().catch(() => '');
+          if (text) {
+            try {
+              const j = JSON.parse(text);
+              lastErrorDetail = j.message || j.error || j.msg || text;
+            } catch {
+              lastErrorDetail = text.slice(0, 150);
+            }
+          }
+
+          if (res.status === 401 || res.status === 403) {
+            return {
+              success: false,
+              statusCode: res.status,
+              message: `Token inválido ou sem permissão de acesso no Ponto Icarus (Status ${res.status}).`,
+            };
+          }
+        } catch {
+          // continuar testando próximo endpoint
+        }
       }
 
       return {
         success: false,
-        statusCode: fallbackRes.status,
-        message: `Servidor Ponto Icarus retornou status ${fallbackRes.status}.`,
+        statusCode: lastStatus || 400,
+        message: lastErrorDetail
+          ? `Servidor Ponto Icarus retornou status ${lastStatus}: ${lastErrorDetail}`
+          : `Servidor Ponto Icarus retornou status ${lastStatus || 400}.`,
       };
     } catch (err: unknown) {
       return {

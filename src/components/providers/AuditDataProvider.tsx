@@ -43,10 +43,20 @@ interface AuditDataContextValue {
   pendencias: Pendencia[];
   activeDate: string;
   setActiveDate: (date: string) => void;
+  availableDates: string[];
   isProcessing: boolean;
   lastProcessSummary: ProcessSummary | null;
   stats: ReportSummary;
   processFiles: (files: ProcessFilesPayload) => Promise<{ success: boolean; error?: string }>;
+  syncWithApis: (options?: {
+    startDate?: string;
+    endDate?: string;
+    icarusToken?: string;
+    icarusBaseUrl?: string;
+    cobliApiKey?: string;
+    cobliBaseUrl?: string;
+  }) => Promise<{ success: boolean; message?: string; auditItems?: AuditItem[] }>;
+  loadRealSystemData: (date?: string) => Promise<{ success: boolean; message?: string }>;
   resolveAuditItem: (
     id: string,
     setor: string,
@@ -69,12 +79,13 @@ const AuditDataContext = createContext<AuditDataContextValue | null>(null);
 export function AuditDataProvider({ children }: { children: ReactNode }) {
   const { workspaceId, config, adapter } = useWorkspace();
   const [activeDate, setActiveDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
+  const [availableDates, setAvailableDates] = useState<string[]>([]);
   const [auditItems, setAuditItems] = useState<AuditItem[]>([]);
   const [pendencias, setPendencias] = useState<Pendencia[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastProcessSummary, setLastProcessSummary] = useState<ProcessSummary | null>(null);
 
-  // Carregar dados salvos do adapter ou inicializar com dados de exemplo
+  // Carregar dados salvos do adapter ou inicializar com dados reais do sistema
   useEffect(() => {
     if (!adapter) return;
     let cancelled = false;
@@ -86,17 +97,34 @@ export function AuditDataProvider({ children }: { children: ReactNode }) {
 
         if (cancelled) return;
 
-        if (savedItems && savedItems.length > 0) {
-          setAuditItems(savedItems);
-        } else {
-          // Primeira execução: salvar dados de amostra
-          await adapter!.saveSnapshot(workspaceId, activeDate, SAMPLE_AUDIT_ITEMS);
-          setAuditItems(SAMPLE_AUDIT_ITEMS);
+        // Se existirem itens salvos e não for o mock hardcoded antigo
+        const isMockHardcoded =
+          savedItems &&
+          savedItems.length === 5 &&
+          savedItems[0]?.motorista === 'CARLOS EDUARDO SILVA' &&
+          savedItems[1]?.motorista === 'MARCOS ANTONIO DE SOUZA';
 
-          const pendenciaService = new PendenciaService(adapter!);
-          const autoPendencias = await pendenciaService.autoGerarDeAuditoria(SAMPLE_AUDIT_ITEMS, workspaceId);
-          setPendencias(autoPendencias);
-          return;
+        if (savedItems && savedItems.length > 0 && !isMockHardcoded) {
+          setAuditItems(savedItems);
+          if (savedPendencias) setPendencias(savedPendencias);
+        } else {
+          // Carregar dados reais consolidados do sistema
+          const res = await fetch('/api/audit/sync-real', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ workspaceId, date: activeDate }),
+          });
+          const data = await res.json();
+          if (!cancelled && res.ok && data.success && data.items?.length > 0) {
+            setAuditItems(data.items);
+            if (data.activeDate) setActiveDate(data.activeDate);
+            if (data.availableDates) setAvailableDates(data.availableDates);
+
+            const pendenciaService = new PendenciaService(adapter!);
+            const pends = await pendenciaService.listar(workspaceId);
+            setPendencias(pends);
+            return;
+          }
         }
 
         if (savedPendencias) {
@@ -265,6 +293,83 @@ export function AuditDataProvider({ children }: { children: ReactNode }) {
     [adapter, workspaceId]
   );
 
+  // Sincronizar diretamente com as APIs do Icarus e Cobli
+  const syncWithApis = useCallback(
+    async (opts?: {
+      startDate?: string;
+      endDate?: string;
+      icarusToken?: string;
+      icarusBaseUrl?: string;
+      cobliApiKey?: string;
+      cobliBaseUrl?: string;
+    }) => {
+      setIsProcessing(true);
+      try {
+        const res = await fetch('/api/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            workspaceId,
+            startDate: opts?.startDate || activeDate,
+            endDate: opts?.endDate || activeDate,
+            icarusToken: opts?.icarusToken,
+            icarusBaseUrl: opts?.icarusBaseUrl,
+            cobliApiKey: opts?.cobliApiKey,
+            cobliBaseUrl: opts?.cobliBaseUrl,
+          }),
+        });
+        const data = await res.json();
+        if (res.ok && data.success && data.auditItems) {
+          setAuditItems(data.auditItems);
+          if (data.pendencias) setPendencias(data.pendencias);
+        }
+        return {
+          success: res.ok && data.success,
+          message: data.log?.erros?.join(' | ') || data.message || (res.ok ? 'Sincronizado!' : 'Falha na conexão'),
+          auditItems: data.auditItems,
+        };
+      } catch (err: unknown) {
+        return { success: false, message: (err as Error).message };
+      } finally {
+        setIsProcessing(false);
+      }
+    },
+    [workspaceId, activeDate]
+  );
+
+  // Carregar dados reais consolidados do sistema
+  const loadRealSystemData = useCallback(
+    async (targetDate?: string) => {
+      setIsProcessing(true);
+      try {
+        const res = await fetch('/api/audit/sync-real', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ workspaceId, date: targetDate || activeDate }),
+        });
+        const data = await res.json();
+        if (res.ok && data.success && data.items?.length > 0) {
+          setAuditItems(data.items);
+          if (data.activeDate) setActiveDate(data.activeDate);
+          if (data.availableDates) setAvailableDates(data.availableDates);
+
+          if (adapter) {
+            const pendenciaService = new PendenciaService(adapter);
+            const pends = await pendenciaService.listar(workspaceId);
+            setPendencias(pends);
+          }
+          return { success: true, message: data.message };
+        }
+        return { success: false, message: data.message || 'Nenhum dado real encontrado.' };
+      } catch (err: unknown) {
+        return { success: false, message: (err as Error).message };
+      } finally {
+        setIsProcessing(false);
+      }
+    },
+    [workspaceId, activeDate, adapter]
+  );
+
   // Restaurar dados de demonstração
   const resetToSampleData = useCallback(async () => {
     if (!adapter) return;
@@ -284,10 +389,13 @@ export function AuditDataProvider({ children }: { children: ReactNode }) {
         pendencias,
         activeDate,
         setActiveDate,
+        availableDates,
         isProcessing,
         lastProcessSummary,
         stats,
         processFiles,
+        syncWithApis,
+        loadRealSystemData,
         resolveAuditItem,
         updatePendenciaStatus,
         resolverPendencia,

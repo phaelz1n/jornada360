@@ -58,3 +58,25 @@ export function isDentroDoPadrao(setor?: string, just?: string): boolean {
     j.includes('programad')
   );
 }
+
+/**
+ * Converte fração decimal de dia do Excel (ex: 0.0243 = 35min) em HH:mm e minutos totais
+ */
+export function excelFractionToTime(val: unknown): { formatado: string; minutos: number } {
+  if (val === null || val === undefined) return { formatado: '00:00', minutos: 0 };
+
+  let num = typeof val === 'number' ? val : parseFloat(String(val).replace(',', '.'));
+  if (isNaN(num)) return { formatado: '00:00', minutos: 0 };
+
+  let totalMinutos = 0;
+  if (num < 1) {
+    totalMinutos = Math.round(num * 24 * 60);
+  } else {
+    totalMinutos = Math.round(num * 60);
+  }
+
+  const h = Math.floor(totalMinutos / 60);
+  const m = totalMinutos % 60;
+  const formatado = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  return { formatado, minutos: totalMinutos };
+}

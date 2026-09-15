@@ -67,6 +67,10 @@ export interface SyncOptions {
   startDate?: string;
   endDate?: string;
   trigger?: 'manual' | 'cron';
+  icarusToken?: string;
+  icarusBaseUrl?: string;
+  cobliApiKey?: string;
+  cobliBaseUrl?: string;
 }
 
 export interface SyncResult {

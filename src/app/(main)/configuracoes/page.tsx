@@ -200,7 +200,11 @@ function IntegracoesApiSection() {
       const res = await fetch('/api/icarus/test', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: icarusToken, baseUrl: icarusBaseUrl }),
+        body: JSON.stringify({
+          token: icarusToken,
+          baseUrl: icarusBaseUrl,
+          empresaId: icarusEmpresaId,
+        }),
       });
       const data = await res.json();
       setIcarusStatus({ ok: res.ok && data.success, msg: data.message });

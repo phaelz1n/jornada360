@@ -35,13 +35,25 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}));
-    const { workspaceId = 'default', startDate, endDate } = body;
+    const {
+      workspaceId = 'default',
+      startDate,
+      endDate,
+      icarusToken,
+      icarusBaseUrl,
+      cobliApiKey,
+      cobliBaseUrl,
+    } = body;
 
     const result = await syncAndAuditPipeline({
       workspaceId,
       startDate,
       endDate,
       trigger: 'manual',
+      icarusToken,
+      icarusBaseUrl,
+      cobliApiKey,
+      cobliBaseUrl,
     });
 
     return NextResponse.json(result, { status: result.success ? 200 : 207 });
