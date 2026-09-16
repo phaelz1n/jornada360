@@ -4,7 +4,7 @@
 // Central de Pendências — Gestão de Ações, SLA e Workflow (Fase 4)
 // ============================================================
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -13,18 +13,42 @@ import { useAuditData } from '@/components/providers/AuditDataProvider';
 import type { Pendencia, PendenciaStatus, Prioridade } from '@/types/pendencia';
 
 export default function PendenciasPage() {
-  const { pendencias, updatePendenciaStatus, resolverPendencia } = useAuditData();
+  const { pendencias, updatePendenciaStatus, resolverPendencia, refreshPendencias } = useAuditData();
 
   const [activeTab, setActiveTab] = useState<'todas' | 'abertas' | 'resolvidas'>('abertas');
   const [filterTipo, setFilterTipo] = useState<string>('todos');
   const [filterPrioridade, setFilterPrioridade] = useState<string>('todos');
   const [search, setSearch] = useState('');
 
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncFeedback, setSyncFeedback] = useState<string | null>(null);
+
   // Selected pendência for action
   const [selectedPendencia, setSelectedPendencia] = useState<Pendencia | null>(null);
   const [novoStatus, setNovoStatus] = useState<PendenciaStatus>('em_analise');
   const [observacaoStatus, setObservacaoStatus] = useState('');
   const [resolucaoTexto, setResolucaoTexto] = useState('');
+
+  // Se a lista estiver vazia ao carregar a tela, sincronizar automaticamente com a auditoria real
+  useEffect(() => {
+    if (pendencias.length === 0) {
+      refreshPendencias();
+    }
+  }, [pendencias.length, refreshPendencias]);
+
+  const handleSyncReal = async () => {
+    setIsSyncing(true);
+    setSyncFeedback(null);
+    try {
+      await refreshPendencias(true);
+      setSyncFeedback('Pendências sincronizadas com sucesso a partir dos dados do ciclo oficial!');
+      setTimeout(() => setSyncFeedback(null), 4000);
+    } catch (e: unknown) {
+      setSyncFeedback('Falha ao sincronizar: ' + (e as Error).message);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const filtered = useMemo(() => {
     return pendencias.filter(p => {
@@ -113,10 +137,38 @@ export default function PendenciasPage() {
             <Badge variant="cyan" dot>{abertasCount} em aberto</Badge>
           </div>
           <p className="text-sm text-slate-400 mt-1">
-            Gestão de não-conformidades, SLA de apuração e fluxo de aprovação com gestores e RH
+            Gestão de não-conformidades, SLA de apuração e fluxo de aprovação com gestores e RH (Ciclo Oficial)
           </p>
         </div>
+
+        <div className="flex items-center gap-2">
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={handleSyncReal}
+            disabled={isSyncing}
+            className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 shadow-md shadow-cyan-900/30"
+          >
+            <span className="flex items-center gap-1.5">
+              <svg className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              {isSyncing ? 'Sincronizando...' : '🔄 Sincronizar com Auditoria'}
+            </span>
+          </Button>
+        </div>
       </div>
+
+      {/* Toast Feedback */}
+      {syncFeedback && (
+        <div className="p-3 rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-xs flex items-center justify-between animate-fade-in">
+          <div className="flex items-center gap-2">
+            <span>✨</span>
+            <span>{syncFeedback}</span>
+          </div>
+          <button onClick={() => setSyncFeedback(null)} className="text-slate-400 hover:text-white">✕</button>
+        </div>
+      )}
 
       {/* Tabs and Controls */}
       <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">

@@ -14,6 +14,16 @@ export interface HoraExtraItem {
   setorMotivo?: string;
   responsavelOriginal?: string;
   justificativaOriginal?: string;
+  // Campos da Planilha Oficial de Ciclo
+  horarioPadrao?: string;
+  hePrevistaFormatada?: string;
+  hePrevistaMin?: number;
+  acimaPadraoFormatada?: string;
+  acimaPadraoMin?: number;
+  situacao?: string; // 'Acima do padrão' | 'Dentro do padrão' | 'Sem referência'
+  causa?: string;
+  conferido?: string; // 'sim' | 'não'
+  observacao?: string;
   // Campos dinâmicos / Auditados
   justificativa: string;
   temJustificativa: boolean;
@@ -40,6 +50,10 @@ export interface HorasExtrasSummary {
   justificadas: number;
   minutosTotaisGeral: number;
   horasTotaisFormatada: string;
+  totalAcimaPadraoMinutos?: number;
+  totalAcimaPadraoFormatada?: string;
+  conferidosCount?: number;
+  pendentesConferenciaCount?: number;
 }
 
 /**

@@ -75,73 +75,95 @@ function makeItemId(tipo: string, data: string, colaborador: string, ponto: stri
   return `${tipo.toLowerCase()}_${cleanDate}_${cleanColab}_${idx}`;
 }
 
+function parseTimeStringToMinutes(timeStr: unknown): number {
+  if (!timeStr) return 0;
+  if (typeof timeStr === 'number') {
+    if (timeStr < 1) return Math.round(timeStr * 24 * 60);
+    return Math.round(timeStr * 60);
+  }
+  const parts = String(timeStr).trim().split(':');
+  if (parts.length === 2) {
+    const h = parseInt(parts[0], 10) || 0;
+    const m = parseInt(parts[1], 10) || 0;
+    return h * 60 + m;
+  }
+  return 0;
+}
+
 /**
- * Carrega e processa os dados do Setembro.xlsx na pasta raiz
+ * Carrega e processa os dados da planilha de horas extras (prioriza HE_ciclo_2026-08-28.xlsx)
  */
 export function loadSetembroHorasExtras(
   overridesMap: Record<string, { justificativa: string; alteradoPor?: string; alteradoPorUid?: string; alteradoEm?: string; historico?: any[] }> = {}
 ): { items: HoraExtraItem[]; summary: HorasExtrasSummary } {
-  const filePath = path.join(process.cwd(), 'Setembro.xlsx');
+  const cicloPath = path.join(process.cwd(), 'HE_ciclo_2026-08-28.xlsx');
+  const setembroPath = path.join(process.cwd(), 'Setembro.xlsx');
+  const filePath = fs.existsSync(cicloPath) ? cicloPath : setembroPath;
+
   if (!fs.existsSync(filePath)) {
-    throw new Error('Arquivo Setembro.xlsx não encontrado na raiz do projeto.');
+    throw new Error('Nenhuma planilha de horas extras encontrada na raiz do projeto.');
   }
 
+  const isCicloSheet = filePath.endsWith('HE_ciclo_2026-08-28.xlsx');
   const fileBuffer = fs.readFileSync(filePath);
   const wb = xlsx.read(fileBuffer, { type: 'buffer' });
 
   const items: HoraExtraItem[] = [];
 
-  // 1. Processar 'HE1 total'
-  const wsHE1 = wb.Sheets['HE1 total'];
-  if (wsHE1) {
-    const rawRows = xlsx.utils.sheet_to_json<any[]>(wsHE1, { header: 1 });
-    // Linha 0 é título, linha 1 cabeçalhos, dados começam na linha 2
-    for (let i = 2; i < rawRows.length; i++) {
-      const row = rawRows[i];
-      if (!row || row.length === 0) continue;
+  // ============================================================
+  // FLUXO 1: Planilha Oficial de Ciclo (HE_ciclo_2026-08-28.xlsx)
+  // ============================================================
+  if (isCicloSheet && wb.Sheets['DETALHAMENTO']) {
+    const rows = xlsx.utils.sheet_to_json<any>(wb.Sheets['DETALHAMENTO']);
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const colaborador = String(row['Colaborador'] || '').trim();
+      if (!colaborador) continue;
 
-      let colData = row[0];
-      let colColab = row[1];
-      const colPonto = row[2] ? String(row[2]).trim() : '';
-      const colHE = row[3];
-      const colSetor = row[4] ? String(row[4]).trim() : '';
-      const colJust = row[5] ? String(row[5]).trim() : '';
+      const dataStr = String(row['Dia'] || '').trim(); // DD/MM/YYYY
+      const horarioPadrao = String(row['Horário padrão'] || '').trim();
+      const he1Str = String(row['HE.1'] || '00:00').trim();
+      const hePrevStr = String(row['HE prevista no padrão'] || '00:00').trim();
+      const acimaStr = String(row['Acima do padrão'] || '00:00').trim();
+      const situacao = String(row['Situação'] || '').trim();
+      const setor = String(row['Setor/motivo'] || '').trim();
+      const causa = String(row['Causa'] || '').trim();
+      const justOriginal = String(row['Justificativa'] || '').trim();
+      const conferido = String(row['Conferido'] || '').trim();
+      const observacao = String(row['Observação'] || '').trim();
 
-      // Tratar caso em que Nome e Data foram invertidos no Excel
-      if (typeof colData === 'string' && isNaN(Number(colData)) && typeof colColab === 'number') {
-        const temp = colData;
-        colData = colColab;
-        colColab = temp;
-      }
+      const minutos = parseTimeStringToMinutes(he1Str);
+      const hePrevMin = parseTimeStringToMinutes(hePrevStr);
+      const acimaMin = parseTimeStringToMinutes(acimaStr);
 
-      const colaborador = colColab ? String(colColab).trim() : 'Não informado';
-      if (!colaborador || colaborador === 'Não informado') continue;
+      const cleanDate = dataStr.replace(/\//g, '');
+      const cleanColab = colaborador.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+      const id = `he1_${cleanDate}_${cleanColab}`;
+      const fallbackId = `he1_${cleanDate}_${cleanColab}_${i}`;
 
-      const dataStr = excelSerialToDateStr(colData);
-      const { formatado, minutos } = excelFractionToTime(colHE);
-      const id = makeItemId('HE1', dataStr, colaborador, colPonto, i);
-
-      const override = overridesMap[id];
-      const justificativaFinal = override?.justificativa !== undefined ? override.justificativa : colJust;
+      const override = overridesMap[id] || overridesMap[fallbackId];
+      const justificativaFinal = override?.justificativa !== undefined ? override.justificativa : justOriginal;
       const temJustificativa = !!justificativaFinal && justificativaFinal.trim().length > 0;
-      const dentroDoPadrao = isDentroDoPadrao(colSetor, justificativaFinal);
+      const dentroDoPadrao = situacao === 'Dentro do padrão' || isDentroDoPadrao(setor, justificativaFinal);
 
       let possivelProblema = false;
       let problemaDescricao = '';
 
       if (dentroDoPadrao) {
-        // Conforme regra de negócio: HE dentro do padrão é programada e NÃO necessita justificativa
         possivelProblema = false;
         problemaDescricao = 'Dentro do padrão (Programado)';
       } else if (!temJustificativa) {
         possivelProblema = true;
         problemaDescricao = 'Sem justificativa no ponto';
+      } else if (conferido === 'não') {
+        possivelProblema = true;
+        problemaDescricao = 'Pendente de conferência';
+      } else if (situacao === 'Sem referência') {
+        possivelProblema = true;
+        problemaDescricao = 'Sem horário padrão cadastrado';
       } else if (minutos >= 120) {
         possivelProblema = true;
         problemaDescricao = 'Hora extra elevada (> 2h)';
-      } else if (!colSetor && !temJustificativa) {
-        possivelProblema = true;
-        problemaDescricao = 'Sem setor e sem justificativa';
       }
 
       items.push({
@@ -149,12 +171,21 @@ export function loadSetembroHorasExtras(
         tipo: 'HE1',
         colaborador,
         data: dataStr,
-        pontoRegistrado: colPonto,
-        horasExtrasDecimal: typeof colHE === 'number' ? colHE : 0,
-        horasExtrasFormatada: formatado,
+        pontoRegistrado: horarioPadrao,
+        horasExtrasDecimal: minutos / 60,
+        horasExtrasFormatada: he1Str,
         minutosTotais: minutos,
-        setorMotivo: colSetor,
-        justificativaOriginal: colJust,
+        setorMotivo: setor,
+        justificativaOriginal: justOriginal,
+        horarioPadrao,
+        hePrevistaFormatada: hePrevStr,
+        hePrevistaMin: hePrevMin,
+        acimaPadraoFormatada: acimaStr,
+        acimaPadraoMin: acimaMin,
+        situacao,
+        causa,
+        conferido,
+        observacao,
         justificativa: justificativaFinal,
         temJustificativa,
         dentroDoPadrao,
@@ -165,6 +196,83 @@ export function loadSetembroHorasExtras(
         alteradoEm: override?.alteradoEm,
         historicoAlteracoes: override?.historico,
       });
+    }
+  } else {
+    // ============================================================
+    // FLUXO 2: Planilha Legada (Setembro.xlsx)
+    // ============================================================
+    // 1. Processar 'HE1 total'
+    const wsHE1 = wb.Sheets['HE1 total'];
+    if (wsHE1) {
+      const rawRows = xlsx.utils.sheet_to_json<any[]>(wsHE1, { header: 1 });
+      for (let i = 2; i < rawRows.length; i++) {
+        const row = rawRows[i];
+        if (!row || row.length === 0) continue;
+
+        let colData = row[0];
+        let colColab = row[1];
+        const colPonto = row[2] ? String(row[2]).trim() : '';
+        const colHE = row[3];
+        const colSetor = row[4] ? String(row[4]).trim() : '';
+        const colJust = row[5] ? String(row[5]).trim() : '';
+
+        if (typeof colData === 'string' && isNaN(Number(colData)) && typeof colColab === 'number') {
+          const temp = colData;
+          colData = colColab;
+          colColab = temp;
+        }
+
+        const colaborador = colColab ? String(colColab).trim() : 'Não informado';
+        if (!colaborador || colaborador === 'Não informado') continue;
+
+        const dataStr = excelSerialToDateStr(colData);
+        const { formatado, minutos } = excelFractionToTime(colHE);
+        const id = makeItemId('HE1', dataStr, colaborador, colPonto, i);
+
+        const override = overridesMap[id];
+        const justificativaFinal = override?.justificativa !== undefined ? override.justificativa : colJust;
+        const temJustificativa = !!justificativaFinal && justificativaFinal.trim().length > 0;
+        const dentroDoPadrao = isDentroDoPadrao(colSetor, justificativaFinal);
+
+        let possivelProblema = false;
+        let problemaDescricao = '';
+
+        if (dentroDoPadrao) {
+          possivelProblema = false;
+          problemaDescricao = 'Dentro do padrão (Programado)';
+        } else if (!temJustificativa) {
+          possivelProblema = true;
+          problemaDescricao = 'Sem justificativa no ponto';
+        } else if (minutos >= 120) {
+          possivelProblema = true;
+          problemaDescricao = 'Hora extra elevada (> 2h)';
+        } else if (!colSetor && !temJustificativa) {
+          possivelProblema = true;
+          problemaDescricao = 'Sem setor e sem justificativa';
+        }
+
+        items.push({
+          id,
+          tipo: 'HE1',
+          colaborador,
+          data: dataStr,
+          pontoRegistrado: colPonto,
+          horasExtrasDecimal: typeof colHE === 'number' ? colHE : 0,
+          horasExtrasFormatada: formatado,
+          minutosTotais: minutos,
+          setorMotivo: colSetor,
+          justificativaOriginal: colJust,
+          justificativa: justificativaFinal,
+          temJustificativa,
+          dentroDoPadrao,
+          possivelProblema,
+          problemaDescricao,
+          alteradoPor: override?.alteradoPor,
+          alteradoPorUid: override?.alteradoPorUid,
+          alteradoEm: override?.alteradoEm,
+          historicoAlteracoes: override?.historico,
+        });
+      }
     }
   }
 
@@ -298,12 +406,24 @@ export function loadSetembroHorasExtras(
   let pendentes = 0;
   let dentroDoPadraoCount = 0;
   let justificadas = 0;
+  let totalAcimaPadraoMinutos = 0;
+  let conferidosCount = 0;
+  let pendentesConferenciaCount = 0;
 
   for (const it of items) {
     totalMinutos += it.minutosTotais;
     if (it.tipo === 'HE1') totalHE1++;
     if (it.tipo === 'HE2') totalHE2++;
     if (it.tipo === 'HE3') totalHE3++;
+
+    if (it.acimaPadraoMin) {
+      totalAcimaPadraoMinutos += it.acimaPadraoMin;
+    }
+    if (it.conferido === 'sim') {
+      conferidosCount++;
+    } else if (it.conferido === 'não') {
+      pendentesConferenciaCount++;
+    }
 
     if (it.dentroDoPadrao) {
       dentroDoPadraoCount++;
@@ -318,6 +438,10 @@ export function loadSetembroHorasExtras(
   const mGeral = totalMinutos % 60;
   const horasTotaisFormatada = `${hGeral}h ${String(mGeral).padStart(2, '0')}m`;
 
+  const hAcima = Math.floor(totalAcimaPadraoMinutos / 60);
+  const mAcima = totalAcimaPadraoMinutos % 60;
+  const totalAcimaPadraoFormatada = `${hAcima}h ${String(mAcima).padStart(2, '0')}m`;
+
   const summary: HorasExtrasSummary = {
     totalRegistros: items.length,
     totalHE1,
@@ -328,6 +452,10 @@ export function loadSetembroHorasExtras(
     justificadas,
     minutosTotaisGeral: totalMinutos,
     horasTotaisFormatada,
+    totalAcimaPadraoMinutos,
+    totalAcimaPadraoFormatada,
+    conferidosCount,
+    pendentesConferenciaCount,
   };
 
   return { items, summary };

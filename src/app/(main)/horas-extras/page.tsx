@@ -21,6 +21,35 @@ export default function HorasExtrasPage() {
   const [statusFilter, setStatusFilter] = useState<'TODAS' | 'PENDENTES' | 'DENTRO_PADRAO' | 'JUSTIFICADAS' | 'ALERTAS'>('TODAS');
   const [selectedDate, setSelectedDate] = useState('');
 
+  // Ordenação e Classificação
+  type SortField = 'status' | 'tipo' | 'data' | 'colaborador' | 'ponto' | 'he' | 'setor' | 'justificativa';
+  type SortDirection = 'asc' | 'desc';
+  const [sortField, setSortField] = useState<SortField>('data');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+
+  // Parser robusto de datas em formatos DD/MM/YYYY ou YYYY-MM-DD
+  const parseDateToTimestamp = (d: string): number => {
+    if (!d) return 0;
+    if (d.includes('/')) {
+      const [day, month, year] = d.split('/').map(Number);
+      return new Date(year, (month || 1) - 1, day || 1).getTime();
+    }
+    if (d.includes('-')) {
+      const [year, month, day] = d.split('-').map(Number);
+      return new Date(year, (month || 1) - 1, day || 1).getTime();
+    }
+    return 0;
+  };
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(prev => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
   // Paginação
   const [page, setPage] = useState(1);
   const pageSize = 25;
@@ -84,18 +113,56 @@ export default function HorasExtrasPage() {
     });
   }, [items, tipoFilter, statusFilter, selectedDate, search]);
 
-  // Lista de datas únicas para o filtro
+  // Lista de datas únicas ordenadas cronologicamente
   const uniqueDates = useMemo(() => {
     const dates = Array.from(new Set(items.map(i => i.data).filter(Boolean)));
-    return dates.sort((a, b) => a.localeCompare(b));
+    return dates.sort((a, b) => parseDateToTimestamp(a) - parseDateToTimestamp(b));
   }, [items]);
 
+  // Ordenação dos itens filtrados
+  const sortedItems = useMemo(() => {
+    const list = [...filteredItems];
+    list.sort((a, b) => {
+      let comparison = 0;
+      switch (sortField) {
+        case 'data':
+          comparison = parseDateToTimestamp(a.data) - parseDateToTimestamp(b.data);
+          break;
+        case 'colaborador':
+          comparison = a.colaborador.localeCompare(b.colaborador, 'pt-BR');
+          break;
+        case 'he':
+          comparison = (a.minutosTotais || 0) - (b.minutosTotais || 0);
+          break;
+        case 'tipo':
+          comparison = (a.tipo || '').localeCompare(b.tipo || '');
+          break;
+        case 'setor':
+          comparison = (a.setorMotivo || '').localeCompare(b.setorMotivo || '', 'pt-BR');
+          break;
+        case 'justificativa':
+          comparison = (a.justificativa || '').localeCompare(b.justificativa || '', 'pt-BR');
+          break;
+        case 'ponto':
+          comparison = (a.pontoRegistrado || '').localeCompare(b.pontoRegistrado || '');
+          break;
+        case 'status':
+          const valA = a.dentroDoPadrao ? 1 : a.temJustificativa ? 2 : 3;
+          const valB = b.dentroDoPadrao ? 1 : b.temJustificativa ? 2 : 3;
+          comparison = valA - valB;
+          break;
+      }
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+    return list;
+  }, [filteredItems, sortField, sortDirection]);
+
   // Itens paginados
-  const totalPages = Math.ceil(filteredItems.length / pageSize) || 1;
+  const totalPages = Math.ceil(sortedItems.length / pageSize) || 1;
   const paginatedItems = useMemo(() => {
     const start = (page - 1) * pageSize;
-    return filteredItems.slice(start, start + pageSize);
-  }, [filteredItems, page]);
+    return sortedItems.slice(start, start + pageSize);
+  }, [sortedItems, page]);
 
   // Abertura do modal
   const handleOpenModal = (item: HoraExtraItem) => {
@@ -254,6 +321,17 @@ export default function HorasExtrasPage() {
     );
   }
 
+  const renderSortIcon = (field: SortField) => {
+    if (sortField !== field) {
+      return <span className="text-slate-600 ml-1 opacity-40 group-hover:opacity-100 transition-opacity">↕</span>;
+    }
+    return (
+      <span className="text-cyan-400 ml-1 font-bold">
+        {sortDirection === 'asc' ? '▲' : '▼'}
+      </span>
+    );
+  };
+
   return (
     <div className="space-y-6 animate-fade-in pb-12">
       {/* Header */}
@@ -261,10 +339,10 @@ export default function HorasExtrasPage() {
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2.5">
             <span className="w-3 h-3 rounded-full bg-cyan-400"></span>
-            Auditoria de Horas Extras — Setembro
+            Auditoria de Horas Extras — Ciclo Oficial
           </h1>
           <p className="text-sm text-slate-400 mt-1">
-            Apontamento de HE 1, HE 2 e HE 3 da planilha Setembro.xlsx com justificativas auditadas por usuário.
+            Apontamento de HE 1, HE 2 e HE 3 consolidado com o Ponto Icarus, Cobli e justificativas auditadas por usuário.
           </p>
         </div>
 
@@ -280,21 +358,24 @@ export default function HorasExtrasPage() {
 
       {/* KPI Cards */}
       {summary && (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3.5">
-          <Card className="border-white/5 bg-slate-900/60 p-4">
-            <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Total Registros</span>
-            <div className="text-2xl font-bold text-white mt-1">{summary.totalRegistros}</div>
-            <div className="text-[11px] text-slate-500 mt-0.5">HE1: {summary.totalHE1} | HE2: {summary.totalHE2} | HE3: {summary.totalHE3}</div>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <Card className="border-red-500/20 bg-red-500/5 p-4 cursor-pointer hover:bg-red-500/10 transition-colors"
+                onClick={() => setStatusFilter('PENDENTES')}>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-red-400 uppercase tracking-wider">Apenas Sem Justificativa</span>
+              <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse"></span>
+            </div>
+            <div className="text-2xl font-bold text-red-400 mt-1">{summary.pendentesJustificativa}</div>
+            <div className="text-[11px] text-red-400/80 mt-0.5">Exige ação do gestor</div>
           </Card>
 
           <Card className="border-amber-500/20 bg-amber-500/5 p-4 cursor-pointer hover:bg-amber-500/10 transition-colors"
-                onClick={() => setStatusFilter('PENDENTES')}>
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-amber-400 uppercase tracking-wider">Sem Justificativa</span>
-              <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+                onClick={() => setStatusFilter('ALERTAS')}>
+            <span className="text-xs font-medium text-amber-400 uppercase tracking-wider">Acima do Padrão</span>
+            <div className="text-2xl font-bold text-amber-300 mt-1">
+              {summary.totalAcimaPadraoFormatada || '0h 00m'}
             </div>
-            <div className="text-2xl font-bold text-amber-300 mt-1">{summary.pendentesJustificativa}</div>
-            <div className="text-[11px] text-amber-400/80 mt-0.5">Exigem preenchimento</div>
+            <div className="text-[11px] text-amber-400/80 mt-0.5">Excedente a apurar</div>
           </Card>
 
           <Card className="border-blue-500/20 bg-blue-500/5 p-4 cursor-pointer hover:bg-blue-500/10 transition-colors"
@@ -356,8 +437,8 @@ export default function HorasExtrasPage() {
             ))}
           </div>
 
-          {/* Filtro por Data */}
-          <div className="self-start md:self-auto">
+          {/* Filtro por Data e Ordenação */}
+          <div className="flex items-center gap-2 self-start md:self-auto flex-wrap">
             <select
               value={selectedDate}
               onChange={e => { setSelectedDate(e.target.value); setPage(1); }}
@@ -370,6 +451,21 @@ export default function HorasExtrasPage() {
                 </option>
               ))}
             </select>
+
+            <button
+              onClick={() => handleSort('data')}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-medium transition-all ${
+                sortField === 'data'
+                  ? 'bg-cyan-500/15 border-cyan-500/40 text-cyan-300'
+                  : 'bg-white/5 border-white/10 text-slate-400 hover:text-white hover:border-white/20'
+              }`}
+              title="Alternar ordenação da tabela por data (mais recente ou mais antiga primeiro)"
+            >
+              <span>📅 Data:</span>
+              <span className="font-semibold">
+                {sortField === 'data' ? (sortDirection === 'asc' ? 'Mais Antiga ▲' : 'Mais Recente ▼') : 'Ordenar'}
+              </span>
+            </button>
           </div>
         </div>
 
@@ -396,7 +492,7 @@ export default function HorasExtrasPage() {
             </button>
           ))}
           <span className="ml-auto text-xs text-slate-500">
-            Exibindo <strong>{filteredItems.length}</strong> de {items.length} apontamentos
+            Exibindo <strong>{sortedItems.length}</strong> de {items.length} apontamentos
           </span>
         </div>
       </Card>
@@ -407,14 +503,86 @@ export default function HorasExtrasPage() {
           <table className="w-full text-left border-collapse text-xs">
             <thead>
               <tr className="border-b border-white/10 bg-white/5 text-slate-400 uppercase tracking-wider font-semibold">
-                <th className="py-3 px-4">Status / Problema</th>
-                <th className="py-3 px-3">Tipo</th>
-                <th className="py-3 px-3">Data</th>
-                <th className="py-3 px-4">Colaborador</th>
-                <th className="py-3 px-4">Ponto Registrado</th>
-                <th className="py-3 px-3">H.E.</th>
-                <th className="py-3 px-4">Setor / Motivo</th>
-                <th className="py-3 px-4">Justificativa</th>
+                <th
+                  className="py-3 px-4 cursor-pointer select-none hover:text-white transition-colors group"
+                  onClick={() => handleSort('status')}
+                  title="Ordenar por status / problema"
+                >
+                  <div className="flex items-center">
+                    <span>Status / Problema</span>
+                    {renderSortIcon('status')}
+                  </div>
+                </th>
+                <th
+                  className="py-3 px-3 cursor-pointer select-none hover:text-white transition-colors group"
+                  onClick={() => handleSort('tipo')}
+                  title="Ordenar por tipo de HE"
+                >
+                  <div className="flex items-center">
+                    <span>Tipo</span>
+                    {renderSortIcon('tipo')}
+                  </div>
+                </th>
+                <th
+                  className="py-3 px-3 cursor-pointer select-none hover:text-cyan-300 transition-colors group"
+                  onClick={() => handleSort('data')}
+                  title="Clique para ordenar por data (crescente / decrescente)"
+                >
+                  <div className="flex items-center">
+                    <span>Data</span>
+                    {renderSortIcon('data')}
+                  </div>
+                </th>
+                <th
+                  className="py-3 px-4 cursor-pointer select-none hover:text-white transition-colors group"
+                  onClick={() => handleSort('colaborador')}
+                  title="Ordenar por colaborador"
+                >
+                  <div className="flex items-center">
+                    <span>Colaborador</span>
+                    {renderSortIcon('colaborador')}
+                  </div>
+                </th>
+                <th
+                  className="py-3 px-4 cursor-pointer select-none hover:text-white transition-colors group"
+                  onClick={() => handleSort('ponto')}
+                  title="Ordenar por ponto registrado"
+                >
+                  <div className="flex items-center">
+                    <span>Ponto Registrado</span>
+                    {renderSortIcon('ponto')}
+                  </div>
+                </th>
+                <th
+                  className="py-3 px-3 cursor-pointer select-none hover:text-white transition-colors group"
+                  onClick={() => handleSort('he')}
+                  title="Ordenar por volume de HE"
+                >
+                  <div className="flex items-center">
+                    <span>H.E.</span>
+                    {renderSortIcon('he')}
+                  </div>
+                </th>
+                <th
+                  className="py-3 px-4 cursor-pointer select-none hover:text-white transition-colors group"
+                  onClick={() => handleSort('setor')}
+                  title="Ordenar por setor / motivo"
+                >
+                  <div className="flex items-center">
+                    <span>Setor / Motivo</span>
+                    {renderSortIcon('setor')}
+                  </div>
+                </th>
+                <th
+                  className="py-3 px-4 cursor-pointer select-none hover:text-white transition-colors group"
+                  onClick={() => handleSort('justificativa')}
+                  title="Ordenar por justificativa"
+                >
+                  <div className="flex items-center">
+                    <span>Justificativa</span>
+                    {renderSortIcon('justificativa')}
+                  </div>
+                </th>
                 <th className="py-3 px-4">Auditoria / Usuário</th>
                 <th className="py-3 px-3 text-right">Ação</th>
               </tr>

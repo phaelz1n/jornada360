@@ -179,6 +179,59 @@ export default function DashboardPage() {
 
   const metaDiariaMin = config.metaDiariaHEMin || 2170; // 36h10
 
+  // Navegação ergonômica de datas
+  const sortedAvailableDates = useMemo(() => {
+    if (!availableDates) return [];
+    return [...availableDates].sort();
+  }, [availableDates]);
+
+  const currentIndex = sortedAvailableDates.indexOf(activeDate);
+  const hasPrevious = currentIndex > 0;
+  const hasNext = currentIndex >= 0 && currentIndex < sortedAvailableDates.length - 1;
+
+  const handlePrevDate = () => {
+    if (hasPrevious) {
+      const prev = sortedAvailableDates[currentIndex - 1];
+      setActiveDate(prev);
+      handleLoadRealData(prev);
+    }
+  };
+
+  const handleNextDate = () => {
+    if (hasNext) {
+      const next = sortedAvailableDates[currentIndex + 1];
+      setActiveDate(next);
+      handleLoadRealData(next);
+    }
+  };
+
+  const handleFirstDate = () => {
+    if (sortedAvailableDates.length > 0) {
+      const first = sortedAvailableDates[0];
+      setActiveDate(first);
+      handleLoadRealData(first);
+    }
+  };
+
+  const handleLastDate = () => {
+    if (sortedAvailableDates.length > 0) {
+      const last = sortedAvailableDates[sortedAvailableDates.length - 1];
+      setActiveDate(last);
+      handleLoadRealData(last);
+    }
+  };
+
+  const formatDateDisplay = (isoDate: string) => {
+    if (!isoDate) return '';
+    const [year, month, day] = isoDate.split('-').map(Number);
+    if (!year || !month || !day) return isoDate;
+    const d = new Date(year, month - 1, day);
+    const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+    const dayName = weekDays[d.getDay()];
+    const formatted = `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`;
+    return `${formatted} (${dayName})`;
+  };
+
   return (
     <div className="space-y-6 animate-fade-in max-w-7xl mx-auto">
       {/* Toast de Confirmação */}
@@ -267,24 +320,72 @@ export default function DashboardPage() {
           </span>
         </div>
 
-        {/* Seletor de Datas Auditadas */}
-        {availableDates && availableDates.length > 0 && (
-          <div className="flex items-center gap-2 self-start md:self-auto">
-            <span className="text-slate-400">Ver Auditoria da Data:</span>
-            <select
-              value={activeDate}
-              onChange={e => {
-                setActiveDate(e.target.value);
-                handleLoadRealData(e.target.value);
-              }}
-              className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-cyan-300 font-mono text-xs focus:outline-none focus:ring-1 focus:ring-cyan-500"
+        {/* Seletor Ergonômico de Datas Auditadas */}
+        {sortedAvailableDates.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5 self-start md:self-auto bg-white/[0.04] p-1.5 rounded-xl border border-white/10">
+            {/* Botão Primeiro / Início */}
+            <button
+              onClick={handleFirstDate}
+              disabled={currentIndex <= 0}
+              className="px-2 py-1 rounded-lg text-xs text-slate-400 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+              title={`Ir para o início do ciclo (${sortedAvailableDates[0]})`}
             >
-              {availableDates.map(d => (
-                <option key={d} value={d} className="bg-slate-900 text-slate-200">
-                  {d}
-                </option>
-              ))}
-            </select>
+              ⏮ Início
+            </button>
+
+            {/* Botão Anterior */}
+            <button
+              onClick={handlePrevDate}
+              disabled={!hasPrevious}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white/5 hover:bg-cyan-500/20 text-slate-300 hover:text-cyan-300 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+              title="Dia anterior"
+            >
+              ◀ Ant.
+            </button>
+
+            {/* Display e Picker Nativo de Calendário */}
+            <div className="relative flex items-center gap-2 px-3 py-1 bg-slate-900/90 rounded-lg border border-cyan-500/30 text-cyan-300 font-medium text-xs shadow-inner cursor-pointer hover:border-cyan-500/60 transition-colors">
+              <span className="text-xs">📅</span>
+              <span className="font-semibold whitespace-nowrap">{formatDateDisplay(activeDate)}</span>
+              <span className="text-[10px] text-cyan-500/70">▾</span>
+
+              {/* Input nativo invisível sobreposto que abre o datepicker do navegador */}
+              <input
+                type="date"
+                value={activeDate}
+                min={sortedAvailableDates[0]}
+                max={sortedAvailableDates[sortedAvailableDates.length - 1]}
+                onChange={e => {
+                  const val = e.target.value;
+                  if (val) {
+                    setActiveDate(val);
+                    handleLoadRealData(val);
+                  }
+                }}
+                className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
+                title="Clique para escolher no calendário"
+              />
+            </div>
+
+            {/* Botão Próximo */}
+            <button
+              onClick={handleNextDate}
+              disabled={!hasNext}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white/5 hover:bg-cyan-500/20 text-slate-300 hover:text-cyan-300 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+              title="Próximo dia"
+            >
+              Próx. ▶
+            </button>
+
+            {/* Botão Último / Mais Recente */}
+            <button
+              onClick={handleLastDate}
+              disabled={currentIndex === sortedAvailableDates.length - 1}
+              className="px-2 py-1 rounded-lg text-xs text-slate-400 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+              title={`Ir para o dia mais recente (${sortedAvailableDates[sortedAvailableDates.length - 1]})`}
+            >
+              Último ⏭
+            </button>
           </div>
         )}
       </Card>

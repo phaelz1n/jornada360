@@ -71,6 +71,7 @@ interface AuditDataContextValue {
     obs?: string
   ) => Promise<void>;
   resolverPendencia: (id: string, resolucao: string, usuario: string) => Promise<void>;
+  refreshPendencias: (force?: boolean) => Promise<void>;
   resetToSampleData: () => Promise<void>;
 }
 
@@ -93,9 +94,37 @@ export function AuditDataProvider({ children }: { children: ReactNode }) {
     async function load() {
       try {
         const savedItems = await adapter!.getSnapshot(workspaceId, activeDate);
-        const savedPendencias = await adapter!.getPendencias(workspaceId);
+        let savedPendencias = await adapter!.getPendencias(workspaceId);
 
         if (cancelled) return;
+
+        // 1. Purga de dados mock de demonstração antigos
+        const mockNames = new Set([
+          'CARLOS EDUARDO SILVA',
+          'MARCOS ANTONIO DE SOUZA',
+          'ROBERTO CARLOS PEREIRA',
+          'FERNANDO HENRIQUE COSTA',
+          'LUCAS GABRIEL SANTOS',
+        ]);
+
+        const hasMocksInPendencias =
+          savedPendencias &&
+          savedPendencias.some(
+            p => mockNames.has(p.motorista) || p.id.startsWith('mock_') || p.id.startsWith('pend_mock')
+          );
+
+        if (hasMocksInPendencias) {
+          for (const p of savedPendencias) {
+            if (mockNames.has(p.motorista) || p.id.startsWith('mock_') || p.id.startsWith('pend_mock')) {
+              try {
+                await adapter!.deletePendencia(p.id);
+              } catch {}
+            }
+          }
+          savedPendencias = savedPendencias.filter(
+            p => !mockNames.has(p.motorista) && !p.id.startsWith('mock_') && !p.id.startsWith('pend_mock')
+          );
+        }
 
         // Se existirem itens salvos e não for o mock hardcoded antigo
         const isMockHardcoded =
@@ -106,7 +135,6 @@ export function AuditDataProvider({ children }: { children: ReactNode }) {
 
         if (savedItems && savedItems.length > 0 && !isMockHardcoded) {
           setAuditItems(savedItems);
-          if (savedPendencias) setPendencias(savedPendencias);
         } else {
           // Carregar dados reais consolidados do sistema
           const res = await fetch('/api/audit/sync-real', {
@@ -119,15 +147,23 @@ export function AuditDataProvider({ children }: { children: ReactNode }) {
             setAuditItems(data.items);
             if (data.activeDate) setActiveDate(data.activeDate);
             if (data.availableDates) setAvailableDates(data.availableDates);
-
-            const pendenciaService = new PendenciaService(adapter!);
-            const pends = await pendenciaService.listar(workspaceId);
-            setPendencias(pends);
-            return;
           }
         }
 
-        if (savedPendencias) {
+        // Se não temos pendências reais salvas no IndexedDB local, buscar do endpoint real
+        if (!savedPendencias || savedPendencias.length === 0) {
+          const pendRes = await fetch(`/api/audit/pendencias?workspaceId=${encodeURIComponent(workspaceId)}`);
+          const pendData = await pendRes.json();
+          if (!cancelled && pendRes.ok && pendData.success && pendData.pendencias?.length > 0) {
+            setPendencias(pendData.pendencias);
+            for (const p of pendData.pendencias) {
+              try {
+                await adapter!.savePendencia(p);
+              } catch {}
+            }
+            return;
+          }
+        } else {
           setPendencias(savedPendencias);
         }
       } catch (err) {
@@ -370,6 +406,33 @@ export function AuditDataProvider({ children }: { children: ReactNode }) {
     [workspaceId, activeDate, adapter]
   );
 
+  // Sincronizar e recarregar pendências reais da auditoria oficial
+  const refreshPendencias = useCallback(
+    async (force?: boolean) => {
+      try {
+        const res = await fetch('/api/audit/pendencias', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ workspaceId, forceRegenerate: !!force }),
+        });
+        const data = await res.json();
+        if (res.ok && data.success && data.pendencias) {
+          setPendencias(data.pendencias);
+          if (adapter) {
+            for (const p of data.pendencias) {
+              try {
+                await adapter.savePendencia(p);
+              } catch {}
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Erro ao atualizar pendências:', err);
+      }
+    },
+    [workspaceId, adapter]
+  );
+
   // Restaurar dados de demonstração
   const resetToSampleData = useCallback(async () => {
     if (!adapter) return;
@@ -399,6 +462,7 @@ export function AuditDataProvider({ children }: { children: ReactNode }) {
         resolveAuditItem,
         updatePendenciaStatus,
         resolverPendencia,
+        refreshPendencias,
         resetToSampleData,
       }}
     >
