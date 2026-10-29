@@ -16,3 +16,12 @@ test('remove campos indefinidos antes do envio', () => {
   assert.equal(Object.hasOwn(payload.drivers[0], 'setor'), true);
   assert.equal(Object.hasOwn(payload.days[0].snapshot.items[0], 'detalhe'), false);
 });
+
+test('usa setor salvo no caseState e categorias especiais', () => {
+  const payload = buildMigrationPayload({ dias: [{ dateKey: '2026-10-01', caseState: { 'Ana Silva': { setor: 'ADM' } }, snapshot: { items: [
+    { motorista: 'Ana Silva' }, { motorista: 'OLIVIO RODRIGUES DE FREITAS' }, { motorista: 'GIOVANI OLIVEIRA DE SOUZA' },
+  ] } }] });
+  assert.equal(payload.drivers.find(item => item.nome === 'Ana Silva').setor, 'ADM');
+  assert.equal(payload.drivers.find(item => item.nome.startsWith('OLIVIO')).setor, 'Folguista');
+  assert.equal(payload.drivers.find(item => item.nome.startsWith('GIOVANI')).setor, 'Reserva');
+});
