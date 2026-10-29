@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { summarizeDay } from '../processamento/processamento-model.js';
 import { competenciaParaData } from '../relatorios/competencia.js';
 import { consultarDia, consultarPeriodo } from '../relatorios/relatorio-query.js';
@@ -11,12 +11,17 @@ export function ProcessingPanel({ items = [] }) {
 
 export function ReportsPanel({ items = [], snapshots = [] }) {
   const [mode, setMode] = useState('dia');
-  const [dateKey, setDateKey] = useState(() => new Date().toISOString().slice(0, 10));
+  const latestDate = snapshots.map(snapshot => snapshot.dateKey).filter(Boolean).sort().at(-1) || new Date().toISOString().slice(0, 10);
+  const [dateKey, setDateKey] = useState(latestDate);
   const [periodKey, setPeriodKey] = useState('');
   const [sector, setSector] = useState('Todos');
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('Todos');
   const sourceSnapshots = snapshots.length ? snapshots : (items.length ? [{ dateKey, items }] : []);
+  useEffect(() => {
+    const available = snapshots.map(snapshot => snapshot.dateKey).filter(Boolean).sort();
+    if (available.length && !available.includes(dateKey)) setDateKey(available.at(-1));
+  }, [snapshots, dateKey]);
   const periods = useMemo(() => [...new Map(sourceSnapshots.map(snapshot => { const period = competenciaParaData(snapshot.dateKey); return [period.chave, period]; })).values()], [sourceSnapshots]);
   const selectedPeriod = periods.find(period => period.chave === periodKey) || (dateKey ? competenciaParaData(dateKey) : periods[0]);
   const sectors = useMemo(() => ['Todos', ...new Set(sourceSnapshots.flatMap(snapshot => (snapshot.items || []).map(item => item.setorAtual || item.setor || 'Sem setor')))], [sourceSnapshots]);

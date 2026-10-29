@@ -12,15 +12,18 @@ export async function migrateBackupToFirestore(payload, onProgress = () => {}) {
     onProgress(++done, total);
   }
   for (const day of payload.days) {
-    await setDoc(doc(db, 'dias_processados', day.dateKey), day, { merge: true });
-    await setDoc(doc(db, 'snapshots_dias', day.dateKey), day.snapshot, { merge: true });
+    const snapshot = { ...(day.snapshot || {}), dateKey: day.dateKey };
+    // Cada dia tem sua própria chave e precisa manter a data dentro do documento
+    // para a listagem do dashboard recuperar o registro inteiro.
+    await setDoc(doc(db, 'dias_processados', day.dateKey), { ...day, snapshot }, { merge: false });
+    await setDoc(doc(db, 'snapshots_dias', day.dateKey), snapshot, { merge: false });
     if (day.caseState && Object.keys(day.caseState).length) {
       await setDoc(doc(db, 'checklist', day.dateKey), { dateKey: day.dateKey, caseState: day.caseState, migratedAt: new Date().toISOString() }, { merge: true });
     }
     onProgress(++done, total);
   }
   const latest = payload.days.at(-1);
-  if (latest) await setDoc(doc(db, 'snapshots_dias', 'latest'), latest.snapshot, { merge: true });
+  if (latest) await setDoc(doc(db, 'snapshots_dias', 'latest'), { ...(latest.snapshot || {}), dateKey: latest.dateKey }, { merge: false });
   onProgress(total, total);
   return { drivers: payload.drivers.length, days: payload.days.length };
 }
