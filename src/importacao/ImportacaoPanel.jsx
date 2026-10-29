@@ -44,6 +44,6 @@ export function ImportacaoPanel({ onProcess }) {
       <span className="source-icon">{source.icon}</span><span className="source-copy"><strong>{source.label}</strong><small>{source.required ? 'Obrigatório' : 'Opcional'} · {source.description}</small>{file && <em>{file.name} {formatSize(file.size)}{state.rows?.[source.id] ? ` · ${state.rows[source.id]} linhas lidas` : ''}</em>}</span><span className="source-action">{file ? 'Trocar' : 'Selecionar'}</span>
     </label>; })}</div>
     {message && <div className="import-message" role="status">{message}</div>}
-    <div className="import-actions"><button className="primary-button import-button" type="button" onClick={process} disabled={!state.ready}>Processar dia <span>→</span></button><a href="/legacy/assistente_he_diario.original.html">Usar operação atual</a></div>
+    <div className="import-actions"><button className="primary-button import-button" type="button" onClick={process} disabled={!state.ready}>Processar dia <span>→</span></button></div>
   </section>;
 }

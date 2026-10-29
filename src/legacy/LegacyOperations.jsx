@@ -1,10 +1,10 @@
 export function LegacyOperations() {
   return (
     <section className="legacy-card">
-      <span className="eyebrow">PRÓXIMA ETAPA</span>
-      <h2>Operação atual preservada</h2>
-      <p>O processamento original continuará disponível durante a migração. Cada grupo será transferido e comparado antes de virar o fluxo principal.</p>
-      <a href="/legacy/assistente_he_diario.original.html">Abrir operação atual</a>
+      <span className="eyebrow">OPERAÇÃO JORNADA360</span>
+      <h2>Painel pronto para o dia</h2>
+      <p>Use Importação para carregar as planilhas, Processamento para conferir os cruzamentos e Checklist para validar os casos.</p>
+      <div className="module-stats"><strong>1<small> fluxo integrado</small></strong><strong>3<small> fontes comparadas</small></strong><strong>100%<small> no navegador</small></strong></div>
     </section>
   );
 }
