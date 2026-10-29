@@ -1,5 +1,6 @@
 const aliases = {
   motorista: ['motorista', 'nome', 'colaborador', 'funcionario'],
+  batidas: ['entrada e saida', 'batidas', 'batida', 'horarios'],
   matricula: ['matricula', 'matrícula', 'codigo', 'código'],
   he1min: ['he1', 'he 1', 'hora extra 1', 'extra 1'],
   he2min: ['he2', 'he 2', 'hora extra 2', 'extra 2'],
@@ -29,6 +30,7 @@ export function extractPointRows(rows = []) {
   return rows.slice(1).map(row => ({
     motorista: String(row[columns.motorista] || '').trim(),
     matricula: String(row[columns.matricula] || '').trim(),
+    ...(columns.batidas >= 0 ? { batidas: String(row[columns.batidas] || '').match(/\b\d{1,2}:\d{2}\b/g) || [] } : {}),
     he1min: parseMinutes(row[columns.he1min]),
     he2min: parseMinutes(row[columns.he2min]),
     he3min: parseMinutes(row[columns.he3min]),

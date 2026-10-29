@@ -11,6 +11,7 @@ import { ProcessingPanel, ReportsPanel, RegistersPanel } from '../modules/Operat
 import { extractPointRows } from '../processamento/planilha-normalizer.js';
 import { prepareProcessedDay } from '../processamento/processamento-model.js';
 import { crossSources } from '../processamento/cruzamento.js';
+import { normalizeTrackerRows } from '../importacao/rastreador-normalizer.js';
 
 export function AppShell({ user, dashboardData, onLogout }) {
   const [activeSection, setActiveSection] = useState('Início');
@@ -35,7 +36,7 @@ export function AppShell({ user, dashboardData, onLogout }) {
 
   async function handleImportComplete(payload) {
     const pointRows = extractPointRows(payload.rowData?.espelhoHoje || []);
-    const items = crossSources({ pointRows, scaleRows: payload.rowData?.escala?.slice(1).map(row => ({ motorista: row?.[0], horario: row?.[1], linha: row?.[2], dados: row })) || [], trackerRows: payload.rowData?.rastreador?.slice(1).map(row => ({ motorista: row?.[0], sinais: row?.length - 1, dados: row, paradas: row?.paradas || [] })) || [] });
+    const items = crossSources({ pointRows, scaleRows: payload.rowData?.escala?.slice(1).map(row => ({ motorista: row?.[0], horario: row?.[1], linha: row?.[2], dados: row })) || [], trackerRows: normalizeTrackerRows(payload.rowData?.rastreador || []) });
     const processedDay = prepareProcessedDay({ dateKey: payload.dateKey || new Date().toISOString().slice(0, 10), items });
     const record = buildImportRecord(payload);
     try {
