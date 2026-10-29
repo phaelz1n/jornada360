@@ -23,7 +23,7 @@ export function ImportacaoPanel({ onProcess }) {
       } catch (error) {
         setMessage(`Não foi possível ler ${file.name}: ${error.message}`);
       }
-    }
+    } else if (file) setMessage('Leitor de planilhas ainda está carregando. Atualize a página e tente novamente.');
   }
 
   function process() {
