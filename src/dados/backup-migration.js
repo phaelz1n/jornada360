@@ -9,6 +9,11 @@ const SPECIAL_CATEGORIES = new Map([
 ]);
 
 function keyName(value) { return normalizeName(value).toLocaleUpperCase('pt-BR'); }
+function specialCategoryFor(name) {
+  const normalized = keyName(name);
+  for (const [prefix, category] of SPECIAL_CATEGORIES) if (normalized === prefix || normalized.startsWith(`${prefix} `)) return category;
+  return '';
+}
 
 function removeUndefined(value) {
   if (Array.isArray(value)) return value.map(removeUndefined);
@@ -33,12 +38,12 @@ export function buildMigrationPayload(backup) {
     for (const item of items) {
       const nome = normalizeName(item.motorista || item.nome);
       if (!nome) continue;
-      const setor = normalizeName(item.setorAtual || item.setor || item.setorResponsavel || savedCategories.get(keyName(nome)) || SPECIAL_CATEGORIES.get(keyName(nome)) || '') || 'Sem setor';
+      const setor = normalizeName(item.setorAtual || item.setor || item.setorResponsavel || savedCategories.get(keyName(nome)) || specialCategoryFor(nome) || '') || 'Sem setor';
       const current = drivers.get(nome);
       drivers.set(nome, removeUndefined({
         nome,
         setor: current?.setor && current.setor !== 'Sem setor' ? current.setor : setor,
-        categoria: item.categoria || current?.categoria || SPECIAL_CATEGORIES.get(keyName(nome)) || setor,
+        categoria: item.categoria || current?.categoria || specialCategoryFor(nome) || setor,
         atualizadoEm: backup.geradoEm || new Date().toISOString(),
       }));
     }
