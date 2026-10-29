@@ -33,3 +33,18 @@ test('rejeita e-mail fora da lista antes de chamar o Firebase', async () => {
 
   await assert.rejects(() => service.login('outro@empresa.com', 'senha'), /E-mail não autorizado/);
 });
+
+test('solicita redefinição somente para e-mail autorizado', async () => {
+  const calls = [];
+  const service = createAuthService({
+    auth: {},
+    signIn: async () => {},
+    sendReset: async (...args) => { calls.push(args); },
+    signOut: async () => {},
+    subscribe: () => () => {}
+  });
+
+  await service.resetPassword(' TIELLE@TRANSPINHO.COM ');
+  assert.deepEqual(calls, [[{}, 'tielle@transpinho.com']]);
+  await assert.rejects(() => service.resetPassword('fora@empresa.com'), /E-mail não autorizado/);
+});
