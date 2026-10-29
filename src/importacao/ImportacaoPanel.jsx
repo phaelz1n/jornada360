@@ -10,6 +10,7 @@ function formatSize(bytes) {
 export function ImportacaoPanel({ onProcess }) {
   const [state, setState] = useState(createImportState);
   const [message, setMessage] = useState('');
+  const [rowData, setRowData] = useState({});
   const selectedCount = useMemo(() => Object.values(state.files).filter(Boolean).length, [state.files]);
 
   async function chooseFile(sourceId, event) {
@@ -19,6 +20,7 @@ export function ImportacaoPanel({ onProcess }) {
     if (file && window.XLSX) {
       try {
         const rows = await readWorkbookRows(file, window.XLSX);
+        setRowData(current => ({ ...current, [sourceId]: rows }));
         setState(current => ({ ...current, rows: { ...(current.rows || {}), [sourceId]: rows.length } }));
       } catch (error) {
         setMessage(`Não foi possível ler ${file.name}: ${error.message}`);
@@ -32,7 +34,7 @@ export function ImportacaoPanel({ onProcess }) {
       return;
     }
     setMessage('Arquivos prontos. O processamento atual será utilizado nesta etapa.');
-    onProcess?.({ files: state.files, rows: state.rows || {} });
+    onProcess?.({ files: state.files, rows: state.rows || {}, rowData });
   }
 
   return <section className="import-panel">

@@ -21,3 +21,9 @@ export async function saveDriver(driver) {
   await setDoc(doc(db, 'motoristas', id), { ...driver, updatedAt: new Date().toISOString() }, { merge: true });
   return id;
 }
+
+export async function saveProcessedDay(day) {
+  await setDoc(doc(db, 'dias_processados', day.dateKey), day, { merge: true });
+  await setDoc(doc(db, 'snapshots_dias', day.dateKey), { ...day, items: day.items }, { merge: true });
+  await setDoc(doc(db, 'snapshots_dias', 'latest'), { ...day, items: day.items }, { merge: true });
+}

@@ -8,16 +8,22 @@ import { ChecklistPanel } from '../checklist/ChecklistPanel.jsx';
 import { buildImportRecord } from '../dados/import-record.js';
 import { MigrationPanel } from '../dados/MigrationPanel.jsx';
 import { ProcessingPanel, ReportsPanel, RegistersPanel } from '../modules/OperationalModules.jsx';
+import { extractPointRows } from '../processamento/planilha-normalizer.js';
+import { prepareProcessedDay } from '../processamento/processamento-model.js';
 
 export function AppShell({ user, dashboardData, onLogout }) {
   const [activeSection, setActiveSection] = useState('Início');
   const section = SECTION_CONTENT[activeSection];
 
   async function handleImportComplete(payload) {
+    const pointRows = extractPointRows(payload.rowData?.espelhoHoje || []);
+    const processedDay = prepareProcessedDay({ dateKey: new Date().toISOString().slice(0, 10), items: pointRows });
     const record = buildImportRecord(payload);
     try {
-      const { saveImportRecord } = await import('../lib/firestore-writes.js');
+      const { saveImportRecord, saveProcessedDay } = await import('../lib/firestore-writes.js');
       await saveImportRecord(record);
+      if (pointRows.length) await saveProcessedDay(processedDay);
+      window.dispatchEvent(new CustomEvent('jornada360:data-updated', { detail: { items: processedDay.items, dateKey: processedDay.dateKey } }));
     } catch (error) {
       console.warn('Não foi possível salvar o histórico de importação:', error);
     }
