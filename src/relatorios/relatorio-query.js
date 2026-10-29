@@ -18,7 +18,9 @@ function minutes(value) {
 
 function normalizeItem(item = {}) {
   const total = minutes(item.totalHE ?? item.excedenteMin ?? item.he1min) || 0;
-  const buckets = item.he2min || item.he3min ? { he1min: Number(item.he1min || 0), he2min: Number(item.he2min || 0), he3min: Number(item.he3min || 0) } : splitExtraHours(total);
+  const buckets = item.heBucketsExplicit || item.he2min || item.he3min
+    ? { he1min: Number(item.he1min || 0), he2min: Number(item.he2min || 0), he3min: Number(item.he3min || 0) }
+    : splitExtraHours(total);
   const he3min = isFeriadoOuDsr(item) ? Math.max(buckets.he3min, total) : buckets.he3min;
   return { ...item, ...buckets, he3min, setorAtual: classifyDriverSector(item), feriadoOuDsr: isFeriadoOuDsr(item) };
 }
