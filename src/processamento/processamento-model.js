@@ -7,6 +7,22 @@ export function classifyDriverSector(item = {}, cadastro = {}) {
   return item.setorAtual || item.setor || cadastro[name]?.setor || 'Sem setor';
 }
 
+export function splitExtraHours(totalMinutes = 0) {
+  const total = Math.max(0, Number(totalMinutes) || 0);
+  const he1min = Math.min(total, 120);
+  const he2min = Math.min(Math.max(total - 120, 0), 120);
+  const he3min = Math.max(total - 240, 0);
+  return { he1min, he2min, he3min };
+}
+
+function normalizeExtraBuckets(item = {}) {
+  const he1 = Number(item.he1min || 0);
+  const he2 = Number(item.he2min || 0);
+  const he3 = Number(item.he3min || 0);
+  if (he1 > 120 && he2 === 0 && he3 === 0) return { ...item, ...splitExtraHours(he1) };
+  return item;
+}
+
 export function summarizeDay(items = []) {
   return items.reduce((summary, item) => {
     summary.registros += 1;
@@ -22,5 +38,6 @@ export function summarizeDay(items = []) {
 }
 
 export function prepareProcessedDay({ dateKey, items = [], source = 'importacao' }) {
-  return { dateKey, source, updatedAt: new Date().toISOString(), summary: summarizeDay(items), items: items.map(item => ({ ...item, setorAtual: classifyDriverSector(item) })) };
+  const normalizedItems = items.map(normalizeExtraBuckets);
+  return { dateKey, source, updatedAt: new Date().toISOString(), summary: summarizeDay(normalizedItems), items: normalizedItems.map(item => ({ ...item, setorAtual: classifyDriverSector(item) })) };
 }
