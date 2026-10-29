@@ -19,7 +19,7 @@ function normalizeExtraBuckets(item = {}) {
   const he1 = Number(item.he1min || 0);
   const he2 = Number(item.he2min || 0);
   const he3 = Number(item.he3min || 0);
-  if (he1 > 120 && he2 === 0 && he3 === 0) return { ...item, ...splitExtraHours(he1) };
+  if (!item.heBucketsExplicit && he1 > 120 && he2 === 0 && he3 === 0) return { ...item, ...splitExtraHours(he1) };
   return item;
 }
 

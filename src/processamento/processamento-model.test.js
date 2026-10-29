@@ -16,3 +16,9 @@ test('classifica o excedente acima de duas horas como HE.2', () => {
   assert.deepEqual(splitExtraHours(150), { he1min: 120, he2min: 30, he3min: 0 });
   assert.deepEqual(splitExtraHours(120), { he1min: 120, he2min: 0, he3min: 0 });
 });
+test('preserva HE.1, HE.2 e HE.3 quando vieram separados da planilha', () => {
+  const result = prepareProcessedDay({ dateKey: '2026-10-27', items: [{ motorista: 'Ana', heBucketsExplicit: true, he1min: 2933, he2min: 131, he3min: 0 }] });
+  assert.equal(result.items[0].he1min, 2933);
+  assert.equal(result.items[0].he2min, 131);
+  assert.equal(result.items[0].he3min, 0);
+});
