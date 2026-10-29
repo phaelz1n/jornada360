@@ -5,7 +5,7 @@ function clean(value) {
 }
 
 function headerKey(value) {
-  return clean(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR');
+  return clean(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR').replace(/[^a-z0-9]+/g, '');
 }
 
 function timeOnly(value) {
@@ -20,7 +20,7 @@ function number(value) {
 
 export function normalizeTrackerRows(rows = []) {
   if (!rows.length) return [];
-  const header = rows.find(row => row.some(cell => headerKey(cell).includes('motorista')) && row.some(cell => headerKey(cell).includes('data e horario da parada')));
+  const header = rows.find(row => row.some(cell => headerKey(cell).includes('motorista')) && row.some(cell => headerKey(cell).includes('dataehorariodaparada')));
   if (!header) return [];
   const index = Object.fromEntries(header.map((cell, position) => [headerKey(cell), position]));
   const find = (...names) => names.map(name => index[headerKey(name)]).find(value => value != null);
