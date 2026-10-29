@@ -20,6 +20,10 @@ export function ReportsPanel({ items = [] }) {
 }
 
 export function RegistersPanel({ items = [] }) {
+  const [filter, setFilter] = useState('');
+  const [sectors, setSectors] = useState(() => Object.fromEntries(items.map(item => [item.motorista, item.setorAtual || item.setor || 'Sem setor'])));
   const names = [...new Set(items.map(item => item.motorista).filter(Boolean))].sort((a, b) => a.localeCompare(b));
-  return <section className="module-panel"><span className="eyebrow">CADASTROS</span><h2>Motoristas e setores</h2><p>{names.length} nomes reconhecidos no conteúdo migrado. A classificação consolidada será usada nas próximas importações.</p><div className="name-list">{names.slice(0, 16).map(name => <span key={name}>{name}</span>)}</div><LegacyLink>Editar regras no módulo atual</LegacyLink></section>;
+  const visible = names.filter(name => name.toLocaleLowerCase('pt-BR').includes(filter.toLocaleLowerCase('pt-BR'))).slice(0, 50);
+  async function save(name, sector) { setSectors(current => ({ ...current, [name]: sector })); try { const { saveDriver } = await import('../lib/firestore-writes.js'); await saveDriver({ nome: name, setor: sector }); } catch { /* permanece na sessão até o Firebase voltar */ } }
+  return <section className="module-panel"><span className="eyebrow">CADASTROS</span><h2>Motoristas e setores</h2><p>{names.length} nomes reconhecidos no conteúdo migrado. Ajustes aqui serão reutilizados nas próximas importações.</p><input className="register-search" value={filter} onChange={event => setFilter(event.target.value)} placeholder="Pesquisar motorista" aria-label="Pesquisar motorista" /><div className="register-list">{visible.map(name => <div className="register-row" key={name}><span>{name}</span><select value={sectors[name] || 'Sem setor'} onChange={event => save(name, event.target.value)}><option>Motoristas</option><option>ADM</option><option>Manutenção</option><option>Reserva</option><option>Cobre férias</option><option>Folguista</option><option>Sem setor</option></select></div>)}</div><LegacyLink>Editar regras avançadas</LegacyLink></section>;
 }

@@ -15,3 +15,9 @@ export async function saveChecklistSnapshot(snapshot, dateKey = 'latest') {
   await setDoc(ref, { ...snapshot, updatedAt: new Date().toISOString() }, { merge: true });
   return ref.id;
 }
+
+export async function saveDriver(driver) {
+  const id = encodeURIComponent(String(driver.nome || '').toLowerCase());
+  await setDoc(doc(db, 'motoristas', id), { ...driver, updatedAt: new Date().toISOString() }, { merge: true });
+  return id;
+}
