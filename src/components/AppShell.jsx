@@ -6,6 +6,7 @@ import { LegacyOperations } from '../legacy/LegacyOperations.jsx';
 import { ImportacaoPanel } from '../importacao/ImportacaoPanel.jsx';
 import { ChecklistPanel } from '../checklist/ChecklistPanel.jsx';
 import { buildImportRecord } from '../dados/import-record.js';
+import { MigrationPanel } from '../dados/MigrationPanel.jsx';
 
 export function AppShell({ user, dashboardData, onLogout }) {
   const [activeSection, setActiveSection] = useState('Início');
@@ -38,6 +39,7 @@ export function AppShell({ user, dashboardData, onLogout }) {
         {activeSection === 'Início' && <section className="status-grid"><article onClick={() => setActiveSection('Importação')}><span className="status-icon blue">↥</span><div><strong>Importação</strong><p>Planilhas do dia e fontes operacionais</p></div><span className="arrow">→</span></article><article onClick={() => setActiveSection('Checklist')}><span className="status-icon green">✓</span><div><strong>Checklist</strong><p>Validações e pendências da jornada</p></div><span className="arrow">→</span></article><article onClick={() => setActiveSection('Relatórios')}><span className="status-icon orange">▥</span><div><strong>Relatórios</strong><p>HE.1, HE.2, HE.3, inter e intra</p></div><span className="arrow">→</span></article></section>}
         {activeSection === 'Importação' && <ImportacaoPanel onProcess={handleImportComplete} />}
         {activeSection === 'Checklist' && <ChecklistPanel snapshotItems={dashboardData?.items} />}
+        {activeSection === 'Firebase' && <MigrationPanel />}
         {activeSection !== 'Início' && activeSection !== 'Importação' && <section className="migration-placeholder"><span className="status-icon blue">◌</span><div><strong>Módulo em migração</strong><p>Esta área está sendo transferida gradualmente. O fluxo atual continua disponível em Importação.</p></div></section>}
       </main>
     </div>
