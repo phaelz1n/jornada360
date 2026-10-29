@@ -96,4 +96,14 @@ button, input { font: inherit; }
 .daily-summary-grid strong.negative { color: #c54636; }
 .daily-summary-grid strong.positive { color: #2d8b57; }
 .daily-summary-grid small { display: block; color: #6b7890; margin-top: 7px; line-height: 1.25; }
+.comparison-list { display: grid; gap: 10px; margin-top: 18px; }
+.comparison-row { display: flex; justify-content: space-between; gap: 16px; align-items: center; background: #fff; border: 1px solid #e2e7ee; border-radius: 12px; padding: 13px 15px; }
+.comparison-row strong, .comparison-row small { display: block; }
+.comparison-row small { color: #718096; margin-top: 4px; }
+.comparison-stops { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+.stop-badge { border-radius: 999px; padding: 5px 9px; font-size: 12px; background: #eef3f8; color: #38566e; }
+.stop-badge.confirmada { background: #e2f4e8; color: #287347; }
+.stop-badge.normal { background: #e8f0fb; color: #285d96; }
+.stop-badge.possivel-transito { background: #fff0d5; color: #9a681b; }
+.stop-badge.nova { background: #ffe1dc; color: #a33d32; }
 @media (max-width: 1050px) { .daily-summary-grid { grid-template-columns: repeat(2, minmax(140px, 1fr)); } }

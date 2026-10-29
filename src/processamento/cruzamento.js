@@ -1,4 +1,5 @@
 import { normalizeDriverName } from './processamento-model.js';
+import { analisarParadasRastreador } from './rastreador-analysis.js';
 
 function indexByDriver(rows = []) {
   const map = new Map();
@@ -25,12 +26,15 @@ export function crossSources({ pointRows = [], scaleRows = [], trackerRows = [] 
     const key = normalizeDriverName(point.motorista);
     const scaleRow = findDriver(scale, key);
     const trackerRow = findDriver(tracker, key);
+    const paradaAnalysis = analisarParadasRastreador({ batidas: point.batidas || [], escala: scaleRow ? [scaleRow] : [], rastreador: trackerRow || {} });
     return {
       ...point,
       escalaEncontrada: Boolean(scaleRow),
       escala: scaleRow || null,
       rastreioEncontrado: Boolean(trackerRow),
       rastreio: trackerRow || null,
+      paradasRastreador: paradaAnalysis.paradas,
+      resumoRastreador: paradaAnalysis,
       statusCruzamento: scaleRow && trackerRow ? 'completo' : scaleRow ? 'sem rastreador' : trackerRow ? 'sem escala' : 'sem correspondência',
     };
   });
