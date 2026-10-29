@@ -2,6 +2,14 @@ function normalizeName(value) {
   return String(value || '').trim().replace(/\s+/g, ' ');
 }
 
+function removeUndefined(value) {
+  if (Array.isArray(value)) return value.map(removeUndefined);
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).filter(([, entry]) => entry !== undefined).map(([key, entry]) => [key, removeUndefined(entry)]));
+  }
+  return value;
+}
+
 export function buildMigrationPayload(backup) {
   const days = Array.isArray(backup?.dias) ? backup.dias : [];
   const drivers = new Map();
@@ -12,12 +20,12 @@ export function buildMigrationPayload(backup) {
       if (!nome) continue;
       const setor = normalizeName(item.setorAtual || item.setor || item.setorResponsavel || '') || 'Sem setor';
       const current = drivers.get(nome);
-      drivers.set(nome, {
+      drivers.set(nome, removeUndefined({
         nome,
-        setor: current?.setor !== 'Sem setor' ? current?.setor : setor,
+        setor: current?.setor && current.setor !== 'Sem setor' ? current.setor : setor,
         categoria: item.categoria || current?.categoria || setor,
         atualizadoEm: backup.geradoEm || new Date().toISOString(),
-      });
+      }));
     }
   }
   return {
@@ -27,8 +35,8 @@ export function buildMigrationPayload(backup) {
     drivers: [...drivers.values()],
     days: days.filter(day => day?.dateKey).map(day => ({
       dateKey: day.dateKey,
-      snapshot: day.snapshot || {},
-      caseState: day.caseState || {},
+      snapshot: removeUndefined(day.snapshot || {}),
+      caseState: removeUndefined(day.caseState || {}),
     })),
   };
 }
