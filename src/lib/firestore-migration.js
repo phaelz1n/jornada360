@@ -14,6 +14,9 @@ export async function migrateBackupToFirestore(payload, onProgress = () => {}) {
   for (const day of payload.days) {
     await setDoc(doc(db, 'dias_processados', day.dateKey), day, { merge: true });
     await setDoc(doc(db, 'snapshots_dias', day.dateKey), day.snapshot, { merge: true });
+    if (day.caseState && Object.keys(day.caseState).length) {
+      await setDoc(doc(db, 'checklist', day.dateKey), { dateKey: day.dateKey, caseState: day.caseState, migratedAt: new Date().toISOString() }, { merge: true });
+    }
     onProgress(++done, total);
   }
   const latest = payload.days.at(-1);
