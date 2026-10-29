@@ -5,7 +5,9 @@ import { getFirestore } from 'firebase/firestore';
 const db = getFirestore(firebaseApp);
 
 export async function saveImportRecord(record) {
-  const ref = doc(db, 'importacoes', `${record.dateKey}-${Date.now()}`);
+  // A nova exportação do mesmo dia é uma correção/atualização, não um novo lançamento.
+  // Usar a data como chave evita duplicidade e permite substituir o pacote inteiro.
+  const ref = doc(db, 'importacoes', String(record.dateKey));
   await setDoc(ref, record);
   return ref.id;
 }
@@ -23,7 +25,9 @@ export async function saveDriver(driver) {
 }
 
 export async function saveProcessedDay(day) {
-  await setDoc(doc(db, 'dias_processados', day.dateKey), day, { merge: true });
-  await setDoc(doc(db, 'snapshots_dias', day.dateKey), { ...day, items: day.items }, { merge: true });
+  // Sem merge de propósito: HE corrigida, batidas removidas e paradas atualizadas
+  // precisam substituir o conteúdo anterior daquele dia.
+  await setDoc(doc(db, 'dias_processados', day.dateKey), day);
+  await setDoc(doc(db, 'snapshots_dias', day.dateKey), { ...day, items: day.items });
   await setDoc(doc(db, 'snapshots_dias', 'latest'), { ...day, items: day.items }, { merge: true });
 }
