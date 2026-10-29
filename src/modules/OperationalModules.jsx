@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react';
 import { summarizeDay } from '../processamento/processamento-model.js';
 
 function LegacyLink({ children = 'Abrir operação completa' }) { return <a className="module-link" href="/legacy/assistente_he_diario.original.html">{children} ↗</a>; }
@@ -9,8 +10,13 @@ export function ProcessingPanel({ items = [] }) {
 }
 
 export function ReportsPanel({ items = [] }) {
-  const summary = summarizeDay(items);
-  return <section className="module-panel"><span className="eyebrow">RELATÓRIOS</span><h2>Resumo de horas extras</h2><p>Visão consolidada dos registros importados, separada por tipo de hora extra.</p><div className="module-stats reports"><strong>{summary.he1min}<small> HE.1 minutos</small></strong><strong>{summary.he2min}<small> HE.2 minutos</small></strong><strong>{summary.he3min}<small> HE.3 minutos</small></strong></div><div className="module-breakdown">{Object.entries(summary.porSetor).map(([sector, count]) => <span key={sector}>{sector}: <b>{count}</b></span>)}</div><LegacyLink>Ver relatórios completos</LegacyLink></section>;
+  const [sector, setSector] = useState('Todos');
+  const [search, setSearch] = useState('');
+  const sectors = useMemo(() => ['Todos', ...new Set(items.map(item => item.setorAtual || item.setor || 'Sem setor'))], [items]);
+  const filtered = useMemo(() => items.filter(item => (sector === 'Todos' || (item.setorAtual || item.setor || 'Sem setor') === sector) && String(item.motorista || '').toLocaleLowerCase('pt-BR').includes(search.toLocaleLowerCase('pt-BR'))), [items, sector, search]);
+  const summary = summarizeDay(filtered);
+  const format = value => `${Math.floor(value / 60)}h${String(value % 60).padStart(2, '0')}`;
+  return <section className="module-panel"><span className="eyebrow">RELATÓRIOS</span><h2>Resumo de horas extras</h2><p>Filtre o dia importado por setor ou motorista e veja o resumo sem sair desta tela.</p><div className="report-filters"><input value={search} onChange={event => setSearch(event.target.value)} placeholder="Pesquisar motorista" aria-label="Pesquisar motorista" /><select value={sector} onChange={event => setSector(event.target.value)} aria-label="Filtrar por setor">{sectors.map(option => <option key={option}>{option}</option>)}</select></div><div className="module-stats reports"><strong>{format(summary.he1min)}<small> HE.1</small></strong><strong>{format(summary.he2min)}<small> HE.2</small></strong><strong>{format(summary.he3min)}<small> HE.3</small></strong><strong>{summary.interjornada}<small> interjornadas</small></strong><strong>{summary.intrajornada}<small> intrajornadas</small></strong></div><div className="report-table">{filtered.slice(0, 30).map(item => <div className="report-row" key={`${item.motorista}-${item.batidas || ''}`}><span><b>{item.motorista}</b><small>{item.setorAtual || item.setor || 'Sem setor'}</small></span><span>HE.1 <b>{item.he1str || format(item.he1min || 0)}</b></span><span>HE.2 <b>{item.he2str || format(item.he2min || 0)}</b></span><span>HE.3 <b>{item.he3str || format(item.he3min || 0)}</b></span></div>)}</div><LegacyLink>Ver relatórios completos</LegacyLink></section>;
 }
 
 export function RegistersPanel({ items = [] }) {
