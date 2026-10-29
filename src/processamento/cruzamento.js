@@ -27,14 +27,33 @@ export function crossSources({ pointRows = [], scaleRows = [], trackerRows = [] 
     const scaleRow = findDriver(scale, key);
     const trackerRow = findDriver(tracker, key);
     const paradaAnalysis = analisarParadasRastreador({ batidas: point.batidas || [], escala: scaleRow ? [scaleRow] : [], rastreador: trackerRow || {} });
+    const rastreioCompacto = trackerRow ? {
+      motorista: trackerRow.motorista,
+      placa: trackerRow.placa,
+      sinais: trackerRow.sinais,
+      paradas: (trackerRow.paradas || []).map(stop => ({
+        horario: stop.horario,
+        dataHora: stop.dataHora,
+        duracaoMin: stop.duracaoMin,
+        local: stop.local,
+        tipo: stop.tipo,
+        endereco: stop.endereco,
+        motoristaHerdado: stop.motoristaHerdado
+      }))
+    } : null;
     return {
       ...point,
       escalaEncontrada: Boolean(scaleRow),
       escala: scaleRow || null,
       rastreioEncontrado: Boolean(trackerRow),
-      rastreio: trackerRow || null,
+      rastreio: rastreioCompacto,
       paradasRastreador: paradaAnalysis.paradas,
-      resumoRastreador: paradaAnalysis,
+      resumoRastreador: {
+        total: paradaAnalysis.total,
+        novas: paradaAnalysis.novas,
+        possiveisTransitos: paradaAnalysis.possiveisTransitos,
+        confirmadas: paradaAnalysis.confirmadas
+      },
       statusCruzamento: scaleRow && trackerRow ? 'completo' : scaleRow ? 'sem rastreador' : trackerRow ? 'sem escala' : 'sem correspondência',
     };
   });
