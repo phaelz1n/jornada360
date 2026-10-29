@@ -354,6 +354,12 @@
     <button class="process-btn" id="processBtn" disabled>Processar dia</button>
     <button class="process-btn" id="migrarFirebaseBtn" type="button">☁️ Enviar motoristas ao Firebase</button>
     <span id="firebaseStatus" class="status-msg"></span>
+    <div id="firebaseLoginBox" style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; align-items:center;">
+      <input id="firebaseEmail" type="email" placeholder="E-mail do Firebase" style="flex:1; min-width:220px;">
+      <input id="firebasePassword" type="password" placeholder="Senha" style="width:140px;">
+      <button class="process-btn" id="firebaseLoginBtn" type="button">Entrar</button>
+      <button class="process-btn" id="firebaseSignupBtn" type="button">Criar acesso</button>
+    </div>
     <div class="status-msg" id="statusMsg"></div>
     <div id="importDiagnosis" class="transfer-box hidden" style="margin-top:10px;"></div>
     <div class="error-msg" id="errorMsg"></div>
@@ -3799,8 +3805,17 @@ document.getElementById('importBtn').addEventListener('click', async ()=>{
 </script><script type="module">
   import { store } from './src/firebase/browser-adapter.mjs';
   import { migrateDriversToStore } from './src/migracao/migrar-firebase.mjs';
+  import { actions, onAuthStateChanged } from './src/firebase/auth-browser.mjs';
   const btn = document.getElementById('migrarFirebaseBtn');
   const status = document.getElementById('firebaseStatus');
+  const email = document.getElementById('firebaseEmail');
+  const password = document.getElementById('firebasePassword');
+  const login = document.getElementById('firebaseLoginBtn');
+  const signup = document.getElementById('firebaseSignupBtn');
+  const setAuthStatus = user => { status.textContent = user ? 'Firebase conectado: '+user.email : 'Faça login para sincronizar.'; status.style.color = user ? 'var(--green)' : 'var(--muted)'; };
+  onAuthStateChanged(actions.auth, setAuthStatus);
+  login?.addEventListener('click', async ()=>{ try{ setAuthStatus(await actions.login(email.value.trim(), password.value)); }catch(e){ status.textContent='Falha no login: '+(e?.message||e); status.style.color='var(--red)'; } });
+  signup?.addEventListener('click', async ()=>{ try{ setAuthStatus(await actions.signup(email.value.trim(), password.value)); }catch(e){ status.textContent='Falha ao criar acesso: '+(e?.message||e); status.style.color='var(--red)'; } });
   if(btn){ btn.addEventListener('click', async ()=>{
     btn.disabled = true; status.textContent = 'Lendo motoristas salvos...';
     try{
