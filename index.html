@@ -352,6 +352,8 @@
     </div>
 
     <button class="process-btn" id="processBtn" disabled>Processar dia</button>
+    <button class="process-btn" id="migrarFirebaseBtn" type="button">☁️ Enviar motoristas ao Firebase</button>
+    <span id="firebaseStatus" class="status-msg"></span>
     <div class="status-msg" id="statusMsg"></div>
     <div id="importDiagnosis" class="transfer-box hidden" style="margin-top:10px;"></div>
     <div class="error-msg" id="errorMsg"></div>
@@ -3794,5 +3796,22 @@ document.getElementById('importBtn').addEventListener('click', async ()=>{
   document.addEventListener('DOMContentLoaded',addIcarusButton);
   window.addEventListener('load',addIcarusButton);
 })();
+</script><script type="module">
+  import { store } from './src/firebase/browser-adapter.mjs';
+  import { migrateDriversToStore } from './src/migracao/migrar-firebase.mjs';
+  const btn = document.getElementById('migrarFirebaseBtn');
+  const status = document.getElementById('firebaseStatus');
+  if(btn){ btn.addEventListener('click', async ()=>{
+    btn.disabled = true; status.textContent = 'Lendo motoristas salvos...';
+    try{
+      const sources=[];
+      for(let i=0;i<localStorage.length;i++){
+        const key=localStorage.key(i)||''; if(!key.includes('he_dia_snapshot_')) continue;
+        try{ const snap=JSON.parse(localStorage.getItem(key)||'{}'); (snap.items||[]).forEach(item=>sources.push({nome:item.motorista,matricula:item.matricula,setor:item.setorAtual,categoria:item.categoria,fonte:key})); }catch(e){}
+      }
+      const result=await migrateDriversToStore(sources,store); status.textContent=result.migrated+' motoristas enviados ao Firebase.'; status.style.color='var(--green)';
+    }catch(error){ status.textContent='Não foi possível sincronizar: '+(error?.message||error); status.style.color='var(--red)'; }
+    finally{ btn.disabled=false; }
+  }); }
 </script></html>
 
