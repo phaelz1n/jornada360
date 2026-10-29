@@ -2,7 +2,14 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    function isAuthenticated() { return request.auth != null; }
+    function isAuthenticated() {
+      return request.auth != null
+        && request.auth.token.email in [
+          'operacional4@transpinho.com',
+          'rh@transpinho.com',
+          'tielle@transpinho.com'
+        ];
+    }
 
     match /motoristas/{id} { allow read, write: if isAuthenticated(); }
     match /escalas/{id} { allow read, write: if isAuthenticated(); }
