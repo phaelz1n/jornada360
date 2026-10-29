@@ -16,10 +16,14 @@ function ensureAuthorized(email) {
   return normalized;
 }
 
-export function createAuthService({ auth, signIn, signOut, subscribe }) {
+export function createAuthService({ auth, signIn, sendReset, signOut, subscribe }) {
   return {
     async login(email, password) {
       return signIn(auth, ensureAuthorized(email), password);
+    },
+    async resetPassword(email) {
+      if (!sendReset) throw new Error('Redefinição de senha indisponível');
+      return sendReset(auth, ensureAuthorized(email));
     },
     logout() {
       return signOut(auth);

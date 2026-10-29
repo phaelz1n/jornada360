@@ -16,6 +16,7 @@ function App() {
   const authServiceRef = React.useRef(null);
   const [user, setUser] = React.useState(null);
   const [error, setError] = React.useState('');
+  const [notice, setNotice] = React.useState('');
   const [loading, setLoading] = React.useState(false);
   const [dashboardData, setDashboardData] = React.useState(null);
 
@@ -29,6 +30,7 @@ function App() {
       authServiceRef.current = serviceModule.createAuthService({
         auth: firebase.auth,
         signIn: firebaseAuth.signInWithEmailAndPassword,
+        sendReset: firebaseAuth.sendPasswordResetEmail,
         signOut: firebaseAuth.signOut,
         subscribe: firebaseAuth.onAuthStateChanged
       });
@@ -56,12 +58,23 @@ function App() {
     }
     setLoading(true);
     setError('');
+    setNotice('');
     try { await authServiceRef.current.login(email, password); }
     catch (caught) { setError(authErrorMessage(caught)); }
     finally { setLoading(false); }
   }
 
-  if (!user) return <LoginScreen onLogin={handleLogin} loading={loading} error={error} />;
+  async function handleResetPassword(email) {
+    if (!authServiceRef.current) { setError('Conectando ao Firebase. Tente novamente em alguns segundos.'); return; }
+    setError('');
+    setNotice('');
+    try {
+      await authServiceRef.current.resetPassword(email);
+      setNotice('Se o e-mail estiver autorizado, enviamos o link de redefinição.');
+    } catch (caught) { setError(authErrorMessage(caught)); }
+  }
+
+  if (!user) return <LoginScreen onLogin={handleLogin} onResetPassword={handleResetPassword} loading={loading} error={error} notice={notice} />;
   return <AppShell user={user} dashboardData={dashboardData} onLogout={() => authServiceRef.current.logout()} />;
 }
 

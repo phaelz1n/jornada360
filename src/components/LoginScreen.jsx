@@ -2,13 +2,17 @@ import { useState } from 'react';
 import blueLogo from '../assets/logo-transpinho-blue.png';
 import whiteLogo from '../assets/logo-transpinho-white.png';
 
-export function LoginScreen({ onLogin, loading = false, error = '' }) {
+export function LoginScreen({ onLogin, onResetPassword, loading = false, error = '', notice = '' }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
   async function handleSubmit(event) {
     event.preventDefault();
     await onLogin(email, password);
+  }
+
+  async function handleResetPassword() {
+    await onResetPassword?.(email);
   }
 
   return (
@@ -34,7 +38,9 @@ export function LoginScreen({ onLogin, loading = false, error = '' }) {
             <label htmlFor="password">Senha</label>
             <input id="password" type="password" value={password} onChange={event => setPassword(event.target.value)} placeholder="Digite sua senha" autoComplete="current-password" required />
             {error && <div className="auth-error" role="alert">{error}</div>}
+            {notice && <div className="auth-notice" role="status">{notice}</div>}
             <button className="primary-button" type="submit" disabled={loading}>{loading ? 'Entrando…' : 'Entrar no Jornada360'} <span>→</span></button>
+            <button className="link-button" type="button" onClick={handleResetPassword} disabled={loading}>Esqueci minha senha</button>
           </form>
           <p className="login-footer">Acesso restrito à equipe Transpinho</p>
         </div>
