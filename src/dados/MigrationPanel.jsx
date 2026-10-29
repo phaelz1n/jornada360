@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { buildMigrationPayload, migrationStats } from './backup-migration.js';
 import { migrateBackupToFirestore } from '../lib/firestore-migration.js';
 
-export function MigrationPanel() {
+export function MigrationPanel({ onMigrated }) {
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   async function handleFile(event) {
@@ -14,6 +14,7 @@ export function MigrationPanel() {
       const stats = migrationStats(payload);
       setMessage(`Backup pronto: ${stats.drivers} motoristas e ${stats.days} dias.`);
       const result = await migrateBackupToFirestore(payload, (done, total) => setMessage(`Migrando dados... ${done}/${total}`));
+      onMigrated?.(payload.days.at(-1)?.snapshot || { items: [] });
       setMessage(`Migração concluída: ${result.drivers} motoristas e ${result.days} dias enviados ao Firebase.`);
     } catch (error) { setMessage(`Não foi possível migrar: ${error.message}`); }
     finally { setBusy(false); event.target.value = ''; }

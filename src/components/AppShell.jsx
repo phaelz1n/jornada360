@@ -43,7 +43,7 @@ export function AppShell({ user, dashboardData, onLogout }) {
         {activeSection === 'Processamento' && <ProcessingPanel items={dashboardData?.items} />}
         {activeSection === 'Relatórios' && <ReportsPanel items={dashboardData?.items} />}
         {activeSection === 'Cadastros' && <RegistersPanel items={dashboardData?.items} />}
-        {activeSection === 'Firebase' && <MigrationPanel />}
+        {activeSection === 'Firebase' && <MigrationPanel onMigrated={snapshot => dashboardData?.items !== snapshot.items && window.dispatchEvent(new CustomEvent('jornada360:data-updated', { detail: snapshot }))} />}
         {activeSection === 'Início' && <LegacyOperations />}
       </main>
     </div>
