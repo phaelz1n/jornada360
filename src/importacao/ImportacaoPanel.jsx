@@ -9,6 +9,7 @@ function formatSize(bytes) {
 
 export function ImportacaoPanel({ onProcess }) {
   const [state, setState] = useState(createImportState);
+  const [dateKey, setDateKey] = useState(() => { const now = new Date(); return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`; });
   const [message, setMessage] = useState('');
   const [rowData, setRowData] = useState({});
   const selectedCount = useMemo(() => Object.values(state.files).filter(Boolean).length, [state.files]);
@@ -34,11 +35,12 @@ export function ImportacaoPanel({ onProcess }) {
       return;
     }
     setMessage('Arquivos prontos. O processamento atual será utilizado nesta etapa.');
-    onProcess?.({ files: state.files, rows: state.rows || {}, rowData });
+    onProcess?.({ files: state.files, rows: state.rows || {}, rowData, dateKey });
   }
 
   return <section className="import-panel">
     <div className="import-panel-heading"><div><span className="eyebrow">ENTRADA DE DADOS</span><h2>Importar arquivos do dia</h2><p>Selecione as planilhas usadas pela operação. O novo fluxo mantém o mesmo cruzamento do sistema atual.</p></div><span className="import-counter">{selectedCount}/5 arquivos</span></div>
+    <label className="import-date">Data do relatório <input type="date" value={dateKey} onChange={event => setDateKey(event.target.value)} /></label>
     <div className="source-grid">{IMPORT_SOURCES.map(source => { const file = state.files[source.id]; return <label className={`source-card ${file ? 'selected' : ''}`} key={source.id}>
       <input type="file" accept=".xlsx,.xls,.csv" onChange={event => chooseFile(source.id, event)} />
       <span className="source-icon">{source.icon}</span><span className="source-copy"><strong>{source.label}</strong><small>{source.required ? 'Obrigatório' : 'Opcional'} · {source.description}</small>{file && <em>{file.name} {formatSize(file.size)}{state.rows?.[source.id] ? ` · ${state.rows[source.id]} linhas lidas` : ''}</em>}</span><span className="source-action">{file ? 'Trocar' : 'Selecionar'}</span>

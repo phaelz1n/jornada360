@@ -4,8 +4,20 @@ function isFeriadoOuDsr(item) {
   return Boolean(item.feriado || item.dsr || item.isFeriado || item.isDsr || item.tipoDia === 'FERIADO' || item.tipoDia === 'DSR' || item.classificacao === 'FERIADO' || item.classificacao === 'DSR');
 }
 
+function minutes(value) {
+  if (typeof value === 'number') return value;
+  const text = String(value ?? '').trim();
+  if (!text) return null;
+  if (/^\d{1,3}:\d{2}$/.test(text)) {
+    const [hours, mins] = text.split(':').map(Number);
+    return hours * 60 + mins;
+  }
+  const numeric = Number(text);
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
 function normalizeItem(item = {}) {
-  const total = Number(item.totalHE ?? item.excedenteMin ?? item.he1min ?? 0) || 0;
+  const total = minutes(item.totalHE ?? item.excedenteMin ?? item.he1min) || 0;
   const buckets = item.he2min || item.he3min ? { he1min: Number(item.he1min || 0), he2min: Number(item.he2min || 0), he3min: Number(item.he3min || 0) } : splitExtraHours(total);
   const he3min = isFeriadoOuDsr(item) ? Math.max(buckets.he3min, total) : buckets.he3min;
   return { ...item, ...buckets, he3min, setorAtual: classifyDriverSector(item), feriadoOuDsr: isFeriadoOuDsr(item) };
@@ -20,11 +32,11 @@ function buildResult(items, days, forcedMetaDiaMin = null) {
   const normalized = items.map(normalizeItem);
   const summary = summarizeDay(normalized);
   const totalHEmin = normalized.reduce((total, item) => total + item.he1min + item.he2min + item.he3min, 0);
-  const metaDiaMin = forcedMetaDiaMin == null ? normalized.reduce((total, item) => total + Number(item.metaDiaMin || 0), 0) : Number(forcedMetaDiaMin) || 0;
-  const metaIndividual = item => item.padraoCadastradoMin ?? item.padraoMetaMin ?? item.metaPadraoMin;
-  const standardItems = normalized.filter(item => metaIndividual(item) != null && Number.isFinite(Number(metaIndividual(item))));
-  const heDentroPadraoMin = standardItems.reduce((total, item) => total + Math.min(item.he1min + item.he2min + item.he3min, Number(metaIndividual(item))), 0);
-  const heAcimaPadraoMin = standardItems.reduce((total, item) => total + Math.max(item.he1min + item.he2min + item.he3min - Number(metaIndividual(item)), 0), 0);
+  const metaDiaMin = forcedMetaDiaMin == null ? normalized.reduce((total, item) => total + (minutes(item.metaDiaMin) || 0), 0) : (minutes(forcedMetaDiaMin) || 0);
+  const metaIndividual = item => minutes(item.padraoCadastradoMin ?? item.padraoMetaMin ?? item.metaPadraoMin ?? item.padraoCadastrado ?? item.extraNormalPadrao);
+  const standardItems = normalized.filter(item => metaIndividual(item) != null);
+  const heDentroPadraoMin = standardItems.reduce((total, item) => total + Math.min(item.he1min + item.he2min + item.he3min, metaIndividual(item)), 0);
+  const heAcimaPadraoMin = standardItems.reduce((total, item) => total + Math.max(item.he1min + item.he2min + item.he3min - metaIndividual(item), 0), 0);
   const driversWithHE = new Set(normalized.filter(item => item.he1min + item.he2min + item.he3min > 0).map(item => normalizeDriverName(item.motorista)));
   const driversWithoutStandard = new Set(normalized.filter(item => item.he1min + item.he2min + item.he3min > 0 && metaIndividual(item) == null).map(item => normalizeDriverName(item.motorista)));
   const names = new Map();

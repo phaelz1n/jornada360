@@ -1,5 +1,5 @@
 import blueLogo from '../assets/logo-transpinho-blue.png';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { NAVIGATION_GROUPS } from './navigation.js';
 import { SECTION_CONTENT } from './sections.js';
 import { LegacyOperations } from '../legacy/LegacyOperations.jsx';
@@ -14,12 +14,29 @@ import { crossSources } from '../processamento/cruzamento.js';
 
 export function AppShell({ user, dashboardData, onLogout }) {
   const [activeSection, setActiveSection] = useState('Início');
+  const [liveData, setLiveData] = useState(dashboardData || { items: [], snapshots: [] });
   const section = SECTION_CONTENT[activeSection];
+
+  useEffect(() => {
+    setLiveData(dashboardData || { items: [], snapshots: [] });
+  }, [dashboardData]);
+
+  useEffect(() => {
+    let unsubscribe = () => {};
+    import('../lib/firestore-store.js').then(({ firestoreStore }) => {
+      unsubscribe = firestoreStore.subscribe('snapshots_dias', snapshots => {
+        const ordered = snapshots.filter(item => item.dateKey).sort((a, b) => String(a.dateKey).localeCompare(String(b.dateKey)));
+        const latest = ordered.at(-1);
+        if (latest) setLiveData(current => ({ ...current, items: latest.items || [], dateKey: latest.dateKey, snapshots: ordered, source: 'firebase' }));
+      });
+    }).catch(() => {});
+    return () => unsubscribe();
+  }, []);
 
   async function handleImportComplete(payload) {
     const pointRows = extractPointRows(payload.rowData?.espelhoHoje || []);
     const items = crossSources({ pointRows, scaleRows: payload.rowData?.escala?.slice(1).map(row => ({ motorista: row?.[0], horario: row?.[1] })) || [], trackerRows: payload.rowData?.rastreador?.slice(1).map(row => ({ motorista: row?.[0], sinais: row?.length - 1 })) || [] });
-    const processedDay = prepareProcessedDay({ dateKey: new Date().toISOString().slice(0, 10), items });
+    const processedDay = prepareProcessedDay({ dateKey: payload.dateKey || new Date().toISOString().slice(0, 10), items });
     const record = buildImportRecord(payload);
     try {
       const { saveImportRecord, saveProcessedDay } = await import('../lib/firestore-writes.js');
@@ -47,10 +64,10 @@ export function AppShell({ user, dashboardData, onLogout }) {
         <section className="welcome-card"><div><span className="eyebrow">JORNADA360 / {activeSection.toUpperCase()}</span><h2>{section.title}</h2><p>{section.description} A lógica atual de processamento continua preservada durante a migração.</p></div><div className="welcome-orbit">∞</div></section>
         {activeSection === 'Início' && <section className="status-grid"><article onClick={() => setActiveSection('Importação')}><span className="status-icon blue">↥</span><div><strong>Importação</strong><p>Planilhas do dia e fontes operacionais</p></div><span className="arrow">→</span></article><article onClick={() => setActiveSection('Checklist')}><span className="status-icon green">✓</span><div><strong>Checklist</strong><p>Validações e pendências da jornada</p></div><span className="arrow">→</span></article><article onClick={() => setActiveSection('Relatórios')}><span className="status-icon orange">▥</span><div><strong>Relatórios</strong><p>HE.1, HE.2, HE.3, inter e intra</p></div><span className="arrow">→</span></article></section>}
         {activeSection === 'Importação' && <ImportacaoPanel onProcess={handleImportComplete} />}
-        {activeSection === 'Checklist' && <ChecklistPanel snapshotItems={dashboardData?.items} dateKey={dashboardData?.dateKey || 'latest'} />}
-        {activeSection === 'Processamento' && <ProcessingPanel items={dashboardData?.items} />}
-        {activeSection === 'Relatórios' && <ReportsPanel items={dashboardData?.items} />}
-        {activeSection === 'Cadastros' && <RegistersPanel items={dashboardData?.items} />}
+        {activeSection === 'Checklist' && <ChecklistPanel snapshotItems={liveData?.items} dateKey={liveData?.dateKey || 'latest'} />}
+        {activeSection === 'Processamento' && <ProcessingPanel items={liveData?.items} />}
+        {activeSection === 'Relatórios' && <ReportsPanel items={liveData?.items} snapshots={liveData?.snapshots} />}
+        {activeSection === 'Cadastros' && <RegistersPanel items={liveData?.items} />}
         {activeSection === 'Firebase' && <MigrationPanel onMigrated={snapshot => dashboardData?.items !== snapshot.items && window.dispatchEvent(new CustomEvent('jornada360:data-updated', { detail: snapshot }))} />}
         {activeSection === 'Início' && <LegacyOperations />}
       </main>
