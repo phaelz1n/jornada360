@@ -9,13 +9,17 @@ const DEMO_ITEMS = snapshotItemsToChecklist([
   { motorista: 'Fernando Santos Barcelos', setor: 'Cobre férias', totalHE: 45 }
 ]);
 
-export function ChecklistPanel({ snapshotItems }) {
+export function ChecklistPanel({ snapshotItems, dateKey = 'latest' }) {
   const [items] = useState(() => snapshotItemsToChecklist(snapshotItems || DEMO_ITEMS));
   const [backupItems, setBackupItems] = useState(null);
-  const [state, setState] = useState(() => createChecklistState(DEMO_ITEMS));
+  const [state, setState] = useState(() => createChecklistState(snapshotItemsToChecklist(snapshotItems || DEMO_ITEMS)));
   const [category, setCategory] = useState('Todos');
   const activeItems = backupItems || items;
   useEffect(() => setState(createChecklistState(activeItems)), [activeItems]);
+  useEffect(() => {
+    if (!activeItems.length) return;
+    import('../lib/firestore-writes.js').then(({ saveChecklistSnapshot }) => saveChecklistSnapshot({ validatedIds: state.validatedIds, itemIds: state.itemIds }, dateKey)).catch(() => {});
+  }, [dateKey, state, activeItems]);
   const filtered = useMemo(() => category === 'Todos' ? activeItems : activeItems.filter(item => item.setor === category), [category, activeItems]);
   const visibleValidated = filtered.filter(item => state.validatedIds.includes(item.id)).length;
   const allVisible = filtered.length > 0 && visibleValidated === filtered.length;

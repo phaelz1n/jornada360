@@ -6,7 +6,7 @@ function localItems(localBackup) {
 export async function buildDashboardData({ store, localBackup } = {}) {
   try {
     const remote = await store?.get?.('snapshots_dias/latest');
-    if (remote?.items?.length) return { items: remote.items, source: 'firebase' };
+    if (remote?.items?.length) return { items: remote.items, dateKey: remote.dateKey || 'latest', source: 'firebase' };
   } catch { /* fallback local is intentional while offline */ }
   return { items: localItems(localBackup), source: 'local' };
 }

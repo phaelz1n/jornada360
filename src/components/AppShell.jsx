@@ -39,7 +39,7 @@ export function AppShell({ user, dashboardData, onLogout }) {
         <section className="welcome-card"><div><span className="eyebrow">JORNADA360 / {activeSection.toUpperCase()}</span><h2>{section.title}</h2><p>{section.description} A lógica atual de processamento continua preservada durante a migração.</p></div><div className="welcome-orbit">∞</div></section>
         {activeSection === 'Início' && <section className="status-grid"><article onClick={() => setActiveSection('Importação')}><span className="status-icon blue">↥</span><div><strong>Importação</strong><p>Planilhas do dia e fontes operacionais</p></div><span className="arrow">→</span></article><article onClick={() => setActiveSection('Checklist')}><span className="status-icon green">✓</span><div><strong>Checklist</strong><p>Validações e pendências da jornada</p></div><span className="arrow">→</span></article><article onClick={() => setActiveSection('Relatórios')}><span className="status-icon orange">▥</span><div><strong>Relatórios</strong><p>HE.1, HE.2, HE.3, inter e intra</p></div><span className="arrow">→</span></article></section>}
         {activeSection === 'Importação' && <ImportacaoPanel onProcess={handleImportComplete} />}
-        {activeSection === 'Checklist' && <ChecklistPanel snapshotItems={dashboardData?.items} />}
+        {activeSection === 'Checklist' && <ChecklistPanel snapshotItems={dashboardData?.items} dateKey={dashboardData?.dateKey || 'latest'} />}
         {activeSection === 'Processamento' && <ProcessingPanel items={dashboardData?.items} />}
         {activeSection === 'Relatórios' && <ReportsPanel items={dashboardData?.items} />}
         {activeSection === 'Cadastros' && <RegistersPanel items={dashboardData?.items} />}
