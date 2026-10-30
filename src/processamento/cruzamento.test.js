@@ -25,3 +25,12 @@ test('anexa a análise das paradas do rastreador ao cruzamento', () => {
   assert.equal(row.paradasRastreador[0].status, 'confirmada');
   assert.equal(row.paradasRastreador[0].linha, 'Droga Raia');
 });
+
+test('usa a coluna EXTRA individual do horário padrão', () => {
+  const [row] = crossSources({
+    pointRows: [{ motorista: 'Ana', he1min: 120, he2min: 60, he3min: 0 }],
+    standardRows: [{ motorista: 'Ana', extraNormalPadrao: 120, horarios: ['08:00:00'] }]
+  });
+  assert.equal(row.padraoCadastradoMin, 120);
+  assert.equal(row.metaDiaMin, 120);
+});
