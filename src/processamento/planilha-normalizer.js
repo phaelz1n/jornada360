@@ -43,6 +43,14 @@ export function extractPointRows(rows = []) {
   })).filter(row => row.motorista);
 }
 
+export function extractReportDate(rows = []) {
+  const text = rows.flat().map(value => String(value ?? '')).join(' ');
+  const iso = text.match(/\b(20\d{2})[-\/](\d{2})[-\/](\d{2})\b/);
+  if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
+  const brazilian = text.match(/\b(\d{2})[-\/](\d{2})[-\/](20\d{2})\b/);
+  return brazilian ? `${brazilian[3]}-${brazilian[2]}-${brazilian[1]}` : '';
+}
+
 export function extractStandardRows(rows = []) {
   const headerIndex = rows.findIndex(row => row.some(cell => normalizeHeader(cell) === 'nome') && row.some(cell => normalizeHeader(cell).includes('extra')));
   if (headerIndex < 0) return [];

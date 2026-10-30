@@ -7,7 +7,7 @@ import { ChecklistPanel } from '../checklist/ChecklistPanel.jsx';
 import { buildImportRecord } from '../dados/import-record.js';
 import { MigrationPanel } from '../dados/MigrationPanel.jsx';
 import { ProcessingPanel, ReportsPanel, RegistersPanel } from '../modules/OperationalModules.jsx';
-import { extractPointRows, extractStandardRows } from '../processamento/planilha-normalizer.js';
+import { extractPointRows, extractReportDate, extractStandardRows } from '../processamento/planilha-normalizer.js';
 import { prepareProcessedDay } from '../processamento/processamento-model.js';
 import { crossSources } from '../processamento/cruzamento.js';
 import { normalizeTrackerRows } from '../importacao/rastreador-normalizer.js';
@@ -60,7 +60,7 @@ export function AppShell({ user, dashboardData, onLogout }) {
 
   async function handleImportComplete(payload) {
     const pointRows = extractPointRows(payload.rowData?.espelhoHoje || []);
-    const dateKey = payload.dateKey || new Date().toISOString().slice(0, 10);
+    const dateKey = extractReportDate(payload.rowData?.espelhoHoje || []) || payload.dateKey || new Date().toISOString().slice(0, 10);
     const items = crossSources({ pointRows: pointRows.map(row => ({ ...row, dateKey })), scaleRows: payload.rowData?.escala?.slice(1).map(row => ({ motorista: row?.[0], horario: row?.[1], linha: row?.[2], dados: row })) || [], trackerRows: normalizeTrackerRows(payload.rowData?.rastreador || []), standardRows: extractStandardRows(payload.rowData?.horarioPadrao || []) });
     const processedDay = prepareProcessedDay({ dateKey, items });
     const record = buildImportRecord(payload);
