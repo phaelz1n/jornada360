@@ -22,3 +22,10 @@ test('preserva HE.1, HE.2 e HE.3 quando vieram separados da planilha', () => {
   assert.equal(result.items[0].he2min, 131);
   assert.equal(result.items[0].he3min, 0);
 });
+test('salva indicadores calculados no snapshot do dia', () => {
+  const result = prepareProcessedDay({ dateKey: '2026-10-27', items: [{ motorista: 'Ana', heBucketsExplicit: true, he1min: 60, he2min: 30, padraoCadastradoMin: 60 }] });
+  assert.equal(result.summary.totalHEmin, 90);
+  assert.equal(result.summary.metaDiaMin, 60);
+  assert.equal(result.summary.heDentroPadraoMin, 60);
+  assert.equal(result.summary.heAcimaPadraoMin, 30);
+});

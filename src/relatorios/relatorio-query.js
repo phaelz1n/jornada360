@@ -81,7 +81,10 @@ function buildResult(items, days, forcedMetaDiaMin = null) {
 export function consultarDia(snapshots = [], dateKey, filters = {}) {
   const snapshot = snapshots.find(item => item?.dateKey === dateKey);
   const items = applyFilters((snapshot?.items || []).map(item => ({ ...item, dateKey })), filters);
-  return buildResult(items, snapshot ? 1 : 0, filters.metaDiaMin);
+  const result = buildResult(items, snapshot ? 1 : 0, filters.metaDiaMin);
+  const hasFilters = Object.values(filters).some(value => value && value !== 'Todos');
+  if (snapshot?.summary && !hasFilters) result.summary = { ...result.summary, ...snapshot.summary };
+  return result;
 }
 
 export function consultarPeriodo(snapshots = [], competencia, filters = {}) {
