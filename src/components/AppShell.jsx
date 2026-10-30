@@ -53,8 +53,8 @@ export function AppShell({ user, dashboardData, onLogout }) {
         const ordered = snapshots.filter(item => item.dateKey).sort((a, b) => String(a.dateKey).localeCompare(String(b.dateKey)));
         const latest = ordered.at(-1);
         if (latest) setLiveData(current => ({ ...current, items: latest.items || [], dateKey: latest.dateKey, snapshots: ordered, source: 'firebase' }));
-      });
-      unsubscribeEvents = firestoreStore.subscribe('ocorrencias', setEventos);
+      }, () => {});
+      unsubscribeEvents = firestoreStore.subscribe('ocorrencias', setEventos, () => setEventos([]));
     }).catch(() => {});
     return () => { unsubscribe(); unsubscribeEvents(); };
   }, []);

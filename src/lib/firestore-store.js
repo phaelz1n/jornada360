@@ -12,7 +12,7 @@ export const firestoreStore = Object.freeze({
     const snapshot = await getDocs(collection(db, path));
     return snapshot.docs.map(item => ({ id: item.id, ...item.data() }));
   },
-  subscribe(path, listener) {
-    return onSnapshot(collection(db, path), snapshot => listener(snapshot.docs.map(item => ({ id: item.id, ...item.data() }))));
+  subscribe(path, listener, onError = () => {}) {
+    return onSnapshot(collection(db, path), snapshot => listener(snapshot.docs.map(item => ({ id: item.id, ...item.data() }))), onError);
   }
 });
