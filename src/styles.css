@@ -88,6 +88,7 @@ button, input { font: inherit; }
 .report-mode { display: flex; gap: 8px; margin: 18px 0 12px; }
 .import-date { display: flex; align-items: center; gap: 12px; margin: 16px 0; color: #315b86; font-weight: 700; }
 .import-date input { border: 1px solid #d9e2ef; border-radius: 8px; padding: 9px 12px; color: #183b5b; background: #fff; }
+.available-report-days { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 12px 0 16px; color: #72869e; font-size: 12px; }.available-report-days button { border: 1px solid #d8e3ef; background: #f2f4f7; color: #8a98a8; border-radius: 999px; padding: 6px 9px; cursor: pointer; }.available-report-days button.active, .available-report-days button:hover { border-color: #2d679b; background: #2d679b; color: white; }
 .report-mode button { border: 1px solid #d9e2ef; border-radius: 999px; background: #fff; color: #315b86; padding: 8px 16px; cursor: pointer; font-weight: 700; }
 .report-mode button.active { background: #24639a; color: #fff; border-color: #24639a; }
 .daily-summary-grid { display: grid; grid-template-columns: repeat(5, minmax(130px, 1fr)); gap: 12px; margin: 18px 0; }
