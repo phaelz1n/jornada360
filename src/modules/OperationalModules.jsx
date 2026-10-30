@@ -10,9 +10,18 @@ export function ProcessingPanel({ items = [] }) {
 }
 
 function AvailableReportDays({ snapshots, selected, onSelect }) {
-  const dates = snapshots.map(snapshot => snapshot.dateKey).filter(Boolean).sort();
+  const dates = [...new Set(snapshots.map(snapshot => snapshot.dateKey).filter(Boolean))].sort();
   if (!dates.length) return null;
-  return <div className="available-report-days" aria-label="Dias com relatório"><span>Dias disponíveis:</span>{dates.map(date => <button key={date} type="button" className={date === selected ? 'active' : ''} onClick={() => onSelect(date)}>{date.split('-').reverse().join('/')}</button>)}</div>;
+  const selectedDate = new Date(`${selected || dates.at(-1)}T12:00:00`);
+  const [month, setMonth] = useState(selectedDate.getMonth());
+  const [year, setYear] = useState(selectedDate.getFullYear());
+  const available = new Set(dates);
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const cells = [...Array(firstDay).fill(null), ...Array.from({ length: daysInMonth }, (_, index) => index + 1)];
+  function moveMonth(amount) { const next = new Date(year, month + amount, 1); setMonth(next.getMonth()); setYear(next.getFullYear()); }
+  const label = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' }).format(new Date(year, month, 1));
+  return <div className="report-calendar" aria-label="Calendário de dias com relatório"><div className="report-calendar-head"><strong>{label}</strong><div><button type="button" aria-label="Mês anterior" onClick={() => moveMonth(-1)}>‹</button><button type="button" aria-label="Próximo mês" onClick={() => moveMonth(1)}>›</button></div></div><div className="report-calendar-week">{['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((day, index) => <span key={`${day}-${index}`}>{day}</span>)}</div><div className="report-calendar-grid">{cells.map((day, index) => { if (!day) return <span className="empty" key={`empty-${index}`} />; const date = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`; const hasReport = available.has(date); return <button key={date} type="button" disabled={!hasReport} className={`${date === selected ? 'selected' : ''} ${hasReport ? 'available' : 'unavailable'}`} onClick={() => onSelect(date)}>{day}</button>; })}</div><small><i className="calendar-dot available-dot" /> com relatório <i className="calendar-dot unavailable-dot" /> sem relatório</small></div>;
 }
 
 function ReportsPanelBody({ items = [], snapshots = [], initialDate }) {
