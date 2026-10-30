@@ -75,8 +75,17 @@ export function crossSources({ pointRows = [], scaleRows = [], trackerRows = [],
     const rawTrackerRow = Array.isArray(trackerMatch) ? trackerMatch[0] : trackerMatch;
     const overnight = isOvernightJourney(point, scaleRows);
     const allowedDates = overnight && point.dateKey ? new Set([point.dateKey, nextDate(point.dateKey)]) : point.dateKey ? new Set([point.dateKey]) : null;
+    const punches = (point.batidas || []).map(minutes).filter(value => value != null);
+    const overnightEnd = overnight && punches.length ? punches[punches.length - 1] : null;
     const trackerRow = rawTrackerRow && allowedDates && Array.isArray(rawTrackerRow.paradas)
-      ? { ...rawTrackerRow, paradas: rawTrackerRow.paradas.filter(stop => !stop.dataKey || allowedDates.has(stop.dataKey)) }
+      ? { ...rawTrackerRow, paradas: rawTrackerRow.paradas.filter(stop => {
+        if (!stop.dataKey || !allowedDates.has(stop.dataKey)) return false;
+        if (overnight && stop.dataKey === nextDate(point.dateKey) && overnightEnd != null) {
+          const stopMinute = minutes(stop.horario);
+          return stopMinute == null || stopMinute <= overnightEnd + 30;
+        }
+        return true;
+      }) }
       : rawTrackerRow;
     const standardMatch = findDriver(standard, key);
     const standardRow = Array.isArray(standardMatch) ? standardMatch[0] : standardMatch;
