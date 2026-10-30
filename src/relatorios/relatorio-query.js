@@ -49,6 +49,19 @@ function buildResult(items, days, forcedMetaDiaMin = null) {
   }, 0);
   const driversWithHE = new Set(normalized.filter(item => item.he1min + item.he2min + item.he3min > 0).map(item => normalizeDriverName(item.motorista)));
   const driversWithoutStandard = new Set(normalized.filter(item => item.he1min + item.he2min + item.he3min > 0 && metaIndividual(item) == null).map(item => normalizeDriverName(item.motorista)));
+  const occurrences = normalized.map(item => item.he1min + item.he2min + item.he3min).filter(value => value > 0).sort((a, b) => a - b);
+  const mediaPorOcorrenciaMin = occurrences.length ? Math.round(occurrences.reduce((sum, value) => sum + value, 0) / occurrences.length) : 0;
+  const bySector = {};
+  normalized.forEach(item => {
+    const sector = item.setorAtual || 'Sem setor';
+    const row = bySector[sector] || { registros: 0, totalHEmin: 0, dentroPadraoMin: 0, acimaPadraoMin: 0 };
+    const he = item.he1min + item.he2min + item.he3min;
+    row.registros += 1;
+    row.totalHEmin += he;
+    row.dentroPadraoMin += Math.min(he, Math.max(0, metaIndividual(item) ?? 0));
+    row.acimaPadraoMin += metaIndividual(item) == null ? 0 : Math.max(he - Math.max(0, metaIndividual(item)), 0);
+    bySector[sector] = row;
+  });
   const names = new Map();
   normalized.forEach(item => {
     const key = normalizeDriverName(item.motorista);
@@ -62,7 +75,7 @@ function buildResult(items, days, forcedMetaDiaMin = null) {
     current.itens.push(item);
     names.set(key, current);
   });
-  return { items: normalized, summary: { ...summary, colaboradores: names.size, totalHEmin, metaDiaMin, excedenteVsMetaMin: totalHEmin - metaDiaMin, heDentroPadraoMin, heAcimaPadraoMin, motoristasComHE: driversWithHE.size, motoristasSemPadrao: driversWithoutStandard.size }, porMotorista: [...names.values()], porSetor: summary.porSetor, diasProcessados: days };
+  return { items: normalized, summary: { ...summary, registros: normalized.length, colaboradores: names.size, totalHEmin, metaDiaMin, excedenteVsMetaMin: totalHEmin - metaDiaMin, heDentroPadraoMin, heAcimaPadraoMin, motoristasComHE: driversWithHE.size, motoristasSemPadrao: driversWithoutStandard.size, mediaPorOcorrenciaMin, maxPorOcorrenciaMin: occurrences.at(-1) || 0, porSetorDetalhado: bySector }, porMotorista: [...names.values()], porSetor: summary.porSetor, diasProcessados: days };
 }
 
 export function consultarDia(snapshots = [], dateKey, filters = {}) {
