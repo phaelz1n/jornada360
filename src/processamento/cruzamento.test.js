@@ -56,3 +56,11 @@ test('marca possível padrão incorreto após cinco dias consistentes', () => {
   });
   assert.equal(row.padraoSuspeito, true);
 });
+test('usa o dia seguinte do rastreador somente para jornada noturna', () => {
+  const [row] = crossSources({
+    pointRows: [{ motorista: 'Ana', dateKey: '2026-10-28', batidas: ['22:00', '02:00'], he1min: 30 }],
+    scaleRows: [{ motorista: 'Ana', horario: '22:00', linha: 'N1' }],
+    trackerRows: [{ motorista: 'Ana', paradas: [{ horario: '23:00', dataKey: '2026-10-28' }, { horario: '01:00', dataKey: '2026-10-29' }, { horario: '10:00', dataKey: '2026-10-29' }] }]
+  });
+  assert.deepEqual(row.paradasRastreador.map(stop => stop.dataKey), ['2026-10-28', '2026-10-29']);
+});

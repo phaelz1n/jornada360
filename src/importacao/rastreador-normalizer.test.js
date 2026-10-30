@@ -11,6 +11,7 @@ test('normaliza trajetos e paradas detalhadas por motorista', () => {
   assert.equal(row.paradas[0].horario, '16:51');
   assert.equal(row.paradas[0].duracaoMin, 8);
   assert.equal(row.paradas[0].local, 'Droga Raia');
+  assert.equal(row.paradas[0].dataKey, '2026-10-28');
 });
 
 test('herda motorista em linhas sem nome do mesmo veículo e marca a origem', () => {

@@ -13,6 +13,13 @@ function timeOnly(value) {
   return match?.[1] || '';
 }
 
+function dateOnly(value) {
+  const iso = clean(value).match(/(\d{4})[-\/](\d{2})[-\/](\d{2})/);
+  if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
+  const brazilian = clean(value).match(/(\d{2})[-\/](\d{2})[-\/](\d{4})/);
+  return brazilian ? `${brazilian[3]}-${brazilian[2]}-${brazilian[1]}` : '';
+}
+
 function number(value) {
   const parsed = Number(clean(value).replace(',', '.'));
   return Number.isFinite(parsed) ? parsed : 0;
@@ -44,7 +51,7 @@ export function normalizeTrackerRows(rows = []) {
     const partida = clean(row[columns.partida]);
     const parada = clean(row[columns.parada]);
     if (partida || parada) group.trajetos.push({ partida, parada, link: clean(row[columns.link]) });
-    if (parada) group.paradas.push({ motoristaHerdado: inherited, horario: timeOnly(parada), duracaoMin: number(row[columns.duracao]), local: clean(row[columns.local]) || clean(row[columns.enderecoParada]), tipo: clean(row[columns.tipo]), endereco: clean(row[columns.enderecoParada]), dataHora: parada });
+    if (parada) group.paradas.push({ motoristaHerdado: inherited, horario: timeOnly(parada), dataKey: dateOnly(parada), duracaoMin: number(row[columns.duracao]), local: clean(row[columns.local]) || clean(row[columns.enderecoParada]), tipo: clean(row[columns.tipo]), endereco: clean(row[columns.enderecoParada]), dataHora: parada });
     group.sinais = group.trajetos.length;
     groups.set(key, group);
   });

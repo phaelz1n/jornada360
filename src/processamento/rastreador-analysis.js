@@ -12,6 +12,7 @@ function normalizeStops(rastreador = {}) {
   const source = rastreador.paradas || rastreador.stops || [];
   return source.map(stop => ({
     horario: stop.horario || stop.hora || stop.time || '',
+    dataKey: stop.dataKey || '',
     minuto: timeToMinutes(stop.horario || stop.hora || stop.time),
     duracaoMin: Number(stop.duracaoMin ?? stop.duracao ?? 0) || 0,
     local: stop.local || stop.endereco || stop.address || ''

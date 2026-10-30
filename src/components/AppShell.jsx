@@ -60,8 +60,9 @@ export function AppShell({ user, dashboardData, onLogout }) {
 
   async function handleImportComplete(payload) {
     const pointRows = extractPointRows(payload.rowData?.espelhoHoje || []);
-    const items = crossSources({ pointRows, scaleRows: payload.rowData?.escala?.slice(1).map(row => ({ motorista: row?.[0], horario: row?.[1], linha: row?.[2], dados: row })) || [], trackerRows: normalizeTrackerRows(payload.rowData?.rastreador || []), standardRows: extractStandardRows(payload.rowData?.horarioPadrao || []) });
-    const processedDay = prepareProcessedDay({ dateKey: payload.dateKey || new Date().toISOString().slice(0, 10), items });
+    const dateKey = payload.dateKey || new Date().toISOString().slice(0, 10);
+    const items = crossSources({ pointRows: pointRows.map(row => ({ ...row, dateKey })), scaleRows: payload.rowData?.escala?.slice(1).map(row => ({ motorista: row?.[0], horario: row?.[1], linha: row?.[2], dados: row })) || [], trackerRows: normalizeTrackerRows(payload.rowData?.rastreador || []), standardRows: extractStandardRows(payload.rowData?.horarioPadrao || []) });
+    const processedDay = prepareProcessedDay({ dateKey, items });
     const record = buildImportRecord(payload);
     try {
       const { saveImportRecord, saveProcessedDay } = await import('../lib/firestore-writes.js');

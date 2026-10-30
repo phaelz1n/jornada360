@@ -33,6 +33,22 @@ function minutes(value) {
   return match ? Number(match[1]) * 60 + Number(match[2]) : null;
 }
 
+function nextDate(dateKey) {
+  const date = new Date(`${dateKey}T12:00:00`);
+  date.setDate(date.getDate() + 1);
+  return date.toISOString().slice(0, 10);
+}
+
+function isOvernightJourney(point = {}, escala = []) {
+  const punches = (point.batidas || []).map(minutes).filter(value => value != null);
+  if (punches.some((value, index) => index > 0 && value < punches[index - 1] - 60)) return true;
+  return escala.some(row => {
+    const start = minutes(row.horario || row.inicio || row.horarioInicio);
+    const end = minutes(row.fim || row.horarioFim);
+    return start != null && end != null && end < start;
+  });
+}
+
 function buildEvidence({ batidas = [], paradaAnalysis, totalHE = 0, metaDiaMin = 0 }) {
   const stops = paradaAnalysis?.paradas || [];
   const punches = batidas.map(minutes).filter(value => value != null);
@@ -56,7 +72,12 @@ export function crossSources({ pointRows = [], scaleRows = [], trackerRows = [],
     const key = normalizeDriverName(point.motorista);
     const scaleRows = findDriver(scale, key) || [];
     const trackerMatch = findDriver(tracker, key);
-    const trackerRow = Array.isArray(trackerMatch) ? trackerMatch[0] : trackerMatch;
+    const rawTrackerRow = Array.isArray(trackerMatch) ? trackerMatch[0] : trackerMatch;
+    const overnight = isOvernightJourney(point, scaleRows);
+    const allowedDates = overnight && point.dateKey ? new Set([point.dateKey, nextDate(point.dateKey)]) : point.dateKey ? new Set([point.dateKey]) : null;
+    const trackerRow = rawTrackerRow && allowedDates && Array.isArray(rawTrackerRow.paradas)
+      ? { ...rawTrackerRow, paradas: rawTrackerRow.paradas.filter(stop => !stop.dataKey || allowedDates.has(stop.dataKey)) }
+      : rawTrackerRow;
     const standardMatch = findDriver(standard, key);
     const standardRow = Array.isArray(standardMatch) ? standardMatch[0] : standardMatch;
     const paradaAnalysis = analisarParadasRastreador({ batidas: point.batidas || [], escala: scaleRows, rastreador: trackerRow || {} });
@@ -74,7 +95,8 @@ export function crossSources({ pointRows = [], scaleRows = [], trackerRows = [],
         local: stop.local,
         tipo: stop.tipo,
         endereco: stop.endereco,
-        motoristaHerdado: stop.motoristaHerdado
+        motoristaHerdado: stop.motoristaHerdado,
+        dataKey: stop.dataKey
       }))
     } : null;
     const metaDiaMin = Number(standardRow?.extraNormalPadrao ?? 0) || 0;
