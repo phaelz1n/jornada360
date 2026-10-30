@@ -35,7 +35,7 @@ function buildResult(items, days, forcedMetaDiaMin = null) {
   const summary = summarizeDay(normalized);
   const totalHEmin = normalized.reduce((total, item) => total + item.he1min + item.he2min + item.he3min, 0);
   const metaDiaMin = forcedMetaDiaMin == null ? normalized.reduce((total, item) => total + (minutes(item.metaDiaMin) || 0), 0) : (minutes(forcedMetaDiaMin) || 0);
-  const metaIndividual = item => minutes(item.padraoCadastradoMin ?? item.padraoMetaMin ?? item.metaPadraoMin ?? item.padraoCadastrado ?? item.extraNormalPadrao);
+  const metaIndividual = item => minutes(item.padraoCadastradoMin ?? item.padraoMin ?? item.padraoMetaMin ?? item.metaPadraoMin ?? item.padraoCadastrado ?? item.extraNormalPadrao);
   const standardItems = normalized.filter(item => metaIndividual(item) != null);
   const heDentroPadraoMin = standardItems.reduce((total, item) => {
     const he = item.he1min + item.he2min + item.he3min;

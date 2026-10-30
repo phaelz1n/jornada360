@@ -41,7 +41,8 @@ export function prepareProcessedDay({ dateKey, items = [], source = 'importacao'
   const normalizedItems = items.map(normalizeExtraBuckets);
   const summary = summarizeDay(normalizedItems);
   const totalHEmin = normalizedItems.reduce((sum, item) => sum + Number(item.he1min || 0) + Number(item.he2min || 0) + Number(item.he3min || 0), 0);
-  const metaDiaMin = normalizedItems.reduce((sum, item) => sum + Math.max(0, Number(item.padraoCadastradoMin ?? item.metaDiaMin ?? 0) || 0), 0);
-  const heDentroPadraoMin = normalizedItems.reduce((sum, item) => { const he = Number(item.he1min || 0) + Number(item.he2min || 0) + Number(item.he3min || 0); return sum + Math.min(he, Math.max(0, Number(item.padraoCadastradoMin ?? item.metaDiaMin ?? 0) || 0)); }, 0);
+  const standardFor = item => Number(item.padraoCadastradoMin ?? item.padraoMin ?? item.metaDiaMin ?? item.extraNormalPadrao ?? 0) || 0;
+  const metaDiaMin = normalizedItems.reduce((sum, item) => sum + Math.max(0, standardFor(item)), 0);
+  const heDentroPadraoMin = normalizedItems.reduce((sum, item) => { const he = Number(item.he1min || 0) + Number(item.he2min || 0) + Number(item.he3min || 0); return sum + Math.min(he, Math.max(0, standardFor(item))); }, 0);
   return { dateKey, source, updatedAt: new Date().toISOString(), summary: { ...summary, totalHEmin, metaDiaMin, excedenteVsMetaMin: totalHEmin - metaDiaMin, heDentroPadraoMin, heAcimaPadraoMin: Math.max(totalHEmin - heDentroPadraoMin, 0), registros: normalizedItems.length }, items: normalizedItems.map(item => ({ ...item, setorAtual: classifyDriverSector(item) })) };
 }
