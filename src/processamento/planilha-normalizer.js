@@ -16,8 +16,12 @@ function parseMinutes(value) {
   if (typeof value === 'number') return Math.round(value * 24 * 60);
   const text = String(value || '').trim();
   if (!text) return 0;
-  const match = text.match(/^(\d+):([0-5]\d)(?::[0-5]\d)?$/);
-  return match ? Number(match[1]) * 60 + Number(match[2]) : Number(text.replace(',', '.')) || 0;
+  const match = text.match(/^(-?)(\d+):([0-5]\d)(?::[0-5]\d)?$/);
+  if (match) {
+    const minutes = Number(match[2]) * 60 + Number(match[3]);
+    return match[1] ? -minutes : minutes;
+  }
+  return Number(text.replace(',', '.')) || 0;
 }
 
 export function detectColumns(header = []) {
