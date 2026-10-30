@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { IMPORT_SOURCES, createImportState, setSourceFile } from './importacao-model.js';
 import { readWorkbookRows } from './xlsx-reader.js';
 
@@ -13,6 +13,11 @@ export function ImportacaoPanel({ onProcess }) {
   const [message, setMessage] = useState('');
   const [rowData, setRowData] = useState({});
   const selectedCount = useMemo(() => Object.values(state.files).filter(Boolean).length, [state.files]);
+  useEffect(() => {
+    const onSyncError = event => setMessage(`Falha ao salvar no Firebase: ${event.detail?.message || 'verifique as permissões.'}`);
+    window.addEventListener('jornada360:sync-error', onSyncError);
+    return () => window.removeEventListener('jornada360:sync-error', onSyncError);
+  }, []);
 
   async function chooseFile(sourceId, event) {
     const file = event.target.files?.[0] || null;

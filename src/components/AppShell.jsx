@@ -71,6 +71,7 @@ export function AppShell({ user, dashboardData, onLogout }) {
       window.dispatchEvent(new CustomEvent('jornada360:data-updated', { detail: processedDay }));
     } catch (error) {
       console.warn('Não foi possível salvar o histórico de importação:', error);
+      window.dispatchEvent(new CustomEvent('jornada360:sync-error', { detail: { message: error?.message || 'Não foi possível sincronizar com o Firebase.' } }));
     }
     setActiveSection('Processamento');
   }

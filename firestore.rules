@@ -23,6 +23,7 @@ service cloud.firestore {
     match /snapshots_dias/{docId} { allow read, write: if isAuthenticated(); }
     match /pendencias/{pendenciaId} { allow read, write: if isAuthenticated(); }
     match /historico_auditoria/{entryId} { allow read, write: if isAuthenticated(); }
+    match /ocorrencias/{id} { allow read, write: if isAuthenticated(); }
   }
 }
 
