@@ -10,7 +10,7 @@ function evidenceState(item) {
 }
 
 export function ChecklistPanel({ snapshotItems, snapshots = [], dateKey = 'latest' }) {
-  const [selectedDate, setSelectedDate] = useState(dateKey);
+  const selectedDate = dateKey;
   const selectedSnapshot = snapshots.find(snapshot => snapshot.dateKey === selectedDate);
   const sourceItems = selectedSnapshot?.items || snapshotItems || [];
   const items = useMemo(() => snapshotItemsToChecklist(sourceItems), [sourceItems]);
@@ -21,7 +21,7 @@ export function ChecklistPanel({ snapshotItems, snapshots = [], dateKey = 'lates
   const [loadedRemote, setLoadedRemote] = useState(false);
   useEffect(() => { setState(createChecklistState(items)); }, [selectedDate, items]);
   useEffect(() => { let active = true; import('../lib/firestore-store.js').then(({ firestoreStore }) => firestoreStore.get(`checklist/${selectedDate}`)).then(saved => { if (!active || !saved) return; setState(current => ({ ...current, validatedIds: saved.validatedIds || [] })); setDetails(saved.details || saved.caseState || {}); }).catch(() => {}).finally(() => { if (active) setLoadedRemote(true); }); return () => { active = false; }; }, [selectedDate]);
-  useEffect(() => { if (!items.length || !loadedRemote) return; import('../lib/firestore-writes.js').then(({ saveChecklistSnapshot }) => saveChecklistSnapshot({ validatedIds: state.validatedIds, itemIds: state.itemIds, details }, selectedDate)).catch(() => {}); }, [selectedDate, state, items, details]);
+  useEffect(() => { if (!items.length || !loadedRemote) return undefined; const timer = setTimeout(() => { import('../lib/firestore-writes.js').then(({ saveChecklistSnapshot }) => saveChecklistSnapshot({ validatedIds: state.validatedIds, itemIds: state.itemIds, details }, selectedDate)).catch(error => window.dispatchEvent(new CustomEvent('jornada360:sync-error', { detail: { message: error?.message || 'Não foi possível salvar o checklist.' } }))); }, 350); return () => clearTimeout(timer); }, [selectedDate, state, items, details]);
   const filtered = useMemo(() => category === 'Todos' ? items : items.filter(item => item.setor === category), [category, items]);
   const allVisible = filtered.length > 0 && filtered.every(item => state.validatedIds.includes(item.id));
   function updateDetail(id, key, value) { setDetails(current => ({ ...current, [id]: { ...current[id], [key]: value } })); }

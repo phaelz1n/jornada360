@@ -2,7 +2,6 @@ import blueLogo from '../assets/logo-transpinho-blue.png';
 import { useEffect, useState } from 'react';
 import { NAVIGATION_GROUPS } from './navigation.js';
 import { SECTION_CONTENT } from './sections.js';
-import { LegacyOperations } from '../legacy/LegacyOperations.jsx';
 import { ImportacaoPanel } from '../importacao/ImportacaoPanel.jsx';
 import { ChecklistPanel } from '../checklist/ChecklistPanel.jsx';
 import { buildImportRecord } from '../dados/import-record.js';

@@ -9,8 +9,8 @@ export function InicioDashboard({ snapshots = [], eventos = [] }) {
   const [mode, setMode] = useState('periodo');
   const [selectedDate, setSelectedDate] = useState(latest?.dateKey || '');
   const [selectedPeriod, setSelectedPeriod] = useState('');
-  const dates = snapshots.map(snapshot => snapshot.dateKey).filter(Boolean).sort();
-  const periods = [...new Map(dates.map(date => { const period = competenciaParaData(date); return [period.chave, period]; })).values()];
+  const dates = useMemo(() => snapshots.map(snapshot => snapshot.dateKey).filter(Boolean).sort(), [snapshots]);
+  const periods = useMemo(() => [...new Map(dates.map(date => { const period = competenciaParaData(date); return [period.chave, period]; })).values()], [dates]);
   const period = periods.find(item => item.chave === selectedPeriod) || (selectedDate ? competenciaParaData(selectedDate) : null);
   const report = useMemo(() => {
     if (mode === 'dia') return consultarDia(snapshots, selectedDate);
