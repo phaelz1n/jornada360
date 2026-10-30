@@ -3,6 +3,11 @@ function timeToMinutes(value) {
   return match ? Number(match[1]) * 60 + Number(match[2]) : null;
 }
 
+function scaleTimes(value) {
+  const matches = String(value ?? '').match(/\d{1,2}:\d{2}/g) || [];
+  return { inicio: timeToMinutes(matches[0]), fim: timeToMinutes(matches[1] || matches[0]) };
+}
+
 function normalizeStops(rastreador = {}) {
   const source = rastreador.paradas || rastreador.stops || [];
   return source.map(stop => ({
@@ -16,8 +21,9 @@ function normalizeStops(rastreador = {}) {
 function normalizeScale(escala = []) {
   return escala.map(row => ({
     ...row,
-    inicioMin: timeToMinutes(row.inicio || row.horarioInicio || row.horario),
-    fimMin: timeToMinutes(row.fim || row.horarioFim || row.horario)
+    ...scaleTimes(row.horario),
+    inicioMin: timeToMinutes(row.inicio || row.horarioInicio) ?? scaleTimes(row.horario).inicio,
+    fimMin: timeToMinutes(row.fim || row.horarioFim) ?? scaleTimes(row.horario).fim
   })).filter(row => row.inicioMin != null);
 }
 

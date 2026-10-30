@@ -45,5 +45,6 @@ export function extractStandardRows(rows = []) {
   const header = rows[headerIndex].map(normalizeHeader);
   const nameColumn = header.findIndex(value => value === 'nome');
   const extraColumn = header.findIndex(value => value.includes('extra'));
-  return rows.slice(headerIndex + 1).map(row => ({ motorista: String(row[nameColumn] || '').trim(), extraNormalPadrao: parseMinutes(row[extraColumn]) })).filter(row => row.motorista);
+  const scheduleColumns = header.map((value, index) => value.startsWith('horario') ? index : -1).filter(index => index >= 0);
+  return rows.slice(headerIndex + 1).map(row => ({ motorista: String(row[nameColumn] || '').trim(), extraNormalPadrao: parseMinutes(row[extraColumn]), horarios: scheduleColumns.map(index => String(row[index] || '').trim()).filter(Boolean) })).filter(row => row.motorista);
 }

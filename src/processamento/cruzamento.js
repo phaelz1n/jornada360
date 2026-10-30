@@ -5,7 +5,7 @@ function indexByDriver(rows = []) {
   const map = new Map();
   for (const row of rows) {
     const name = normalizeDriverName(row.motorista || row.nome || row.colaborador);
-    if (name) map.set(name, row);
+    if (name) map.set(name, [...(map.get(name) || []), row]);
   }
   return map;
 }
@@ -19,16 +19,30 @@ function findDriver(map, name) {
   return scored.length === 1 || (scored[0] && scored[0].score > scored[1]?.score) ? scored[0]?.row : undefined;
 }
 
+function timeOf(value) { const match = String(value || '').match(/\d{1,2}:\d{2}/); return match ? Number(match[0].split(':')[0]) * 60 + Number(match[0].split(':')[1]) : null; }
+function lineMatchesStandard(scaleRow, standardRow) {
+  const scaleTime = timeOf(scaleRow?.horario || scaleRow?.inicio || scaleRow?.horarioInicio);
+  return scaleTime != null && (standardRow?.horarios || []).some(value => {
+    const standardTime = timeOf(value);
+    return standardTime != null && Math.abs(standardTime - scaleTime) <= 15;
+  });
+}
+
 export function crossSources({ pointRows = [], scaleRows = [], trackerRows = [], standardRows = [] } = {}) {
   const scale = indexByDriver(scaleRows);
   const tracker = indexByDriver(trackerRows);
   const standard = indexByDriver(standardRows);
   return pointRows.map(point => {
     const key = normalizeDriverName(point.motorista);
-    const scaleRow = findDriver(scale, key);
-    const trackerRow = findDriver(tracker, key);
-    const standardRow = findDriver(standard, key);
-    const paradaAnalysis = analisarParadasRastreador({ batidas: point.batidas || [], escala: scaleRow ? [scaleRow] : [], rastreador: trackerRow || {} });
+    const scaleRows = findDriver(scale, key) || [];
+    const trackerMatch = findDriver(tracker, key);
+    const trackerRow = Array.isArray(trackerMatch) ? trackerMatch[0] : trackerMatch;
+    const standardMatch = findDriver(standard, key);
+    const standardRow = Array.isArray(standardMatch) ? standardMatch[0] : standardMatch;
+    const paradaAnalysis = analisarParadasRastreador({ batidas: point.batidas || [], escala: scaleRows, rastreador: trackerRow || {} });
+    const matchedScale = paradaAnalysis.paradas.find(stop => stop.status === 'confirmada')?.linha
+      ? scaleRows.find(row => String(row.linha || row.nome || '') === paradaAnalysis.paradas.find(stop => stop.status === 'confirmada').linha)
+      : scaleRows[0];
     const rastreioCompacto = trackerRow ? {
       motorista: trackerRow.motorista,
       placa: trackerRow.placa,
@@ -46,8 +60,10 @@ export function crossSources({ pointRows = [], scaleRows = [], trackerRows = [],
     return {
       ...point,
       ...(standardRow ? { padraoCadastradoMin: standardRow.extraNormalPadrao, metaDiaMin: standardRow.extraNormalPadrao } : {}),
-      escalaEncontrada: Boolean(scaleRow),
-      escala: scaleRow || null,
+      escalaEncontrada: scaleRows.length > 0,
+      escala: matchedScale || null,
+      linhasEscala: scaleRows,
+      linhaExtraCandidata: Boolean(trackerRow && scaleRows.length && standardRow && scaleRows.some(row => !lineMatchesStandard(row, standardRow))),
       rastreioEncontrado: Boolean(trackerRow),
       rastreio: rastreioCompacto,
       paradasRastreador: paradaAnalysis.paradas,
@@ -57,7 +73,7 @@ export function crossSources({ pointRows = [], scaleRows = [], trackerRows = [],
         possiveisTransitos: paradaAnalysis.possiveisTransitos,
         confirmadas: paradaAnalysis.confirmadas
       },
-      statusCruzamento: scaleRow && trackerRow ? 'completo' : scaleRow ? 'sem rastreador' : trackerRow ? 'sem escala' : 'sem correspondência',
+      statusCruzamento: scaleRows.length && trackerRow ? 'completo' : scaleRows.length ? 'sem rastreador' : trackerRow ? 'sem escala' : 'sem correspondência',
     };
   });
 }
