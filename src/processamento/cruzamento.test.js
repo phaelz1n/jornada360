@@ -34,3 +34,25 @@ test('usa a coluna EXTRA individual do horário padrão', () => {
   assert.equal(row.padraoCadastradoMin, 120);
   assert.equal(row.metaDiaMin, 120);
 });
+
+test('separa extra dentro e fora do padrão e informa evidência do rastreador', () => {
+  const [row] = crossSources({
+    pointRows: [{ motorista: 'Ademir Monteiro', totalHE: 30, he1min: 30, batidas: ['08:00', '12:30'] }],
+    standardRows: [{ motorista: 'Ademir Monteiro', extraNormalPadrao: 10, horarios: ['08:00'] }],
+    trackerRows: [{ colaborador: 'Ademir Monteiro', paradas: [{ horario: '12:20', duracaoMin: 20 }] }]
+  });
+  assert.equal(row.heDentroPadraoMin, 10);
+  assert.equal(row.heAcimaPadraoMin, 20);
+  assert.equal(row.evidenciaRastreador[0].status, 'confirmada');
+  assert.equal(row.rastreadorStatus, 'confirmado');
+});
+
+test('marca possível padrão incorreto após cinco dias consistentes', () => {
+  const [row] = crossSources({
+    pointRows: [{ motorista: 'Ademir Monteiro', totalHE: 30, he1min: 30 }],
+    standardRows: [{ motorista: 'Ademir Monteiro', extraNormalPadrao: 10 }],
+    trackerRows: [{ colaborador: 'Ademir Monteiro', paradas: [{ horario: '12:20', duracaoMin: 20 }] }],
+    patternHistory: { 'ADEMIR MONTEIRO': [30, 30, 30, 30, 30] }
+  });
+  assert.equal(row.padraoSuspeito, true);
+});

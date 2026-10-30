@@ -28,7 +28,27 @@ function lineMatchesStandard(scaleRow, standardRow) {
   });
 }
 
-export function crossSources({ pointRows = [], scaleRows = [], trackerRows = [], standardRows = [] } = {}) {
+function minutes(value) {
+  const match = String(value || '').match(/(\d{1,2}):(\d{2})/);
+  return match ? Number(match[1]) * 60 + Number(match[2]) : null;
+}
+
+function buildEvidence({ batidas = [], paradaAnalysis, totalHE = 0, metaDiaMin = 0 }) {
+  const stops = paradaAnalysis?.paradas || [];
+  const punches = batidas.map(minutes).filter(value => value != null);
+  const outside = Math.max(0, Number(totalHE) - Number(metaDiaMin));
+  const evidence = stops.map(stop => ({
+    horario: stop.horario,
+    diferencaMin: stop.diferencaMin,
+    status: stop.status === 'confirmada' || punches.some(punch => Math.abs(punch - minutes(stop.horario)) <= 15) ? 'confirmada' : 'sem-evidencia',
+    motivo: stop.motivo,
+    local: stop.local
+  }));
+  if (!evidence.length && outside > 0) evidence.push({ horario: '', diferencaMin: null, status: 'sem-evidencia', motivo: 'nenhuma-parada-proxima', local: '' });
+  return { evidence, outside };
+}
+
+export function crossSources({ pointRows = [], scaleRows = [], trackerRows = [], standardRows = [], patternHistory = {} } = {}) {
   const scale = indexByDriver(scaleRows);
   const tracker = indexByDriver(trackerRows);
   const standard = indexByDriver(standardRows);
@@ -57,9 +77,18 @@ export function crossSources({ pointRows = [], scaleRows = [], trackerRows = [],
         motoristaHerdado: stop.motoristaHerdado
       }))
     } : null;
+    const metaDiaMin = Number(standardRow?.extraNormalPadrao ?? 0) || 0;
+    const totalHE = Number(point.totalHE ?? point.he1min ?? point.excedenteMin ?? 0) || 0;
+    const trackerEvidence = buildEvidence({ batidas: point.batidas || [], paradaAnalysis, totalHE, metaDiaMin });
+    const history = patternHistory?.[key] || [];
+    const repeatedRealized = history.length >= 5 && history.slice(-5).every(value => Math.abs(Number(value) - totalHE) <= 5);
     return {
       ...point,
       ...(standardRow ? { padraoCadastradoMin: standardRow.extraNormalPadrao, metaDiaMin: standardRow.extraNormalPadrao } : {}),
+      ...(standardRow ? { heDentroPadraoMin: Math.min(totalHE, metaDiaMin), heAcimaPadraoMin: Math.max(0, totalHE - metaDiaMin) } : {}),
+      evidenciaRastreador: trackerEvidence.evidence,
+      rastreadorStatus: trackerEvidence.evidence.some(item => item.status === 'confirmada') ? 'confirmado' : trackerEvidence.evidence.length ? 'divergente' : 'sem-evidencia',
+      padraoSuspeito: repeatedRealized && standardRow && totalHE > metaDiaMin,
       escalaEncontrada: scaleRows.length > 0,
       escala: matchedScale || null,
       linhasEscala: scaleRows,

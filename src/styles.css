@@ -112,3 +112,16 @@ button, input { font: inherit; }
 .stop-badge.possivel-transito { background: #fff0d5; color: #9a681b; }
 .stop-badge.nova { background: #ffe1dc; color: #a33d32; }
 @media (max-width: 1050px) { .daily-summary-grid { grid-template-columns: repeat(2, minmax(140px, 1fr)); } }
+.checklist-expand { width: 100%; text-align: left; background: transparent; border: 0; }
+.checklist-chevron { color: #7d94ad; font-size: 18px; font-weight: 700; }
+.checklist-problem { border-left: 4px solid #d94c3d; }
+.checklist-attention { border-left: 4px solid #e0a52b; }
+.checklist-suspect { border-left: 4px solid #8c63c7; }
+.checklist-ok { border-left: 4px solid #20ae84; }
+.checklist-evidence { display: grid; gap: 8px; padding: 0 14px 14px 47px; }
+.evidence-summary { display: flex; flex-wrap: wrap; gap: 8px; color: #526b88; font-size: 11px; }
+.evidence-summary span, .evidence-row { background: #f4f7fb; border-radius: 7px; padding: 7px 9px; }
+.evidence-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; font-size: 11px; }
+.evidence-confirmada { color: #16866c; background: #e8f8f2; }
+.evidence-sem-evidencia { color: #b53d32; background: #fff0ee; }
+.pattern-alert { color: #6945a1; background: #f1eafd; border-radius: 7px; padding: 9px; font-size: 11px; font-weight: 700; }

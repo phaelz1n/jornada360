@@ -1,51 +1,33 @@
 import { useEffect, useMemo, useState } from 'react';
-import { createChecklistState, toggleAll, toggleOne } from './checklist-model.js';
+import { createChecklistState, toggleOne } from './checklist-model.js';
 import { snapshotItemsToChecklist } from './checklist-adapter.js';
-import { readBackupFile } from '../dados/backup-loader.js';
 
-const DEMO_ITEMS = snapshotItemsToChecklist([
-  { motorista: 'Cristiano Francisco Barreto', setor: 'Motoristas', status: 'ok', totalHE: 120 },
-  { motorista: 'Rogerio Rodrigues e Silva', setor: 'Motoristas', totalHE: 80 },
-  { motorista: 'Fernando Santos Barcelos', setor: 'Cobre férias', totalHE: 45 }
-]);
+function evidenceState(item) {
+  if (item.padraoSuspeito) return 'suspect';
+  if (item.rastreadorStatus === 'sem-evidencia') return 'problem';
+  if (item.rastreadorStatus === 'divergente') return 'attention';
+  return item.rastreadorStatus === 'confirmado' ? 'ok' : '';
+}
 
 export function ChecklistPanel({ snapshotItems, snapshots = [], dateKey = 'latest' }) {
   const [selectedDate, setSelectedDate] = useState(dateKey);
   const selectedSnapshot = snapshots.find(snapshot => snapshot.dateKey === selectedDate);
-  const sourceItems = selectedSnapshot?.items || snapshotItems || DEMO_ITEMS;
+  const sourceItems = selectedSnapshot?.items || snapshotItems || [];
   const items = useMemo(() => snapshotItemsToChecklist(sourceItems), [sourceItems]);
-  const [backupItems, setBackupItems] = useState(null);
-  const [state, setState] = useState(() => createChecklistState(snapshotItemsToChecklist(snapshotItems || DEMO_ITEMS)));
+  const [state, setState] = useState(() => createChecklistState(items));
   const [category, setCategory] = useState('Todos');
   const [details, setDetails] = useState({});
+  const [expanded, setExpanded] = useState({});
   const [loadedRemote, setLoadedRemote] = useState(false);
-  const activeItems = backupItems || items;
-  useEffect(() => { setBackupItems(null); setState(createChecklistState(activeItems)); }, [selectedDate, items]);
-  useEffect(() => {
-    let active = true;
-    import('../lib/firestore-store.js').then(({ firestoreStore }) => firestoreStore.get(`checklist/${selectedDate}`)).then(saved => {
-      if (!active || !saved) return;
-      setState(current => ({ ...current, validatedIds: saved.validatedIds || [] }));
-      setDetails(saved.details || saved.caseState || {});
-    }).catch(() => {}).finally(() => { if (active) setLoadedRemote(true); });
-    return () => { active = false; };
-  }, [selectedDate]);
-  useEffect(() => {
-    if (!activeItems.length || !loadedRemote) return;
-    import('../lib/firestore-writes.js').then(({ saveChecklistSnapshot }) => saveChecklistSnapshot({ validatedIds: state.validatedIds, itemIds: state.itemIds, details }, selectedDate)).catch(() => {});
-  }, [selectedDate, state, activeItems, details]);
-  const filtered = useMemo(() => category === 'Todos' ? activeItems : activeItems.filter(item => item.setor === category), [category, activeItems]);
-  const visibleValidated = filtered.filter(item => state.validatedIds.includes(item.id)).length;
-  const allVisible = filtered.length > 0 && visibleValidated === filtered.length;
-
-  async function loadBackup(event) {
-    const file = event.target.files?.[0];
-    if (file) setBackupItems(await readBackupFile(file));
-  }
-
+  useEffect(() => { setState(createChecklistState(items)); }, [selectedDate, items]);
+  useEffect(() => { let active = true; import('../lib/firestore-store.js').then(({ firestoreStore }) => firestoreStore.get(`checklist/${selectedDate}`)).then(saved => { if (!active || !saved) return; setState(current => ({ ...current, validatedIds: saved.validatedIds || [] })); setDetails(saved.details || saved.caseState || {}); }).catch(() => {}).finally(() => { if (active) setLoadedRemote(true); }); return () => { active = false; }; }, [selectedDate]);
+  useEffect(() => { if (!items.length || !loadedRemote) return; import('../lib/firestore-writes.js').then(({ saveChecklistSnapshot }) => saveChecklistSnapshot({ validatedIds: state.validatedIds, itemIds: state.itemIds, details }, selectedDate)).catch(() => {}); }, [selectedDate, state, items, details]);
+  const filtered = useMemo(() => category === 'Todos' ? items : items.filter(item => item.setor === category), [category, items]);
+  const allVisible = filtered.length > 0 && filtered.every(item => state.validatedIds.includes(item.id));
+  function updateDetail(id, key, value) { setDetails(current => ({ ...current, [id]: { ...current[id], [key]: value } })); }
   return <section className="checklist-panel">
-    <div className="checklist-heading"><div><span className="eyebrow">VALIDAÇÃO DO DIA</span><h2>Checklist da jornada</h2><p>Confirme os casos revisados. Você pode validar todos os motoristas visíveis de uma só vez.</p></div><span className="checklist-count">{state.validatedIds.length}/{items.length} validados</span></div>
-    <div className="checklist-toolbar"><select value={category} onChange={event => setCategory(event.target.value)} aria-label="Filtrar por categoria"><option>Todos</option><option>Motoristas</option><option>Cobre férias</option><option>Reserva</option><option>Folguista</option></select><button type="button" onClick={() => setState(current => ({ ...current, validatedIds: allVisible ? current.validatedIds.filter(id => !filtered.some(item => item.id === id)) : [...new Set([...current.validatedIds, ...filtered.map(item => item.id)])] }))}>{allVisible ? 'Desmarcar visíveis' : 'Validar todos visíveis'}</button><label className="backup-button">Carregar backup JSON<input type="file" accept=".json" onChange={loadBackup} /></label></div>
-    <div className="checklist-list">{filtered.map(item => { const checked = state.validatedIds.includes(item.id); const detail = details[item.id] || {}; const update = (key, value) => setDetails(current => ({ ...current, [item.id]: { ...current[item.id], [key]: value } })); return <div className={`checklist-card ${checked ? 'checked' : ''}`} key={item.id}><label className="checklist-row"><input type="checkbox" checked={checked} onChange={() => setState(current => toggleOne(current, item.id))} /><span className="fake-check">{checked ? '✓' : ''}</span><span className="checklist-person"><strong>{item.motorista}</strong><small>{item.setor} · {item.resumo}</small></span><span className={`check-status ${checked ? 'done' : ''}`}>{checked ? 'Validado' : item.status}</span></label><div className="checklist-details"><input value={detail.justificativa || ''} onChange={event => update('justificativa', event.target.value)} placeholder="Justificativa / observação" /><select value={detail.causa || ''} onChange={event => update('causa', event.target.value)}><option value="">Causa</option><option>Autorizado antecipadamente</option><option>Rastreador com defeito</option><option>Hábito de bater ponto errado</option><option>Ajuste de ponto</option></select><input value={detail.setor || item.setor} onChange={event => update('setor', event.target.value)} placeholder="Setor responsável" /><input value={detail.heCorrigida || ''} onChange={event => update('heCorrigida', event.target.value)} placeholder="HE corrigida (ex.: 00:30)" /></div></div>; })}</div>
+    <div className="checklist-heading"><div><span className="eyebrow">VALIDAÇÃO DO DIA</span><h2>Checklist da jornada</h2><p>Confirme os casos revisados. Clique no cartão para ver rastreio, escala e divergências.</p></div><span className="checklist-count">{state.validatedIds.length}/{items.length} validados</span></div>
+    <div className="checklist-toolbar"><select value={category} onChange={event => setCategory(event.target.value)} aria-label="Filtrar por categoria"><option>Todos</option><option>Motoristas</option><option>Cobre férias</option><option>Reserva</option><option>Folguista</option></select><button type="button" onClick={() => setState(current => ({ ...current, validatedIds: allVisible ? current.validatedIds.filter(id => !filtered.some(item => item.id === id)) : [...new Set([...current.validatedIds, ...filtered.map(item => item.id)])] }))}>{allVisible ? 'Desmarcar visíveis' : 'Validar todos visíveis'}</button><label className="backup-button">Carregar backup JSON<input type="file" accept=".json" onChange={async event => { const file = event.target.files?.[0]; if (file) { const { readBackupFile } = await import('../dados/backup-loader.js'); setState(createChecklistState(await readBackupFile(file))); } }} /></label></div>
+    <div className="checklist-list">{filtered.map(item => { const checked = state.validatedIds.includes(item.id); const detail = details[item.id] || {}; const open = expanded[item.id]; const tone = evidenceState(item); return <div className={`checklist-card ${checked ? 'checked' : ''} checklist-${tone}`} key={item.id}><button type="button" className="checklist-row checklist-expand" onClick={() => setExpanded(current => ({ ...current, [item.id]: !current[item.id] }))}><input type="checkbox" checked={checked} onChange={event => { event.stopPropagation(); setState(current => toggleOne(current, item.id)); }} onClick={event => event.stopPropagation()} /><span className="fake-check">{checked ? '✓' : ''}</span><span className="checklist-person"><strong>{item.motorista}</strong><small>{item.setor} · {item.resumo}</small></span><span className={`check-status ${checked ? 'done' : ''}`}>{checked ? 'Validado' : item.status}</span><span className="checklist-chevron">{open ? '−' : '+'}</span></button>{open && <div className="checklist-details checklist-evidence"><div className="evidence-summary"><span>Padrão: {item.padraoCadastradoMin != null ? `${item.padraoCadastradoMin} min` : 'não encontrado'}</span><span>Dentro: {item.heDentroPadraoMin ?? '—'} min</span><span>Fora: {item.heAcimaPadraoMin ?? '—'} min</span><span>Rastreador: {item.rastreadorStatus || 'não informado'}</span></div>{item.padraoSuspeito && <div className="pattern-alert">Possível padrão cadastrado incorreto: o realizado se repete acima do padrão há pelo menos 5 dias.</div>}{(item.evidenciaRastreador || []).map((evidence, index) => <div className={`evidence-row evidence-${evidence.status}`} key={`${item.id}-${index}`}><span>{evidence.horario || 'Trecho extra'}</span><span>{evidence.status === 'confirmada' ? '✓ rastreio próximo' : '✕ sem rastreio próximo'}</span><span>{evidence.diferencaMin == null ? '—' : `${evidence.diferencaMin} min de diferença`}</span></div>)}<input value={detail.justificativa || ''} onChange={event => updateDetail(item.id, 'justificativa', event.target.value)} placeholder="Justificativa / observação" /><select value={detail.causa || ''} onChange={event => updateDetail(item.id, 'causa', event.target.value)}><option value="">Causa</option><option>Autorizado antecipadamente</option><option>Rastreador com defeito</option><option>Hábito de bater ponto errado</option><option>Ajuste de ponto</option></select><input value={detail.setor || item.setor} onChange={event => updateDetail(item.id, 'setor', event.target.value)} placeholder="Setor responsável" /><input value={detail.heCorrigida || ''} onChange={event => updateDetail(item.id, 'heCorrigida', event.target.value)} placeholder="HE corrigida (ex.: 00:30)" /></div>}</div>; })}</div>
   </section>;
 }
