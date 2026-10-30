@@ -12,10 +12,13 @@ import { extractPointRows, extractStandardRows } from '../processamento/planilha
 import { prepareProcessedDay } from '../processamento/processamento-model.js';
 import { crossSources } from '../processamento/cruzamento.js';
 import { normalizeTrackerRows } from '../importacao/rastreador-normalizer.js';
+import { InicioDashboard } from '../modules/InicioDashboard.jsx';
+import { OcorrenciasPanel } from '../modules/OcorrenciasPanel.jsx';
 
 export function AppShell({ user, dashboardData, onLogout }) {
   const [activeSection, setActiveSection] = useState('Início');
   const [liveData, setLiveData] = useState(dashboardData || { items: [], snapshots: [] });
+  const [eventos, setEventos] = useState([]);
   const section = SECTION_CONTENT[activeSection];
 
   useEffect(() => {
@@ -24,14 +27,16 @@ export function AppShell({ user, dashboardData, onLogout }) {
 
   useEffect(() => {
     let unsubscribe = () => {};
+    let unsubscribeEvents = () => {};
     import('../lib/firestore-store.js').then(({ firestoreStore }) => {
       unsubscribe = firestoreStore.subscribe('snapshots_dias', snapshots => {
         const ordered = snapshots.filter(item => item.dateKey).sort((a, b) => String(a.dateKey).localeCompare(String(b.dateKey)));
         const latest = ordered.at(-1);
         if (latest) setLiveData(current => ({ ...current, items: latest.items || [], dateKey: latest.dateKey, snapshots: ordered, source: 'firebase' }));
       });
+      unsubscribeEvents = firestoreStore.subscribe('ocorrencias', setEventos);
     }).catch(() => {});
-    return () => unsubscribe();
+    return () => { unsubscribe(); unsubscribeEvents(); };
   }, []);
 
   async function handleImportComplete(payload) {
@@ -70,7 +75,8 @@ export function AppShell({ user, dashboardData, onLogout }) {
         {activeSection === 'Relatórios' && <ReportsPanel items={liveData?.items} snapshots={liveData?.snapshots} />}
         {activeSection === 'Cadastros' && <RegistersPanel items={liveData?.items} />}
         {activeSection === 'Firebase' && <MigrationPanel onMigrated={snapshot => dashboardData?.items !== snapshot.items && window.dispatchEvent(new CustomEvent('jornada360:data-updated', { detail: snapshot }))} />}
-        {activeSection === 'Início' && <LegacyOperations />}
+        {activeSection === 'Início' && <InicioDashboard snapshots={liveData?.snapshots || []} eventos={eventos} />}
+        {activeSection === 'Ocorrências' && <OcorrenciasPanel />}
       </main>
     </div>
   );

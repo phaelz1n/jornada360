@@ -4,6 +4,6 @@ import { NAVIGATION_GROUPS } from './navigation.js';
 
 test('organiza a operação em grupos de navegação', () => {
   assert.deepEqual(NAVIGATION_GROUPS.map(group => group.label), [
-    'Início', 'Importação', 'Processamento', 'Checklist', 'Relatórios', 'Cadastros', 'Firebase'
+    'Início', 'Importação', 'Processamento', 'Checklist', 'Relatórios', 'Ocorrências', 'Cadastros', 'Firebase'
   ]);
 });

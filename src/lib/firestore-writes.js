@@ -24,6 +24,12 @@ export async function saveDriver(driver) {
   return id;
 }
 
+export async function saveOccurrence(event) {
+  const id = `${event.dataKey}-${encodeURIComponent(String(event.motorista).toLowerCase())}-${Date.now()}`;
+  await setDoc(doc(db, 'ocorrencias', id), { ...event, updatedAt: new Date().toISOString() });
+  return id;
+}
+
 export async function saveProcessedDay(day) {
   // Sem merge de propósito: HE corrigida, batidas removidas e paradas atualizadas
   // precisam substituir o conteúdo anterior daquele dia.
