@@ -16,7 +16,7 @@ function parseMinutes(value) {
   if (typeof value === 'number') return Math.round(value * 24 * 60);
   const text = String(value || '').trim();
   if (!text) return 0;
-  const match = text.match(/^(\d+):([0-5]\d)$/);
+  const match = text.match(/^(\d+):([0-5]\d)(?::[0-5]\d)?$/);
   return match ? Number(match[1]) * 60 + Number(match[2]) : Number(text.replace(',', '.')) || 0;
 }
 
@@ -37,4 +37,13 @@ export function extractPointRows(rows = []) {
     he2min: parseMinutes(row[columns.he2min]),
     he3min: parseMinutes(row[columns.he3min]),
   })).filter(row => row.motorista);
+}
+
+export function extractStandardRows(rows = []) {
+  const headerIndex = rows.findIndex(row => row.some(cell => normalizeHeader(cell) === 'nome') && row.some(cell => normalizeHeader(cell).includes('extra')));
+  if (headerIndex < 0) return [];
+  const header = rows[headerIndex].map(normalizeHeader);
+  const nameColumn = header.findIndex(value => value === 'nome');
+  const extraColumn = header.findIndex(value => value.includes('extra'));
+  return rows.slice(headerIndex + 1).map(row => ({ motorista: String(row[nameColumn] || '').trim(), extraNormalPadrao: parseMinutes(row[extraColumn]) })).filter(row => row.motorista);
 }

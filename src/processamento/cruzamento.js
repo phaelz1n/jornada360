@@ -19,13 +19,15 @@ function findDriver(map, name) {
   return scored.length === 1 || (scored[0] && scored[0].score > scored[1]?.score) ? scored[0]?.row : undefined;
 }
 
-export function crossSources({ pointRows = [], scaleRows = [], trackerRows = [] } = {}) {
+export function crossSources({ pointRows = [], scaleRows = [], trackerRows = [], standardRows = [] } = {}) {
   const scale = indexByDriver(scaleRows);
   const tracker = indexByDriver(trackerRows);
+  const standard = indexByDriver(standardRows);
   return pointRows.map(point => {
     const key = normalizeDriverName(point.motorista);
     const scaleRow = findDriver(scale, key);
     const trackerRow = findDriver(tracker, key);
+    const standardRow = findDriver(standard, key);
     const paradaAnalysis = analisarParadasRastreador({ batidas: point.batidas || [], escala: scaleRow ? [scaleRow] : [], rastreador: trackerRow || {} });
     const rastreioCompacto = trackerRow ? {
       motorista: trackerRow.motorista,
@@ -43,6 +45,7 @@ export function crossSources({ pointRows = [], scaleRows = [], trackerRows = [] 
     } : null;
     return {
       ...point,
+      ...(standardRow ? { padraoCadastradoMin: standardRow.extraNormalPadrao, metaDiaMin: standardRow.extraNormalPadrao } : {}),
       escalaEncontrada: Boolean(scaleRow),
       escala: scaleRow || null,
       rastreioEncontrado: Boolean(trackerRow),
