@@ -37,8 +37,16 @@ function buildResult(items, days, forcedMetaDiaMin = null) {
   const metaDiaMin = forcedMetaDiaMin == null ? normalized.reduce((total, item) => total + (minutes(item.metaDiaMin) || 0), 0) : (minutes(forcedMetaDiaMin) || 0);
   const metaIndividual = item => minutes(item.padraoCadastradoMin ?? item.padraoMetaMin ?? item.metaPadraoMin ?? item.padraoCadastrado ?? item.extraNormalPadrao);
   const standardItems = normalized.filter(item => metaIndividual(item) != null);
-  const heDentroPadraoMin = standardItems.reduce((total, item) => total + Math.min(item.he1min + item.he2min + item.he3min, metaIndividual(item)), 0);
-  const heAcimaPadraoMin = standardItems.reduce((total, item) => total + Math.max(item.he1min + item.he2min + item.he3min - metaIndividual(item), 0), 0);
+  const heDentroPadraoMin = standardItems.reduce((total, item) => {
+    const he = item.he1min + item.he2min + item.he3min;
+    const meta = Math.max(0, metaIndividual(item));
+    return total + Math.min(he, meta);
+  }, 0);
+  const heAcimaPadraoMin = standardItems.reduce((total, item) => {
+    const he = item.he1min + item.he2min + item.he3min;
+    const meta = metaIndividual(item);
+    return total + (meta < 0 ? he : Math.max(he - meta, 0));
+  }, 0);
   const driversWithHE = new Set(normalized.filter(item => item.he1min + item.he2min + item.he3min > 0).map(item => normalizeDriverName(item.motorista)));
   const driversWithoutStandard = new Set(normalized.filter(item => item.he1min + item.he2min + item.he3min > 0 && metaIndividual(item) == null).map(item => normalizeDriverName(item.motorista)));
   const names = new Map();

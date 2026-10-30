@@ -56,3 +56,9 @@ test('mostra meta diária, excedente e divisão dentro/acima do padrão cadastra
   assert.equal(result.summary.motoristasComHE, 3);
   assert.equal(result.summary.motoristasSemPadrao, 1);
 });
+test('não cria horas acima do real quando o padrão cadastrado é negativo', () => {
+  const result = consultarDia([{ dateKey: '2026-10-27', items: [{ motorista: 'Ana', he1min: 78, he2min: 0, he3min: 0, padraoCadastradoMin: -5 }] }], '2026-10-27');
+  assert.equal(result.summary.totalHEmin, 78);
+  assert.equal(result.summary.heDentroPadraoMin, 0);
+  assert.equal(result.summary.heAcimaPadraoMin, 78);
+});
