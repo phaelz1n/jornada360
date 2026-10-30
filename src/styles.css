@@ -90,6 +90,23 @@ button, input { font: inherit; }
 .import-date input { border: 1px solid #d9e2ef; border-radius: 8px; padding: 9px 12px; color: #183b5b; background: #fff; }
 .available-report-days { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 12px 0 16px; color: #72869e; font-size: 12px; }.available-report-days button { border: 1px solid #d8e3ef; background: #f2f4f7; color: #8a98a8; border-radius: 999px; padding: 6px 9px; cursor: pointer; }.available-report-days button.active, .available-report-days button:hover { border-color: #2d679b; background: #2d679b; color: white; }
 .executive-dashboard { margin-top: 18px; background: #fff; border: 1px solid #e3ebf5; border-radius: 18px; padding: 26px; }.executive-heading h2 { margin: 8px 0 4px; color: #173b63; }.executive-heading p { color: #7f91a6; }.executive-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 22px 0; }.executive-cards article { padding: 18px; border-radius: 13px; background: #f0f6fd; color: #175e9f; }.executive-cards strong { display: block; font-size: 25px; }.executive-cards small { display: block; margin-top: 6px; color: #607891; }.executive-cards .negative strong { color: #c94535; }.executive-cards .positive strong { color: #218555; }.executive-period, .executive-events { display: grid; gap: 8px; margin-top: 16px; padding: 18px; border: 1px solid #e4ebf4; border-radius: 13px; color: #45627e; }.executive-period strong { font-size: 18px; color: #183d63; }.executive-events div { display: flex; justify-content: space-between; border-top: 1px solid #edf1f6; padding-top: 8px; }.occurrence-form { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 22px; }.occurrence-form button { border: 0; }.occurrence-form input, .occurrence-form select { border: 1px solid #d9e2ef; border-radius: 8px; padding: 10px; color: #294563; }
+:root { --tp-blue-950: #082d55; --tp-blue-800: #0e477e; --tp-blue-600: #1769b5; --tp-blue-100: #eaf3fc; --tp-ink: #123353; --tp-muted: #6f849b; --tp-line: #dce7f2; }
+body { background: linear-gradient(135deg, #f5f9fd 0%, #eef4fa 100%); color: var(--tp-ink); }
+.shell { background: transparent; }
+.sidebar { background: rgba(255,255,255,.92); border-right-color: var(--tp-line); box-shadow: 8px 0 30px rgba(8,45,85,.04); }
+.product-mark { color: var(--tp-blue-800); letter-spacing: .08em; }
+.nav-item { transition: background .2s, color .2s, transform .2s; }
+.nav-item:hover { background: var(--tp-blue-100); color: var(--tp-blue-800); transform: translateX(2px); }
+.nav-item.active { background: linear-gradient(100deg, #e5f0fc, #f1f7fd); color: var(--tp-blue-800); box-shadow: inset 3px 0 var(--tp-blue-600); }
+.welcome-card { background: linear-gradient(105deg, rgba(8,45,85,.96), rgba(23,105,181,.9)), url('/frota-abertura.png') center 38% / cover; box-shadow: 0 18px 36px rgba(14,71,126,.18); }
+.welcome-card::before { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(8,45,85,.85) 0%, rgba(14,71,126,.58) 55%, rgba(14,71,126,.2) 100%); }
+.welcome-card > * { position: relative; z-index: 1; }
+.welcome-card h2 { text-shadow: 0 2px 12px rgba(0,0,0,.16); }
+.status-grid article { transition: transform .2s, box-shadow .2s, border-color .2s; }
+.status-grid article:hover { transform: translateY(-3px); border-color: #b9d5ef; box-shadow: 0 14px 30px rgba(14,71,126,.12); }
+.executive-dashboard, .import-panel, .checklist-panel, .migration-panel { box-shadow: 0 12px 30px rgba(14,71,126,.06); }
+.executive-cards article { border: 1px solid rgba(23,105,181,.08); }
+@media (max-width: 1050px) { .executive-cards { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 760px) { .executive-cards { grid-template-columns: repeat(2, 1fr); }.occurrence-form { grid-template-columns: 1fr; } }
 .history-picker { margin: 18px 0 -8px; color: #315b86; font-weight: 700; }.history-picker select { margin-left: 10px; border: 1px solid #d9e2ef; border-radius: 8px; padding: 9px 12px; color: #294563; background: white; }
 .executive-filters { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }.executive-filters button, .executive-filters select { border: 1px solid #d9e2ef; border-radius: 8px; padding: 9px 12px; background: #fff; color: #315b86; cursor: pointer; }.executive-filters button.active { background: #2d679b; color: #fff; border-color: #2d679b; }
