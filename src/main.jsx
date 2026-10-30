@@ -45,12 +45,6 @@ function App() {
     return () => unsubscribe();
   }, []);
 
-  React.useEffect(() => {
-    const refresh = event => setDashboardData({ items: event.detail?.items || [], source: 'firebase' });
-    window.addEventListener('jornada360:data-updated', refresh);
-    return () => window.removeEventListener('jornada360:data-updated', refresh);
-  }, []);
-
   async function handleLogin(email, password) {
     if (!authServiceRef.current) {
       setError('Conectando ao Firebase. Tente novamente em alguns segundos.');

@@ -32,6 +32,20 @@ export function AppShell({ user, dashboardData, onLogout }) {
   }, [dashboardData]);
 
   useEffect(() => {
+    const refreshSnapshot = event => {
+      const detail = event.detail || {};
+      if (!detail.dateKey) return;
+      setLiveData(current => {
+        const nextSnapshot = { dateKey: detail.dateKey, items: detail.items || [], summary: detail.summary || {}, updatedAt: detail.updatedAt || new Date().toISOString() };
+        const snapshots = [...(current.snapshots || []).filter(snapshot => snapshot.dateKey !== detail.dateKey), nextSnapshot].sort((a, b) => String(a.dateKey).localeCompare(String(b.dateKey)));
+        return { ...current, items: detail.items || current.items, dateKey: detail.dateKey, snapshots, source: 'firebase' };
+      });
+    };
+    window.addEventListener('jornada360:data-updated', refreshSnapshot);
+    return () => window.removeEventListener('jornada360:data-updated', refreshSnapshot);
+  }, []);
+
+  useEffect(() => {
     let unsubscribe = () => {};
     let unsubscribeEvents = () => {};
     import('../lib/firestore-store.js').then(({ firestoreStore }) => {
@@ -54,7 +68,7 @@ export function AppShell({ user, dashboardData, onLogout }) {
       const { saveImportRecord, saveProcessedDay } = await import('../lib/firestore-writes.js');
       await saveImportRecord(record);
       if (pointRows.length) await saveProcessedDay(processedDay);
-      window.dispatchEvent(new CustomEvent('jornada360:data-updated', { detail: { items: processedDay.items, dateKey: processedDay.dateKey } }));
+      window.dispatchEvent(new CustomEvent('jornada360:data-updated', { detail: processedDay }));
     } catch (error) {
       console.warn('Não foi possível salvar o histórico de importação:', error);
     }
