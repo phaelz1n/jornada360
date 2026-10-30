@@ -29,3 +29,10 @@ test('salva indicadores calculados no snapshot do dia', () => {
   assert.equal(result.summary.heDentroPadraoMin, 60);
   assert.equal(result.summary.heAcimaPadraoMin, 30);
 });
+test('remove dados pesados do rastreador antes de salvar o snapshot', () => {
+  const result = prepareProcessedDay({ dateKey: '2026-10-27', items: [{ motorista: 'Ana', he1min: 30, rastreio: { trajetos: Array(100).fill({ ponto: 'x' }) }, paradasRastreador: [{ horario: '08:00', endereco: 'x' }], resumoRastreador: { total: 1 }, rastreadorStatus: 'confirmado' }] });
+  assert.equal(result.items[0].rastreio, undefined);
+  assert.equal(result.items[0].paradasRastreador, undefined);
+  assert.equal(result.items[0].rastreadorStatus, 'confirmado');
+  assert.deepEqual(result.items[0].resumoRastreador, { total: 1, novas: 0, possiveisTransitos: 0, confirmadas: 0 });
+});

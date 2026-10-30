@@ -44,5 +44,14 @@ export function prepareProcessedDay({ dateKey, items = [], source = 'importacao'
   const standardFor = item => Number(item.padraoCadastradoMin ?? item.padraoMin ?? item.metaDiaMin ?? item.extraNormalPadrao ?? 0) || 0;
   const metaDiaMin = normalizedItems.reduce((sum, item) => sum + Math.max(0, standardFor(item)), 0);
   const heDentroPadraoMin = normalizedItems.reduce((sum, item) => { const he = Number(item.he1min || 0) + Number(item.he2min || 0) + Number(item.he3min || 0); return sum + Math.min(he, Math.max(0, standardFor(item))); }, 0);
-  return { dateKey, source, updatedAt: new Date().toISOString(), summary: { ...summary, totalHEmin, metaDiaMin, excedenteVsMetaMin: totalHEmin - metaDiaMin, heDentroPadraoMin, heAcimaPadraoMin: Math.max(totalHEmin - heDentroPadraoMin, 0), registros: normalizedItems.length }, items: normalizedItems.map(item => ({ ...item, setorAtual: classifyDriverSector(item) })) };
+  const compactItem = item => {
+    const { rastreio, paradasRastreador, linhasEscala, batidas, ...numbersAndStatus } = item;
+    return {
+      ...numbersAndStatus,
+      setorAtual: classifyDriverSector(item),
+      evidenciaRastreador: Array.isArray(item.evidenciaRastreador) ? item.evidenciaRastreador.slice(0, 20).map(evidence => ({ horario: evidence.horario || '', diferencaMin: evidence.diferencaMin ?? null, status: evidence.status || 'sem-evidencia', motivo: evidence.motivo || '' })) : [],
+      ...(item.resumoRastreador ? { resumoRastreador: { total: Number(item.resumoRastreador.total) || 0, novas: Number(item.resumoRastreador.novas) || 0, possiveisTransitos: Number(item.resumoRastreador.possiveisTransitos) || 0, confirmadas: Number(item.resumoRastreador.confirmadas) || 0 } } : {})
+    };
+  };
+  return { dateKey, source, updatedAt: new Date().toISOString(), summary: { ...summary, totalHEmin, metaDiaMin, excedenteVsMetaMin: totalHEmin - metaDiaMin, heDentroPadraoMin, heAcimaPadraoMin: Math.max(totalHEmin - heDentroPadraoMin, 0), registros: normalizedItems.length }, items: normalizedItems.map(compactItem) };
 }
