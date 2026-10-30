@@ -9,28 +9,31 @@ const DEMO_ITEMS = snapshotItemsToChecklist([
   { motorista: 'Fernando Santos Barcelos', setor: 'Cobre férias', totalHE: 45 }
 ]);
 
-export function ChecklistPanel({ snapshotItems, dateKey = 'latest' }) {
-  const [items] = useState(() => snapshotItemsToChecklist(snapshotItems || DEMO_ITEMS));
+export function ChecklistPanel({ snapshotItems, snapshots = [], dateKey = 'latest' }) {
+  const [selectedDate, setSelectedDate] = useState(dateKey);
+  const selectedSnapshot = snapshots.find(snapshot => snapshot.dateKey === selectedDate);
+  const sourceItems = selectedSnapshot?.items || snapshotItems || DEMO_ITEMS;
+  const items = useMemo(() => snapshotItemsToChecklist(sourceItems), [sourceItems]);
   const [backupItems, setBackupItems] = useState(null);
   const [state, setState] = useState(() => createChecklistState(snapshotItemsToChecklist(snapshotItems || DEMO_ITEMS)));
   const [category, setCategory] = useState('Todos');
   const [details, setDetails] = useState({});
   const [loadedRemote, setLoadedRemote] = useState(false);
   const activeItems = backupItems || items;
-  useEffect(() => setState(createChecklistState(activeItems)), [activeItems]);
+  useEffect(() => { setBackupItems(null); setState(createChecklistState(activeItems)); }, [selectedDate, items]);
   useEffect(() => {
     let active = true;
-    import('../lib/firestore-store.js').then(({ firestoreStore }) => firestoreStore.get(`checklist/${dateKey}`)).then(saved => {
+    import('../lib/firestore-store.js').then(({ firestoreStore }) => firestoreStore.get(`checklist/${selectedDate}`)).then(saved => {
       if (!active || !saved) return;
       setState(current => ({ ...current, validatedIds: saved.validatedIds || [] }));
       setDetails(saved.details || saved.caseState || {});
     }).catch(() => {}).finally(() => { if (active) setLoadedRemote(true); });
     return () => { active = false; };
-  }, [dateKey]);
+  }, [selectedDate]);
   useEffect(() => {
     if (!activeItems.length || !loadedRemote) return;
-    import('../lib/firestore-writes.js').then(({ saveChecklistSnapshot }) => saveChecklistSnapshot({ validatedIds: state.validatedIds, itemIds: state.itemIds, details }, dateKey)).catch(() => {});
-  }, [dateKey, state, activeItems, details]);
+    import('../lib/firestore-writes.js').then(({ saveChecklistSnapshot }) => saveChecklistSnapshot({ validatedIds: state.validatedIds, itemIds: state.itemIds, details }, selectedDate)).catch(() => {});
+  }, [selectedDate, state, activeItems, details]);
   const filtered = useMemo(() => category === 'Todos' ? activeItems : activeItems.filter(item => item.setor === category), [category, activeItems]);
   const visibleValidated = filtered.filter(item => state.validatedIds.includes(item.id)).length;
   const allVisible = filtered.length > 0 && visibleValidated === filtered.length;
