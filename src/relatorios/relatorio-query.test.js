@@ -62,3 +62,12 @@ test('não cria horas acima do real quando o padrão cadastrado é negativo', ()
   assert.equal(result.summary.heDentroPadraoMin, 0);
   assert.equal(result.summary.heAcimaPadraoMin, 78);
 });
+test('separa a HE prevista da HE excedente ao padrão', () => {
+  const base = [{ dateKey: '2026-10-27', items: [{ motorista: 'Ana', he1min: 120, he2min: 0, he3min: 0, padraoCadastradoMin: 120 }] }];
+  assert.equal(consultarDia(base, '2026-10-27').summary.heDentroPadraoMin, 120);
+  assert.equal(consultarDia(base, '2026-10-27').summary.heAcimaPadraoMin, 0);
+  const extra = [{ dateKey: '2026-10-27', items: [{ motorista: 'Ana', he1min: 120, he2min: 60, he3min: 0, padraoCadastradoMin: 120 }] }];
+  assert.equal(consultarDia(extra, '2026-10-27').summary.totalHEmin, 180);
+  assert.equal(consultarDia(extra, '2026-10-27').summary.heDentroPadraoMin, 120);
+  assert.equal(consultarDia(extra, '2026-10-27').summary.heAcimaPadraoMin, 60);
+});
