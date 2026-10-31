@@ -23,10 +23,14 @@ export function InicioDashboard({ snapshots = [], eventos = [] }) {
   const delta = (report.summary.totalHEmin || 0) - (previous?.summary.totalHEmin || 0);
   const visibleDates = mode === 'dia' ? new Set(selectedDate ? [selectedDate] : []) : new Set((report.items || []).map(item => item.dateKey));
   const faltas = useMemo(() => eventos.filter(event => visibleDates.has(event.dataKey) && ['Falta', 'Atestado', 'Horas faltantes'].includes(event.tipo)), [eventos, visibleDates]);
+  const setores = Object.entries(report.summary.porSetorDetalhado || {}).sort((a, b) => b[1].totalHEmin - a[1].totalHEmin);
+  const ranking = [...(report.porMotorista || [])].sort((a, b) => (b.he1min + b.he2min + b.he3min) - (a.he1min + a.he2min + a.he3min)).slice(0, 8);
+  const maxSetor = Math.max(...setores.map(([, row]) => row.totalHEmin), 1);
   return <section className="executive-dashboard">
     <div className="executive-heading"><span className="eyebrow">PAINEL EXECUTIVO</span><h2>Resumo da operação</h2><p>{mode === 'dia' ? `Dia selecionado: ${selectedDate ? selectedDate.split('-').reverse().join('/') : '—'}` : `Período: ${period?.rotulo || '—'}`}</p></div>
     <div className="executive-filters"><button className={mode === 'dia' ? 'active' : ''} onClick={() => setMode('dia')}>Por dia</button><button className={mode === 'periodo' ? 'active' : ''} onClick={() => setMode('periodo')}>Por ciclo</button>{mode === 'dia' ? <select value={selectedDate} onChange={event => setSelectedDate(event.target.value)}>{dates.map(date => <option key={date} value={date}>{date.split('-').reverse().join('/')}</option>)}</select> : <select value={selectedPeriod} onChange={event => setSelectedPeriod(event.target.value)}><option value="">Último ciclo</option>{periods.map(item => <option key={item.chave} value={item.chave}>{item.rotulo}</option>)}</select>}</div>
     <ExecutiveCards summary={report.summary} delta={delta} faltas={faltas.length} />
+    <div className="executive-insights"><div className="executive-list"><b>Maiores extras por motorista</b>{ranking.map(row => <div key={row.motorista}><span>{row.motorista}</span><strong>{fmt(row.he1min + row.he2min + row.he3min)}</strong></div>)}{!ranking.length && <small>Nenhum registro no filtro.</small>}</div><div className="executive-bars"><b>Horas extras por setor</b>{setores.map(([name, row]) => <div className="executive-bar-row" key={name}><span>{name}</span><i><em style={{ width: `${Math.max(3, row.totalHEmin / maxSetor * 100)}%` }} /></i><strong>{fmt(row.totalHEmin)}</strong></div>)}{!setores.length && <small>Nenhum setor no filtro.</small>}</div></div>
     <div className="executive-period"><b>Evolução por fechamento</b><span>{period?.rotulo || 'Sem período disponível'}</span><strong>{delta <= 0 ? 'Redução' : 'Aumento'} de {fmt(Math.abs(delta))} em relação ao ciclo anterior</strong></div>
     <ExecutiveEvents events={faltas} />
   </section>;

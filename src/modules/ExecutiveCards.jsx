@@ -10,6 +10,7 @@ export function ExecutiveCards({ summary = {}, delta = 0, faltas = 0 }) {
     [`${delta > 0 ? '+' : ''}${fmt(Math.abs(delta))}`, delta > 0 ? 'aumento vs anterior' : 'redução vs anterior', delta > 0 ? 'negative' : 'positive'],
     [fmt(summary.heDentroPadraoMin || 0), 'dentro do padrão'],
     [fmt(summary.heAcimaPadraoMin || 0), 'acima do padrão'],
+    [fmt(summary.semPadraoMin || 0), 'sem padrão cadastrado'],
     [summary.interjornada || 0, 'interjornadas'],
     [summary.intrajornada || 0, 'intrajornadas'],
     [summary.motoristasComHE || 0, 'motoristas com extras'],

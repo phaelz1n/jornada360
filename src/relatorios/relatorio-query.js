@@ -50,6 +50,7 @@ function buildResult(items, days, forcedMetaDiaMin = null) {
     const meta = metaIndividual(item);
     return total + (meta < 0 ? he : Math.max(he - meta, 0));
   }, 0);
+  const semPadraoMin = normalized.filter(item => metaIndividual(item) == null).reduce((total, item) => total + item.he1min + item.he2min + item.he3min, 0);
   const driversWithHE = new Set(normalized.filter(item => item.he1min + item.he2min + item.he3min > 0).map(item => normalizeDriverName(item.motorista)));
   const driversWithoutStandard = new Set(normalized.filter(item => item.he1min + item.he2min + item.he3min > 0 && metaIndividual(item) == null).map(item => normalizeDriverName(item.motorista)));
   const occurrences = normalized.map(item => item.he1min + item.he2min + item.he3min).filter(value => value > 0).sort((a, b) => a - b);
@@ -78,7 +79,7 @@ function buildResult(items, days, forcedMetaDiaMin = null) {
     current.itens.push(item);
     names.set(key, current);
   });
-  return { items: normalized, summary: { ...summary, registros: normalized.length, colaboradores: names.size, totalHEmin, metaDiaMin, excedenteVsMetaMin: totalHEmin - metaDiaMin, heDentroPadraoMin, heAcimaPadraoMin, motoristasComHE: driversWithHE.size, motoristasSemPadrao: driversWithoutStandard.size, mediaPorOcorrenciaMin, maxPorOcorrenciaMin: occurrences.at(-1) || 0, porSetorDetalhado: bySector }, porMotorista: [...names.values()], porSetor: summary.porSetor, diasProcessados: days };
+  return { items: normalized, summary: { ...summary, registros: normalized.length, colaboradores: names.size, totalHEmin, metaDiaMin, excedenteVsMetaMin: totalHEmin - metaDiaMin, heDentroPadraoMin, heAcimaPadraoMin, semPadraoMin, motoristasComHE: driversWithHE.size, motoristasSemPadrao: driversWithoutStandard.size, mediaPorOcorrenciaMin, maxPorOcorrenciaMin: occurrences.at(-1) || 0, porSetorDetalhado: bySector }, porMotorista: [...names.values()], porSetor: summary.porSetor, diasProcessados: days };
 }
 
 export function consultarDia(snapshots = [], dateKey, filters = {}) {
