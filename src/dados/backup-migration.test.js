@@ -25,3 +25,14 @@ test('usa setor salvo no caseState e categorias especiais', () => {
   assert.equal(payload.drivers.find(item => item.nome.startsWith('OLIVIO')).setor, 'Folguista');
   assert.equal(payload.drivers.find(item => item.nome.startsWith('GIOVANI')).setor, 'Reserva');
 });
+
+test('preserva HE.1 do backup antigo sem transformar excedenteMin em HE.2', () => {
+  const payload = buildMigrationPayload({ dias: [{ dateKey: '2026-10-27', snapshot: { items: [
+    { motorista: 'Ana', he1min: 120, he1str: '02:00', excedenteMin: 180 },
+  ] } }] });
+  const [item] = payload.days[0].snapshot.items;
+  assert.equal(item.he1min, 120);
+  assert.equal(item.heBucketsExplicit, true);
+  assert.equal(item.he2min, 0);
+  assert.equal(item.he3min, 0);
+});

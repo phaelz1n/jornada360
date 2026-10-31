@@ -23,6 +23,16 @@ function removeUndefined(value) {
   return value;
 }
 
+// O HTML antigo já calculava HE.1 por registro e guardava `excedenteMin`
+// apenas como diagnóstico em relação ao padrão. Esse campo não é o total de
+// horas extras e não pode ser usado para recriar os buckets na tela nova.
+function normalizeLegacyItem(item = {}) {
+  const hasLegacyHe1 = item.he1min != null || item.he1str != null;
+  const hasBuckets = item.heBucketsExplicit || item.he2min != null || item.he3min != null;
+  if (!hasLegacyHe1 || hasBuckets) return item;
+  return { ...item, heBucketsExplicit: true, he2min: 0, he3min: 0 };
+}
+
 export function buildMigrationPayload(backup) {
   const days = Array.isArray(backup?.dias) ? backup.dias : [];
   const drivers = new Map();
@@ -55,7 +65,10 @@ export function buildMigrationPayload(backup) {
     drivers: [...drivers.values()],
     days: days.filter(day => day?.dateKey).map(day => ({
       dateKey: day.dateKey,
-      snapshot: removeUndefined(day.snapshot || {}),
+      snapshot: removeUndefined({
+        ...(day.snapshot || {}),
+        items: (day.snapshot?.items || []).map(normalizeLegacyItem),
+      }),
       caseState: removeUndefined(day.caseState || {}),
     })),
   };
