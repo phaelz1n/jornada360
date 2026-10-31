@@ -158,7 +158,7 @@ export function crossSources({ pointRows = [], previousPointRows = [], scaleRows
         dataKey: stop.dataKey
       }))
     } : null;
-    const metaDiaMin = Number(standardRow?.extraNormalPadrao ?? 0) || 0;
+    const metaDiaMin = Math.max(0, Number(standardRow?.extraNormalPadrao ?? 0) || 0);
     const reportedHE = Number(point.totalHE ?? point.he1min ?? point.excedenteMin ?? 0) || 0;
     const actualDuration = durationFromPairs(point.batidas || []);
     const standardDuration = durationFromPairs(standardRow?.horarios || []);
