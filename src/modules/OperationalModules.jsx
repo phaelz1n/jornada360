@@ -40,6 +40,9 @@ function ReportsPanelBody({ items = [], snapshots = [], initialDate }) {
     const available = snapshots.map(snapshot => snapshot.dateKey).filter(Boolean).sort();
     if (available.length && !available.includes(dateKey)) setDateKey(available.at(-1));
   }, [snapshots, dateKey]);
+  useEffect(() => {
+    if (initialDate && initialDate !== dateKey) setDateKey(initialDate);
+  }, [initialDate]);
   const periods = useMemo(() => [...new Map(sourceSnapshots.map(snapshot => { const period = competenciaParaData(snapshot.dateKey); return [period.chave, period]; })).values()], [sourceSnapshots]);
   const selectedPeriod = periods.find(period => period.chave === periodKey) || (dateKey ? competenciaParaData(dateKey) : periods[0]);
   const sectors = useMemo(() => ['Todos', ...new Set(sourceSnapshots.flatMap(snapshot => (snapshot.items || []).map(item => item.setorAtual || item.setor || 'Sem setor')))], [sourceSnapshots]);
@@ -57,7 +60,7 @@ function ReportsPanelBody({ items = [], snapshots = [], initialDate }) {
 
 export function ReportsPanel(props) {
   const [selected, setSelected] = useState(() => props.snapshots?.map(item => item.dateKey).filter(Boolean).sort().at(-1) || new Date().toISOString().slice(0, 10));
-  return <><AvailableReportDays snapshots={props.snapshots || []} selected={selected} onSelect={setSelected} /><ReportsPanelBody key={selected} {...props} initialDate={selected} /></>;
+  return <><AvailableReportDays snapshots={props.snapshots || []} selected={selected} onSelect={setSelected} /><ReportsPanelBody {...props} initialDate={selected} /></>;
 }
 
 export function RegistersPanel({ items = [] }) {
