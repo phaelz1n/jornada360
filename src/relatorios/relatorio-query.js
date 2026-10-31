@@ -58,10 +58,11 @@ function buildResult(items, days, forcedMetaDiaMin = null) {
   const bySector = {};
   normalized.forEach(item => {
     const sector = item.setorAtual || 'Sem setor';
-    const row = bySector[sector] || { registros: 0, totalHEmin: 0, dentroPadraoMin: 0, acimaPadraoMin: 0 };
+    const row = bySector[sector] || { registros: 0, totalHEmin: 0, he1min: 0, dentroPadraoMin: 0, acimaPadraoMin: 0 };
     const he = item.he1min + item.he2min + item.he3min;
     row.registros += 1;
     row.totalHEmin += he;
+    row.he1min += item.he1min;
     row.dentroPadraoMin += Math.min(he, Math.max(0, metaIndividual(item) ?? 0));
     row.acimaPadraoMin += metaIndividual(item) == null ? 0 : Math.max(he - Math.max(0, metaIndividual(item)), 0);
     bySector[sector] = row;
