@@ -68,6 +68,16 @@ function analyzeIntervals(batidas = [], point = {}) {
   };
 }
 
+function interjornadaFromPrevious(point = {}, previousPoint = {}) {
+  const current = (point.batidas || []).map(minutes).filter(value => value != null);
+  const previous = (previousPoint.batidas || []).map(minutes).filter(value => value != null);
+  if (!current.length || !previous.length) return null;
+  const inicioAtual = current[0];
+  const fimAnterior = previous.at(-1);
+  const descanso = inicioAtual + 1440 - fimAnterior;
+  return descanso;
+}
+
 function buildEvidence({ batidas = [], paradaAnalysis, totalHE = 0, metaDiaMin = 0 }) {
   const stops = paradaAnalysis?.paradas || [];
   const punches = batidas.map(minutes).filter(value => value != null);
@@ -89,7 +99,7 @@ function buildEvidence({ batidas = [], paradaAnalysis, totalHE = 0, metaDiaMin =
   return { evidence, outside };
 }
 
-export function crossSources({ pointRows = [], scaleRows = [], trackerRows = [], standardRows = [], patternHistory = {} } = {}) {
+export function crossSources({ pointRows = [], previousPointRows = [], scaleRows = [], trackerRows = [], standardRows = [], patternHistory = {} } = {}) {
   const scale = indexByDriver(scaleRows);
   const tracker = indexByDriver(trackerRows);
   const standard = indexByDriver(standardRows);
@@ -114,6 +124,9 @@ export function crossSources({ pointRows = [], scaleRows = [], trackerRows = [],
       : rawTrackerRow;
     const standardMatch = findDriver(standard, key);
     const standardRow = Array.isArray(standardMatch) ? standardMatch[0] : standardMatch;
+    const previousMatch = findDriver(indexByDriver(previousPointRows), key);
+    const previousPoint = Array.isArray(previousMatch) ? previousMatch[0] : previousMatch;
+    const descansoInterjornadaMin = interjornadaFromPrevious(point, previousPoint || {});
     const paradaAnalysis = analisarParadasRastreador({ batidas: point.batidas || [], escala: scaleRows, rastreador: trackerRow || {} });
     const intervalAnalysis = analyzeIntervals(point.batidas || [], point);
     const matchedScale = paradaAnalysis.paradas.find(stop => stop.status === 'confirmada')?.linha
@@ -154,6 +167,8 @@ export function crossSources({ pointRows = [], scaleRows = [], trackerRows = [],
     return {
       ...point,
       ...intervalAnalysis,
+      descansoInterjornadaMin,
+      interjornadaProblema: descansoInterjornadaMin != null ? descansoInterjornadaMin < 660 : intervalAnalysis.interjornadaProblema,
       semHorarioPadrao: !standardRow,
       padraoStatus: standardRow ? 'encontrado' : 'sem_cadastro',
       ...(standardRow ? { padraoCadastradoMin: standardRow.extraNormalPadrao, metaDiaMin: standardRow.extraNormalPadrao } : {}),

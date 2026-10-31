@@ -98,3 +98,12 @@ test('marca intervalo menor que uma hora em jornada de seis horas ou mais', () =
   assert.equal(row.intervaloMenorUmaHora, true);
   assert.equal(row.intervaloObrigatorioAusente, true);
 });
+
+test('calcula interjornada do noturno usando o fim do dia anterior', () => {
+  const [row] = crossSources({
+    pointRows: [{ motorista: 'Ademir Monteiro', batidas: ['21:37', '00:28', '03:42', '07:46'] }],
+    previousPointRows: [{ motorista: 'Ademir Monteiro', batidas: ['08:00', '12:00', '13:00', '19:00'] }]
+  });
+  assert.equal(row.descansoInterjornadaMin, 157);
+  assert.equal(row.interjornadaProblema, true);
+});
