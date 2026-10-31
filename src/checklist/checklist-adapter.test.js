@@ -20,6 +20,7 @@ test('converte item de snapshot no formato do checklist', () => {
     escalaEncontrada: false,
     escala: null,
     linhaExtraCandidata: false,
+    linhaExtraDetalhe: '',
     batidas: [],
     padraoHorarios: [],
     detalhe: '',
