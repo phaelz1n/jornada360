@@ -19,7 +19,11 @@ test('converte item de snapshot no formato do checklist', () => {
     padraoSuspeito: false,
     escalaEncontrada: false,
     escala: null,
-    linhaExtraCandidata: false
+    linhaExtraCandidata: false,
+    batidas: [],
+    padraoHorarios: [],
+    detalhe: '',
+    padraoStatus: ''
   }]);
 });
 
