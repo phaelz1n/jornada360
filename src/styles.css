@@ -9,7 +9,7 @@ button, input { font: inherit; }
 .boot-screen { min-height: 100vh; display: grid; place-items: center; align-content: center; gap: 14px; color: #57708f; background: #f7f9fc; }
 .loader { width: 22px; height: 22px; border: 3px solid #d9e3f2; border-top-color: #2367c7; border-radius: 50%; animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
-.login-page { min-height: 100vh; display: grid; grid-template-columns: minmax(360px, .88fr) minmax(460px, 1.12fr); background: #f7f9fc; }
+.login-page { min-height: 100vh; display: grid; grid-template-columns: minmax(420px, 1.15fr) minmax(400px, .85fr); background: #f7f9fc; }
 .login-brand-panel { background: linear-gradient(145deg, #071b35, #104e87 72%, #1c6bb4); color: white; position: relative; overflow: hidden; display: flex; align-items: center; padding: clamp(32px, 6vw, 90px); }
 .login-brand-panel::after { content: ""; position: absolute; width: 560px; height: 560px; border: 1px solid rgba(255,255,255,.13); border-radius: 50%; right: -260px; bottom: -150px; box-shadow: 0 0 0 60px rgba(255,255,255,.04), 0 0 0 120px rgba(255,255,255,.035); }
 .brand-panel-content { max-width: 430px; position: relative; z-index: 1; }
@@ -105,7 +105,7 @@ body { background: linear-gradient(135deg, #f5f9fd 0%, #eef4fa 100%); color: var
 .nav-item.active { background: linear-gradient(100deg, #e5f0fc, #f1f7fd); color: var(--tp-blue-800); box-shadow: inset 3px 0 var(--tp-blue-600); }
 .welcome-card { background: linear-gradient(105deg, rgba(8,45,85,.78), rgba(23,105,181,.48)), url('/frota-abertura-optimized.jpg') 62% 42% / cover; box-shadow: 0 18px 36px rgba(14,71,126,.18); }
 .login-brand-panel { background: linear-gradient(90deg, rgba(7,27,53,.96), rgba(14,71,126,.62)), url('/frota-turismo-optimized.jpg') center / cover; }
-.login-brand-panel { background-size: auto 100%; background-position: 72% center; background-repeat: no-repeat; background-color: #0b315b; }
+.login-brand-panel { background-size: cover; background-position: 78% center; background-repeat: no-repeat; background-color: #0b315b; }
 .welcome-card { background-size: 120% auto, cover; animation: tp-hero-drift 22s ease-in-out infinite alternate; }
 .welcome-orbit { animation: tp-float 4.5s ease-in-out infinite; text-shadow: 0 0 24px rgba(255,255,255,.24); }
 .status-grid article, .executive-cards article { position: relative; overflow: hidden; }
@@ -170,7 +170,7 @@ body { background: linear-gradient(135deg, #f5f9fd 0%, #eef4fa 100%); color: var
   .daily-summary-grid { grid-template-columns: 1fr; }
   .migration-upload, .primary-button, button { min-height: 44px; }
   .login-page { display: block; min-height: 100svh; }
-  .login-brand-panel { min-height: 430px; padding: 42px 22px 58px; align-items: center; justify-content: center; text-align: center; background-position: 70% center; }
+  .login-brand-panel { min-height: 430px; padding: 42px 22px 58px; align-items: center; justify-content: center; text-align: center; background-size: cover; background-position: 70% center; }
   .login-brand-panel::after { right: -310px; bottom: -260px; }
   .brand-panel-content { width: min(100%, 360px); margin: 0 auto; display: flex; flex-direction: column; align-items: center; }
   .logo-white { width: min(86vw, 290px); margin: 0 auto 28px; }
