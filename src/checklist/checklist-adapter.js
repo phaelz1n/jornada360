@@ -41,6 +41,7 @@ export function snapshotItemsToChecklist(items = []) {
       escala: item.escala || null,
       linhaExtraCandidata: Boolean(item.linhaExtraCandidata),
       linhaExtraDetalhe: item.linhaExtraDetalhe || '',
+      rastreiosForaDaEscala: Array.isArray(item.rastreiosForaDaEscala) ? item.rastreiosForaDaEscala : [],
       batidas: Array.isArray(item.batidas) ? item.batidas : [],
       padraoHorarios: Array.isArray(item.padraoHorarios) ? item.padraoHorarios : [],
       detalhe: item.detalhe || '',

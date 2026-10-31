@@ -10,6 +10,7 @@ function evidenceState(item) {
 }
 
 function evidenceText(evidence) {
+  if (evidence.motivo === 'fora-da-escala') return `✕ veículo rodou às ${evidence.horario || 'horário não informado'} fora da escala${evidence.escalaHorario ? ` (escala: ${evidence.escalaHorario})` : ''}`;
   if (evidence.status === 'confirmada') return '✓ rastreio próximo';
   if (evidence.motivo === 'fim-do-rastreio') return '✕ veículo parou antes deste ponto';
   if (evidence.motivo === 'nenhuma-parada-proxima') return '✕ sem rastreio próximo';

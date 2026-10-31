@@ -49,7 +49,7 @@ export function prepareProcessedDay({ dateKey, items = [], source = 'importacao'
     return {
       ...numbersAndStatus,
       setorAtual: classifyDriverSector(item, cadastro),
-      evidenciaRastreador: Array.isArray(item.evidenciaRastreador) ? item.evidenciaRastreador.slice(0, 20).map(evidence => ({ horario: evidence.horario || '', diferencaMin: evidence.diferencaMin ?? null, status: evidence.status || 'sem-evidencia', motivo: evidence.motivo || '' })) : [],
+      evidenciaRastreador: Array.isArray(item.evidenciaRastreador) ? item.evidenciaRastreador.slice(0, 20).map(evidence => ({ horario: evidence.horario || '', escalaHorario: evidence.escalaHorario || '', diferencaMin: evidence.diferencaMin ?? null, status: evidence.status || 'sem-evidencia', motivo: evidence.motivo || '' })) : [],
       ...(item.resumoRastreador ? { resumoRastreador: { total: Number(item.resumoRastreador.total) || 0, novas: Number(item.resumoRastreador.novas) || 0, possiveisTransitos: Number(item.resumoRastreador.possiveisTransitos) || 0, confirmadas: Number(item.resumoRastreador.confirmadas) || 0 } } : {})
     };
   };

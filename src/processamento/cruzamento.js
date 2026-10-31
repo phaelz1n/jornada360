@@ -58,6 +58,7 @@ function buildEvidence({ batidas = [], paradaAnalysis, totalHE = 0, metaDiaMin =
     diferencaMin: stop.diferencaMin,
     status: stop.status === 'confirmada' || punches.some(punch => Math.abs(punch - minutes(stop.horario)) <= 15) ? 'confirmada' : 'sem-evidencia',
     motivo: stop.motivo,
+    escalaHorario: stop.escalaHorario,
     local: stop.local
   }));
   if (!evidence.length && outside > 0) evidence.push({ horario: '', diferencaMin: null, status: 'sem-evidencia', motivo: 'nenhuma-parada-proxima', local: '' });
@@ -122,6 +123,7 @@ export function crossSources({ pointRows = [], scaleRows = [], trackerRows = [],
       ...(standardRow ? { padraoCadastradoMin: standardRow.extraNormalPadrao, metaDiaMin: standardRow.extraNormalPadrao } : {}),
       ...(standardRow ? { heDentroPadraoMin: Math.min(totalHE, metaDiaMin), heAcimaPadraoMin: Math.max(0, totalHE - metaDiaMin) } : {}),
       evidenciaRastreador: trackerEvidence.evidence,
+      rastreiosForaDaEscala: paradaAnalysis.paradas.filter(stop => stop.foraDaEscala).map(stop => ({ horario: stop.horario, escalaHorario: stop.escalaHorario, diferencaMin: stop.diferencaMin, local: stop.local, motivo: stop.motivo })),
       rastreadorStatus: trackerEvidence.evidence.some(item => item.status === 'confirmada') ? 'confirmado' : trackerEvidence.evidence.length ? 'divergente' : 'sem-evidencia',
       padraoSuspeito: repeatedRealized && standardRow && totalHE > metaDiaMin,
       escalaEncontrada: scaleRows.length > 0,

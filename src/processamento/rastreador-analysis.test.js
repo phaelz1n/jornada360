@@ -32,3 +32,13 @@ test('separa parada nova para cadastro de padrão', () => {
   assert.equal(result.paradas[0].status, 'nova');
   assert.equal(result.paradas[0].precisaCadastro, true);
 });
+
+test('identifica veículo rodando fora da janela da escala sem chamar de linha extra', () => {
+  const result = analisarParadasRastreador({
+    escala: [{ inicio: '08:00', fim: '17:00', linha: 'Linha ADM' }],
+    rastreador: { paradas: [{ horario: '19:25', local: 'Droga Raia' }] }
+  });
+  assert.equal(result.paradas[0].foraDaEscala, true);
+  assert.equal(result.paradas[0].motivo, 'fora-da-escala');
+  assert.equal(result.paradas[0].precisaCadastro, false);
+});

@@ -42,15 +42,16 @@ export function analisarParadasRastreador({ batidas = [], escala = [], rastreado
   const paradas = stops.map(stop => {
     const match = scale.map(row => ({ row, distance: closestDistance(stop.minuto, row) })).sort((a, b) => a.distance - b.distance)[0];
     const inWindow = Boolean(match && match.distance <= toleranciaMin);
+    const foraDaEscala = Boolean(scale.length && match && match.distance > toleranciaMin);
     const knownMatch = known.some(item => (item.local && item.local.toLocaleLowerCase() === stop.local.toLocaleLowerCase()) || (item.minuto != null && Math.abs(item.minuto - stop.minuto) <= toleranciaMin));
     const outsidePunch = Boolean(match && match.row.fimMin != null && stop.minuto > match.row.fimMin + toleranciaMin && punches.some(punch => punch > match.row.fimMin + toleranciaMin));
     let status = 'nova';
-    let motivo = 'parada-nao-cadastrada';
+    let motivo = foraDaEscala ? 'fora-da-escala' : 'parada-nao-cadastrada';
     if (inWindow) { status = 'confirmada'; motivo = 'escala-e-rastreador-confirmam'; }
     else if (outsidePunch) { status = 'possivel-transito'; motivo = 'escala-e-rastreador-confirmam'; }
     else if (knownMatch) { status = 'normal'; motivo = 'parada-conhecida'; }
     const diferencaMin = match ? (stop.minuto < match.row.inicioMin ? match.row.inicioMin - stop.minuto : stop.minuto - match.row.inicioMin) : null;
-    return { ...stop, status, motivo, linha: match?.row.linha || match?.row.nome || '', diferencaMin, precisaCadastro: status === 'nova' };
+    return { ...stop, status, motivo, foraDaEscala, linha: match?.row.linha || match?.row.nome || '', escalaHorario: match?.row.horario || '', diferencaMin, precisaCadastro: status === 'nova' && !foraDaEscala };
   });
   return { paradas, total: paradas.length, novas: paradas.filter(item => item.status === 'nova').length, possiveisTransitos: paradas.filter(item => item.status === 'possivel-transito').length, confirmadas: paradas.filter(item => item.status === 'confirmada').length };
 }
