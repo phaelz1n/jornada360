@@ -69,3 +69,14 @@ test('usa o dia seguinte do rastreador somente para jornada noturna', () => {
   });
   assert.deepEqual(row.paradasRastreador.map(stop => stop.dataKey), ['2026-10-28', '2026-10-29']);
 });
+
+test('marca linha da escala e rastreador como possível extra quando ausente no padrão', () => {
+  const [row] = crossSources({
+    pointRows: [{ motorista: 'Ana', dateKey: '2026-10-27', batidas: ['16:30', '20:00'], he1min: 30 }],
+    scaleRows: [{ motorista: 'Ana', horario: '16:30', linha: 'Droga Raia' }],
+    standardRows: [{ motorista: 'Ana', extraNormalPadrao: 0, horarios: ['08:00'] }],
+    trackerRows: [{ motorista: 'Ana', paradas: [{ horario: '16:32', local: 'Droga Raia' }] }]
+  });
+  assert.equal(row.linhaExtraCandidata, true);
+  assert.match(row.linhaExtraDetalhe, /Droga Raia/);
+});

@@ -60,3 +60,38 @@ export function extractStandardRows(rows = []) {
   const scheduleColumns = header.map((value, index) => value.startsWith('horario') ? index : -1).filter(index => index >= 0);
   return rows.slice(headerIndex + 1).map(row => ({ motorista: String(row[nameColumn] || '').trim(), extraNormalPadrao: parseMinutes(row[extraColumn]), horarios: scheduleColumns.map(index => String(row[index] || '').trim()).filter(Boolean) })).filter(row => row.motorista);
 }
+
+function dateKeyFromValue(value) {
+  const text = String(value ?? '');
+  const iso = text.match(/(20\d{2})[-\/](\d{2})[-\/](\d{2})/);
+  if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
+  const br = text.match(/(\d{2})[-\/](\d{2})[-\/](20\d{2})/);
+  return br ? `${br[3]}-${br[2]}-${br[1]}` : '';
+}
+
+export function extractScaleRows(rows = [], reportDate = '') {
+  if (!rows.length) return [];
+  const headerIndex = rows.findIndex(row => {
+    const values = row.map(normalizeHeader);
+    return values.some(value => aliases.motorista.includes(value)) && values.some(value => value.includes('horario') || value.includes('linha'));
+  });
+  const start = headerIndex >= 0 ? headerIndex + 1 : 1;
+  const header = headerIndex >= 0 ? rows[headerIndex].map(normalizeHeader) : [];
+  const find = (...names) => names.map(name => header.findIndex(value => value === normalizeHeader(name))).find(index => index >= 0) ?? -1;
+  const nameColumn = find('motorista', 'nome', 'colaborador');
+  const dateColumn = header.findIndex(value => value === 'data' || value === 'dia' || value.includes('data'));
+  const timeColumn = header.findIndex(value => value.includes('horario') || value.includes('hora') || value === 'inicio');
+  const lineColumn = header.findIndex(value => value.includes('linha') || value.includes('servico') || value.includes('cliente') || value.includes('descricao'));
+  return rows.slice(start).map(row => {
+    const motorista = String(row[nameColumn >= 0 ? nameColumn : 0] || '').trim();
+    const dataKey = dateKeyFromValue(row[dateColumn]);
+    return {
+      motorista,
+      nome: motorista,
+      dataKey,
+      horario: String(row[timeColumn >= 0 ? timeColumn : 1] || '').trim(),
+      linha: String(row[lineColumn >= 0 ? lineColumn : 2] || '').trim(),
+      dados: row
+    };
+  }).filter(row => row.motorista && (!reportDate || !row.dataKey || row.dataKey === reportDate));
+}

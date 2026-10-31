@@ -79,7 +79,7 @@ export function crossSources({ pointRows = [], scaleRows = [], trackerRows = [],
     const overnightEnd = overnight && punches.length ? punches[punches.length - 1] : null;
     const trackerRow = rawTrackerRow && allowedDates && Array.isArray(rawTrackerRow.paradas)
       ? { ...rawTrackerRow, paradas: rawTrackerRow.paradas.filter(stop => {
-        if (!stop.dataKey || !allowedDates.has(stop.dataKey)) return false;
+        if (stop.dataKey && !allowedDates.has(stop.dataKey)) return false;
         if (overnight && stop.dataKey === nextDate(point.dateKey) && overnightEnd != null) {
           const stopMinute = minutes(stop.horario);
           return stopMinute == null || stopMinute <= overnightEnd + 30;
@@ -113,6 +113,8 @@ export function crossSources({ pointRows = [], scaleRows = [], trackerRows = [],
     const trackerEvidence = buildEvidence({ batidas: point.batidas || [], paradaAnalysis, totalHE, metaDiaMin });
     const history = patternHistory?.[key] || [];
     const repeatedRealized = history.length >= 5 && history.slice(-5).every(value => Math.abs(Number(value) - totalHE) <= 5);
+    const extraScaleRows = scaleRows.filter(row => !lineMatchesStandard(row, standardRow));
+    const trackerExtraLine = paradaAnalysis.paradas.find(stop => extraScaleRows.some(row => String(row.linha || row.nome || '') === String(stop.linha || '')));
     return {
       ...point,
       semHorarioPadrao: !standardRow,
@@ -125,7 +127,8 @@ export function crossSources({ pointRows = [], scaleRows = [], trackerRows = [],
       escalaEncontrada: scaleRows.length > 0,
       escala: matchedScale || null,
       linhasEscala: scaleRows,
-      linhaExtraCandidata: Boolean(trackerRow && scaleRows.length && standardRow && scaleRows.some(row => !lineMatchesStandard(row, standardRow))),
+      linhaExtraCandidata: Boolean(trackerExtraLine),
+      linhaExtraDetalhe: trackerExtraLine ? `Possível linha extra: ${trackerExtraLine.linha || 'linha da escala'} — consta na escala de ${point.dateKey || 'do relatório'} e há rastreio compatível, mas não consta no horário padrão.` : '',
       rastreioEncontrado: Boolean(trackerRow),
       rastreio: rastreioCompacto,
       paradasRastreador: paradaAnalysis.paradas,
