@@ -173,6 +173,7 @@ export function crossSources({ pointRows = [], previousPointRows = [], scaleRows
       semHorarioPadrao: !standardRow,
       padraoStatus: standardRow ? 'encontrado' : 'sem_cadastro',
       ...(standardRow ? { padraoCadastradoMin: standardRow.extraNormalPadrao, metaDiaMin: standardRow.extraNormalPadrao } : {}),
+      ...(standardRow ? { padraoHorarios: standardRow.horarios || [] } : {}),
       ...(standardRow ? { heDentroPadraoMin: Math.min(totalHE, metaDiaMin), heAcimaPadraoMin: Math.max(0, totalHE - metaDiaMin) } : {}),
       evidenciaRastreador: trackerEvidence.evidence,
       rastreiosForaDaEscala: paradaAnalysis.paradas.filter(stop => stop.foraDaEscala).map(stop => ({ horario: stop.horario, escalaHorario: stop.escalaHorario, diferencaMin: stop.diferencaMin, local: stop.local, motivo: stop.motivo })),

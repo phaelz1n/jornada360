@@ -38,6 +38,7 @@ test('usa a coluna EXTRA individual do horário padrão', () => {
   });
   assert.equal(row.padraoCadastradoMin, 120);
   assert.equal(row.metaDiaMin, 120);
+  assert.deepEqual(row.padraoHorarios, ['08:00:00']);
 });
 
 test('separa extra dentro e fora do padrão e informa evidência do rastreador', () => {
