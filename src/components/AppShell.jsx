@@ -8,7 +8,7 @@ import { buildImportRecord } from '../dados/import-record.js';
 import { MigrationPanel } from '../dados/MigrationPanel.jsx';
 import { ProcessingPanel, ReportsPanel, RegistersPanel } from '../modules/OperationalModules.jsx';
 import { extractPointRows, extractReportDate, extractStandardRows } from '../processamento/planilha-normalizer.js';
-import { prepareProcessedDay } from '../processamento/processamento-model.js';
+import { normalizeDriverName, prepareProcessedDay } from '../processamento/processamento-model.js';
 import { crossSources } from '../processamento/cruzamento.js';
 import { normalizeTrackerRows } from '../importacao/rastreador-normalizer.js';
 import { InicioDashboard } from '../modules/InicioDashboard.jsx';
@@ -36,6 +36,21 @@ export function AppShell({ user, dashboardData, onLogout }) {
   useEffect(() => {
     setLiveData(dashboardData || { items: [], snapshots: [] });
   }, [dashboardData]);
+
+  useEffect(() => {
+    if (!motoristas.length) return;
+    const cadastro = Object.fromEntries(motoristas.map(driver => [normalizeDriverName(driver.nome), driver.setor || driver.categoria || 'Sem setor']));
+    const applySectors = items => items.map(item => {
+      const setor = cadastro[normalizeDriverName(item.motorista || item.nome)];
+      return setor ? { ...item, setorAtual: setor, setor: setor } : item;
+    });
+    setLiveData(current => ({
+      ...current,
+      items: applySectors(current.items || []),
+      snapshots: (current.snapshots || []).map(snapshot => ({ ...snapshot, items: applySectors(snapshot.items || []) })),
+    }));
+    import('../lib/firestore-writes.js').then(({ saveProcessedDay }) => Promise.all((liveData.snapshots || []).map(snapshot => saveProcessedDay({ ...snapshot, items: applySectors(snapshot.items || []) })))).catch(() => {});
+  }, [motoristas, liveData.snapshots?.length]);
 
   useEffect(() => {
     const refreshSnapshot = event => {
