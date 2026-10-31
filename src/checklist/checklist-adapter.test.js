@@ -33,6 +33,11 @@ test('identifica motorista sem horário padrão no checklist', () => {
   assert.equal(item.status, 'Sem horário padrão');
   assert.equal(item.semPadrao, true);
 });
+test('mostra resumo quando as horas chegam formatadas como HH:MM', () => {
+  const [item] = snapshotItemsToChecklist([{ motorista: 'Ademar', he1str: '00:30', padraoCadastradoMin: 0 }]);
+  assert.equal(item.resumo, 'HE total 00:30');
+  assert.equal(item.status, 'Pendente');
+});
 test('preserva padrão, divisão da HE e evidência do rastreador no checklist', () => {
   const [item] = snapshotItemsToChecklist([{ motorista: 'Ana', he1min: 30, padraoCadastradoMin: 20, heDentroPadraoMin: 20, heAcimaPadraoMin: 10, rastreadorStatus: 'confirmado', evidenciaRastreador: [{ horario: '08:00', status: 'confirmada' }], escalaEncontrada: true }]);
   assert.equal(item.padraoCadastradoMin, 20);
