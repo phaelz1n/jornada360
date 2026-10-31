@@ -74,7 +74,7 @@ function interjornadaFromPrevious(point = {}, previousPoint = {}) {
   if (!current.length || !previous.length) return null;
   const inicioAtual = current[0];
   const fimAnterior = previous.at(-1);
-  const descanso = inicioAtual + 1440 - fimAnterior;
+  const descanso = inicioAtual >= fimAnterior ? inicioAtual - fimAnterior : inicioAtual + 1440 - fimAnterior;
   return descanso;
 }
 
