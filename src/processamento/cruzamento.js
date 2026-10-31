@@ -49,6 +49,25 @@ function isOvernightJourney(point = {}, escala = []) {
   });
 }
 
+function analyzeIntervals(batidas = [], point = {}) {
+  const punches = batidas.map(minutes).filter(value => value != null);
+  const breaks = [];
+  for (let index = 1; index < punches.length - 1; index += 2) {
+    const next = punches[index + 1] < punches[index] ? punches[index + 1] + 1440 : punches[index + 1];
+    breaks.push(Math.max(0, next - punches[index]));
+  }
+  const workedSpan = punches.length >= 2 ? Math.max(0, (punches.at(-1) < punches[0] ? punches.at(-1) + 1440 : punches.at(-1)) - punches[0]) : 0;
+  const shortBreaks = breaks.filter(value => value < 60);
+  const hasOneHourBreak = breaks.some(value => value >= 60);
+  const intervalProblem = workedSpan >= 360 && breaks.length > 0 && !hasOneHourBreak;
+  return {
+    intervalosMin: breaks,
+    intervaloMenorUmaHora: workedSpan >= 360 && shortBreaks.length > 0,
+    intervaloObrigatorioAusente: intervalProblem,
+    interjornadaProblema: Boolean(point.interjornada || point.interJornada || point.interjornadaStatus === 'inconsistente')
+  };
+}
+
 function buildEvidence({ batidas = [], paradaAnalysis, totalHE = 0, metaDiaMin = 0 }) {
   const stops = paradaAnalysis?.paradas || [];
   const punches = batidas.map(minutes).filter(value => value != null);
@@ -96,6 +115,7 @@ export function crossSources({ pointRows = [], scaleRows = [], trackerRows = [],
     const standardMatch = findDriver(standard, key);
     const standardRow = Array.isArray(standardMatch) ? standardMatch[0] : standardMatch;
     const paradaAnalysis = analisarParadasRastreador({ batidas: point.batidas || [], escala: scaleRows, rastreador: trackerRow || {} });
+    const intervalAnalysis = analyzeIntervals(point.batidas || [], point);
     const matchedScale = paradaAnalysis.paradas.find(stop => stop.status === 'confirmada')?.linha
       ? scaleRows.find(row => String(row.linha || row.nome || '') === paradaAnalysis.paradas.find(stop => stop.status === 'confirmada').linha)
       : scaleRows[0];
@@ -133,6 +153,7 @@ export function crossSources({ pointRows = [], scaleRows = [], trackerRows = [],
     }));
     return {
       ...point,
+      ...intervalAnalysis,
       semHorarioPadrao: !standardRow,
       padraoStatus: standardRow ? 'encontrado' : 'sem_cadastro',
       ...(standardRow ? { padraoCadastradoMin: standardRow.extraNormalPadrao, metaDiaMin: standardRow.extraNormalPadrao } : {}),

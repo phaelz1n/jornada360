@@ -92,3 +92,9 @@ test('separa problema fora da escala de possível linha extra', () => {
   assert.equal(row.foraDaEscalaProblema, true);
   assert.match(row.foraDaEscalaDetalhe, /19:25/);
 });
+
+test('marca intervalo menor que uma hora em jornada de seis horas ou mais', () => {
+  const [row] = crossSources({ pointRows: [{ motorista: 'Ana', batidas: ['08:00', '12:00', '12:30', '17:00'] }] });
+  assert.equal(row.intervaloMenorUmaHora, true);
+  assert.equal(row.intervaloObrigatorioAusente, true);
+});
