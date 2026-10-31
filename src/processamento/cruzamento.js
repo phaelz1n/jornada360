@@ -68,6 +68,16 @@ function analyzeIntervals(batidas = [], point = {}) {
   };
 }
 
+function durationFromPairs(values = []) {
+  const times = values.map(minutes).filter(value => value != null);
+  let total = 0;
+  for (let index = 0; index + 1 < times.length; index += 2) {
+    const end = times[index + 1] < times[index] ? times[index + 1] + 1440 : times[index + 1];
+    total += Math.max(0, end - times[index]);
+  }
+  return total;
+}
+
 function interjornadaFromPrevious(point = {}, previousPoint = {}) {
   const current = (point.batidas || []).map(minutes).filter(value => value != null);
   const previous = (previousPoint.batidas || []).map(minutes).filter(value => value != null);
@@ -149,7 +159,11 @@ export function crossSources({ pointRows = [], previousPointRows = [], scaleRows
       }))
     } : null;
     const metaDiaMin = Number(standardRow?.extraNormalPadrao ?? 0) || 0;
-    const totalHE = Number(point.totalHE ?? point.he1min ?? point.excedenteMin ?? 0) || 0;
+    const reportedHE = Number(point.totalHE ?? point.he1min ?? point.excedenteMin ?? 0) || 0;
+    const actualDuration = durationFromPairs(point.batidas || []);
+    const standardDuration = durationFromPairs(standardRow?.horarios || []);
+    const batidasExtra = actualDuration && standardDuration ? Math.max(0, actualDuration - standardDuration) : null;
+    const totalHE = batidasExtra != null ? batidasExtra : reportedHE;
     const trackerEvidence = buildEvidence({ batidas: point.batidas || [], paradaAnalysis, totalHE, metaDiaMin });
     const history = patternHistory?.[key] || [];
     const repeatedRealized = history.length >= 5 && history.slice(-5).every(value => Math.abs(Number(value) - totalHE) <= 5);
@@ -174,6 +188,7 @@ export function crossSources({ pointRows = [], previousPointRows = [], scaleRows
       padraoStatus: standardRow ? 'encontrado' : 'sem_cadastro',
       ...(standardRow ? { padraoCadastradoMin: standardRow.extraNormalPadrao, metaDiaMin: standardRow.extraNormalPadrao } : {}),
       ...(standardRow ? { padraoHorarios: standardRow.horarios || [] } : {}),
+      ...(batidasExtra != null ? { batidasExtraMin: batidasExtra, extraCalculadaPelasBatidas: true } : {}),
       ...(standardRow ? { heDentroPadraoMin: Math.min(totalHE, metaDiaMin), heAcimaPadraoMin: Math.max(0, totalHE - metaDiaMin) } : {}),
       evidenciaRastreador: trackerEvidence.evidence,
       rastreiosForaDaEscala: paradaAnalysis.paradas.filter(stop => stop.foraDaEscala).map(stop => ({ horario: stop.horario, escalaHorario: stop.escalaHorario, diferencaMin: stop.diferencaMin, local: stop.local, motivo: stop.motivo })),

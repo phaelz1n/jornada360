@@ -108,3 +108,12 @@ test('calcula interjornada do noturno usando o fim do dia anterior', () => {
   assert.equal(row.descansoInterjornadaMin, 157);
   assert.equal(row.interjornadaProblema, true);
 });
+test('calcula extra efetiva comparando duração das batidas com o padrão', () => {
+  const [row] = crossSources({
+    pointRows: [{ motorista: 'Ademar Monteiro', he1min: 25, batidas: ['21:37', '00:28', '03:42', '07:46'] }],
+    standardRows: [{ motorista: 'Ademar Monteiro', extraNormalPadrao: -25, horarios: ['21:25', '00:30', '04:10', '08:00'] }]
+  });
+  assert.equal(row.extraCalculadaPelasBatidas, true);
+  assert.equal(row.batidasExtraMin, 0);
+  assert.equal(row.heAcimaPadraoMin, 0);
+});
