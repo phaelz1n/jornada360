@@ -26,7 +26,7 @@ export function ImportacaoPanel({ onProcess }) {
     setMessage('');
     if (file && window.XLSX) {
       try {
-        const rows = await readWorkbookRows(file, window.XLSX);
+        const rows = await readWorkbookRows(file, window.XLSX, { raw: sourceId === 'horarioPadrao' });
         if (sourceId === 'espelhoHoje') {
           const detectedDate = extractReportDate(rows);
           if (detectedDate) setDateKey(detectedDate);
