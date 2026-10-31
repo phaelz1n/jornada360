@@ -24,6 +24,23 @@ function parseMinutes(value) {
   return Number(text.replace(',', '.')) || 0;
 }
 
+function parseDurationMinutes(value) {
+  if (value instanceof Date) {
+    const epoch = Date.UTC(1899, 11, 30);
+    return Math.round((value.getTime() - epoch) / 60000);
+  }
+  return parseMinutes(value);
+}
+
+function formatTimeValue(value) {
+  if (value instanceof Date) return `${String(value.getUTCHours()).padStart(2, '0')}:${String(value.getUTCMinutes()).padStart(2, '0')}`;
+  if (typeof value === 'number') {
+    const total = Math.round((value % 1) * 1440);
+    return `${String(Math.floor(total / 60) % 24).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+  }
+  return String(value ?? '').trim();
+}
+
 export function detectColumns(header = []) {
   const normalized = header.map(normalizeHeader);
   return Object.fromEntries(Object.entries(aliases).map(([key, options]) => [key, normalized.findIndex(value => options.includes(value))]));
@@ -63,7 +80,7 @@ export function extractStandardRows(rows = []) {
   const nameColumn = header.findIndex(value => isDriverHeader(value));
   const extraColumn = header.findIndex(value => isExtraHeader(value));
   const scheduleColumns = header.map((value, index) => /^(horario|hora|entrada|saida|batida|jornada|turno)/.test(value) ? index : -1).filter(index => index >= 0 && index !== extraColumn);
-  return rows.slice(headerIndex + 1).map(row => ({ motorista: String(row[nameColumn] || '').trim(), extraNormalPadrao: parseMinutes(row[extraColumn]), horarios: scheduleColumns.map(index => String(row[index] || '').trim()).filter(value => /\d{1,2}:\d{2}/.test(value)) })).filter(row => row.motorista);
+  return rows.slice(headerIndex + 1).map(row => ({ motorista: String(row[nameColumn] || '').trim(), extraNormalPadrao: parseDurationMinutes(row[extraColumn]), horarios: scheduleColumns.map(index => formatTimeValue(row[index])).filter(value => /\d{1,2}:\d{2}/.test(value)) })).filter(row => row.motorista);
 }
 
 function dateKeyFromValue(value) {
