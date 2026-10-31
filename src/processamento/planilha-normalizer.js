@@ -52,13 +52,18 @@ export function extractReportDate(rows = []) {
 }
 
 export function extractStandardRows(rows = []) {
-  const headerIndex = rows.findIndex(row => row.some(cell => ['nome', 'motorista', 'colaborador', 'funcionario'].includes(normalizeHeader(cell))) && row.some(cell => normalizeHeader(cell).includes('extra')));
+  const isDriverHeader = value => ['nome', 'motorista', 'colaborador', 'funcionario', 'empregado'].includes(normalizeHeader(value));
+  const isExtraHeader = value => {
+    const key = normalizeHeader(value);
+    return key.includes('extra') || key.includes('horaextra') || key === 'he' || /^he[123]$/.test(key) || key.includes('adicional');
+  };
+  const headerIndex = rows.findIndex(row => row.some(isDriverHeader) && row.some(isExtraHeader));
   if (headerIndex < 0) return [];
   const header = rows[headerIndex].map(normalizeHeader);
-  const nameColumn = header.findIndex(value => ['nome', 'motorista', 'colaborador', 'funcionario'].includes(value));
-  const extraColumn = header.findIndex(value => value.includes('extra'));
-  const scheduleColumns = header.map((value, index) => value.startsWith('horario') ? index : -1).filter(index => index >= 0);
-  return rows.slice(headerIndex + 1).map(row => ({ motorista: String(row[nameColumn] || '').trim(), extraNormalPadrao: parseMinutes(row[extraColumn]), horarios: scheduleColumns.map(index => String(row[index] || '').trim()).filter(Boolean) })).filter(row => row.motorista);
+  const nameColumn = header.findIndex(value => isDriverHeader(value));
+  const extraColumn = header.findIndex(value => isExtraHeader(value));
+  const scheduleColumns = header.map((value, index) => /^(horario|hora|entrada|saida|batida|jornada|turno)/.test(value) ? index : -1).filter(index => index >= 0 && index !== extraColumn);
+  return rows.slice(headerIndex + 1).map(row => ({ motorista: String(row[nameColumn] || '').trim(), extraNormalPadrao: parseMinutes(row[extraColumn]), horarios: scheduleColumns.map(index => String(row[index] || '').trim()).filter(value => /\d{1,2}:\d{2}/.test(value)) })).filter(row => row.motorista);
 }
 
 function dateKeyFromValue(value) {
