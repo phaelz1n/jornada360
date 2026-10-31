@@ -119,7 +119,7 @@ export function crossSources({ pointRows = [], scaleRows = [], trackerRows = [],
       const scaleTime = timeOf(row.horario || row.inicio || row.horarioInicio);
       const trackerTime = timeOf(stop.horario);
       const sameLine = String(row.linha || row.nome || '').trim() && String(row.linha || row.nome || '').trim() === String(stop.linha || '').trim();
-      return sameLine || (scaleTime != null && trackerTime != null && Math.abs(scaleTime - trackerTime) <= 30);
+      return (sameLine && !stop.foraDaEscala) || (scaleTime != null && trackerTime != null && Math.abs(scaleTime - trackerTime) <= 30);
     }));
     const foraDaEscalaSemLinha = paradaAnalysis.paradas.find(stop => stop.foraDaEscala && !extraScaleRows.some(row => {
       const scaleTime = timeOf(row.horario || row.inicio || row.horarioInicio);
