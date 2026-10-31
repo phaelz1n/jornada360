@@ -10,6 +10,11 @@ test('cruza ponto, escala e rastreador pelo nome normalizado', () => {
 });
 
 test('classifica fonte ausente sem descartar o ponto', () => assert.equal(crossSources({ pointRows: [{ motorista: 'Bia' }] })[0].statusCruzamento, 'sem correspondência'));
+test('aponta motorista sem horário padrão mesmo sem hora extra', () => {
+  const [row] = crossSources({ pointRows: [{ motorista: 'Bia', he1min: 0 }], scaleRows: [{ nome: 'Bia', horario: '08:00' }] });
+  assert.equal(row.semHorarioPadrao, true);
+  assert.equal(row.padraoStatus, 'sem_cadastro');
+});
 test('aceita nome abreviado quando há uma única correspondência segura', () => {
   const [row] = crossSources({ pointRows: [{ motorista: 'Cristiano Barreto' }], scaleRows: [{ nome: 'Cristiano Francisco Barreto', horario: '16:30' }] });
   assert.equal(row.statusCruzamento, 'sem rastreador');

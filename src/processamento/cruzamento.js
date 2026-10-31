@@ -115,6 +115,8 @@ export function crossSources({ pointRows = [], scaleRows = [], trackerRows = [],
     const repeatedRealized = history.length >= 5 && history.slice(-5).every(value => Math.abs(Number(value) - totalHE) <= 5);
     return {
       ...point,
+      semHorarioPadrao: !standardRow,
+      padraoStatus: standardRow ? 'encontrado' : 'sem_cadastro',
       ...(standardRow ? { padraoCadastradoMin: standardRow.extraNormalPadrao, metaDiaMin: standardRow.extraNormalPadrao } : {}),
       ...(standardRow ? { heDentroPadraoMin: Math.min(totalHE, metaDiaMin), heAcimaPadraoMin: Math.max(0, totalHE - metaDiaMin) } : {}),
       evidenciaRastreador: trackerEvidence.evidence,
