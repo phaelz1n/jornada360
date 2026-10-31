@@ -34,7 +34,16 @@ function buildResult(items, days, forcedMetaDiaMin = null) {
   const normalized = items.map(normalizeItem);
   const summary = summarizeDay(normalized);
   const totalHEmin = normalized.reduce((total, item) => total + item.he1min + item.he2min + item.he3min, 0);
-  const metaDiaMin = forcedMetaDiaMin == null ? normalized.reduce((total, item) => total + (minutes(item.metaDiaMin) || 0), 0) : (minutes(forcedMetaDiaMin) || 0);
+  const dailyMeta = new Map();
+  normalized.forEach(item => {
+    const key = item.dateKey || 'sem-data';
+    dailyMeta.set(key, (dailyMeta.get(key) || 0) + (minutes(item.metaDiaMin) || 0));
+  });
+  const totalMetaLoaded = [...dailyMeta.values()].reduce((total, value) => total + value, 0);
+  const metaDays = Math.max(dailyMeta.size, days || 1);
+  const metaMediaDiariaMin = forcedMetaDiaMin == null ? Math.round(totalMetaLoaded / metaDays) : (minutes(forcedMetaDiaMin) || 0);
+  const metaPeriodoMin = forcedMetaDiaMin == null ? metaMediaDiariaMin * metaDays : metaMediaDiariaMin;
+  const metaDiaMin = metaPeriodoMin;
   const metaIndividual = item => {
     const value = minutes(item.padraoCadastradoMin ?? item.padraoMin ?? item.padraoMetaMin ?? item.metaPadraoMin ?? item.padraoCadastrado ?? item.extraNormalPadrao);
     return value != null && value > 0 ? value : null;
@@ -80,7 +89,7 @@ function buildResult(items, days, forcedMetaDiaMin = null) {
     current.itens.push(item);
     names.set(key, current);
   });
-  return { items: normalized, summary: { ...summary, registros: normalized.length, colaboradores: names.size, totalHEmin, metaDiaMin, excedenteVsMetaMin: totalHEmin - metaDiaMin, heDentroPadraoMin, heAcimaPadraoMin, semPadraoMin, motoristasComHE: driversWithHE.size, motoristasSemPadrao: driversWithoutStandard.size, mediaPorOcorrenciaMin, maxPorOcorrenciaMin: occurrences.at(-1) || 0, porSetorDetalhado: bySector }, porMotorista: [...names.values()], porSetor: summary.porSetor, diasProcessados: days };
+  return { items: normalized, summary: { ...summary, registros: normalized.length, colaboradores: names.size, totalHEmin, metaDiaMin, metaMediaDiariaMin, metaPeriodoMin, diasComMeta: dailyMeta.size, excedenteVsMetaMin: totalHEmin - metaPeriodoMin, heDentroPadraoMin, heAcimaPadraoMin, semPadraoMin, motoristasComHE: driversWithHE.size, motoristasSemPadrao: driversWithoutStandard.size, mediaPorOcorrenciaMin, maxPorOcorrenciaMin: occurrences.at(-1) || 0, porSetorDetalhado: bySector }, porMotorista: [...names.values()], porSetor: summary.porSetor, diasProcessados: days };
 }
 
 export function consultarDia(snapshots = [], dateKey, filters = {}) {

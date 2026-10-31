@@ -71,3 +71,13 @@ test('separa a HE prevista da HE excedente ao padrão', () => {
   assert.equal(consultarDia(extra, '2026-10-27').summary.heDentroPadraoMin, 120);
   assert.equal(consultarDia(extra, '2026-10-27').summary.heAcimaPadraoMin, 60);
 });
+test('calcula meta do período pela média diária dos padrões carregados', () => {
+  const snapshots = [
+    { dateKey: '2026-10-27', items: [{ motorista: 'Ana', he1min: 60, metaDiaMin: 60 }] },
+    { dateKey: '2026-10-28', items: [{ motorista: 'Ana', he1min: 120, metaDiaMin: 120 }] },
+  ];
+  const result = consultarPeriodo(snapshots, { inicio: '2026-10-27', fim: '2026-10-28' });
+  assert.equal(result.summary.metaMediaDiariaMin, 90);
+  assert.equal(result.summary.metaPeriodoMin, 180);
+  assert.equal(result.summary.excedenteVsMetaMin, 0);
+});
