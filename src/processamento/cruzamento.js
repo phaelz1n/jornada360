@@ -92,6 +92,7 @@ function buildEvidence({ batidas = [], paradaAnalysis, totalHE = 0, metaDiaMin =
       status: confirmed ? 'confirmada' : 'sem-evidencia',
       motivo: confirmed ? (stop?.motivo || 'rastreio-próximo') : (stops.length ? 'nenhuma-parada-proxima' : 'sem-rastreio-no-periodo'),
       escalaHorario: stop?.escalaHorario || '',
+      linhaEscala: stop?.linha || '',
       local: stop?.local || ''
     };
   });
