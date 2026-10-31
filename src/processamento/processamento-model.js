@@ -45,7 +45,7 @@ export function prepareProcessedDay({ dateKey, items = [], source = 'importacao'
   const metaDiaMin = normalizedItems.reduce((sum, item) => sum + Math.max(0, standardFor(item)), 0);
   const heDentroPadraoMin = normalizedItems.reduce((sum, item) => { const he = Number(item.he1min || 0) + Number(item.he2min || 0) + Number(item.he3min || 0); return sum + Math.min(he, Math.max(0, standardFor(item))); }, 0);
   const compactItem = item => {
-    const { rastreio, paradasRastreador, linhasEscala, batidas, ...numbersAndStatus } = item;
+    const { rastreio, paradasRastreador, linhasEscala, ...numbersAndStatus } = item;
     return {
       ...numbersAndStatus,
       setorAtual: classifyDriverSector(item, cadastro),

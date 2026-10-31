@@ -29,7 +29,11 @@ export function snapshotItemsToChecklist(items = []) {
       padraoSuspeito: Boolean(item.padraoSuspeito),
       escalaEncontrada: Boolean(item.escalaEncontrada),
       escala: item.escala || null,
-      linhaExtraCandidata: Boolean(item.linhaExtraCandidata)
+      linhaExtraCandidata: Boolean(item.linhaExtraCandidata),
+      batidas: Array.isArray(item.batidas) ? item.batidas : [],
+      padraoHorarios: Array.isArray(item.padraoHorarios) ? item.padraoHorarios : [],
+      detalhe: item.detalhe || '',
+      padraoStatus: item.padraoStatus || ''
     };
   });
 }
