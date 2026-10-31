@@ -25,7 +25,7 @@ test('mostra parada fora do padrão como possível trânsito quando a escala e o
 
 test('separa parada nova para cadastro de padrão', () => {
   const result = analisarParadasRastreador({
-    escala: [{ inicio: '10:00', fim: '12:00', linha: 'Linha A' }],
+    escala: [],
     rastreador: { paradas: [{ horario: '13:45', duracaoMin: 20, local: 'Local novo' }] },
     paradasConhecidas: [{ local: 'Terminal', horario: '10:05' }]
   });

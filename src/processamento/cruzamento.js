@@ -115,7 +115,17 @@ export function crossSources({ pointRows = [], scaleRows = [], trackerRows = [],
     const history = patternHistory?.[key] || [];
     const repeatedRealized = history.length >= 5 && history.slice(-5).every(value => Math.abs(Number(value) - totalHE) <= 5);
     const extraScaleRows = scaleRows.filter(row => !lineMatchesStandard(row, standardRow));
-    const trackerExtraLine = paradaAnalysis.paradas.find(stop => extraScaleRows.some(row => String(row.linha || row.nome || '') === String(stop.linha || '')));
+    const trackerExtraLine = paradaAnalysis.paradas.find(stop => extraScaleRows.some(row => {
+      const scaleTime = timeOf(row.horario || row.inicio || row.horarioInicio);
+      const trackerTime = timeOf(stop.horario);
+      const sameLine = String(row.linha || row.nome || '').trim() && String(row.linha || row.nome || '').trim() === String(stop.linha || '').trim();
+      return sameLine || (scaleTime != null && trackerTime != null && Math.abs(scaleTime - trackerTime) <= 30);
+    }));
+    const foraDaEscalaSemLinha = paradaAnalysis.paradas.find(stop => stop.foraDaEscala && !extraScaleRows.some(row => {
+      const scaleTime = timeOf(row.horario || row.inicio || row.horarioInicio);
+      const trackerTime = timeOf(stop.horario);
+      return scaleTime != null && trackerTime != null && Math.abs(scaleTime - trackerTime) <= 30;
+    }));
     return {
       ...point,
       semHorarioPadrao: !standardRow,
@@ -131,6 +141,8 @@ export function crossSources({ pointRows = [], scaleRows = [], trackerRows = [],
       linhasEscala: scaleRows,
       linhaExtraCandidata: Boolean(trackerExtraLine),
       linhaExtraDetalhe: trackerExtraLine ? `Possível linha extra: ${trackerExtraLine.linha || 'linha da escala'} — consta na escala de ${point.dateKey || 'do relatório'} e há rastreio compatível, mas não consta no horário padrão.` : '',
+      foraDaEscalaProblema: Boolean(foraDaEscalaSemLinha),
+      foraDaEscalaDetalhe: foraDaEscalaSemLinha ? `Problema para conferir: o veículo rodou às ${foraDaEscalaSemLinha.horario}, mas esse horário não bateu com nenhuma linha da escala de ${point.dateKey || 'do relatório'}.` : '',
       rastreioEncontrado: Boolean(trackerRow),
       rastreio: rastreioCompacto,
       paradasRastreador: paradaAnalysis.paradas,

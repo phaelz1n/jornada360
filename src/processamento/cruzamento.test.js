@@ -80,3 +80,15 @@ test('marca linha da escala e rastreador como possível extra quando ausente no 
   assert.equal(row.linhaExtraCandidata, true);
   assert.match(row.linhaExtraDetalhe, /Droga Raia/);
 });
+
+test('separa problema fora da escala de possível linha extra', () => {
+  const [row] = crossSources({
+    pointRows: [{ motorista: 'Ana', dateKey: '2026-10-27', he1min: 30 }],
+    scaleRows: [{ motorista: 'Ana', horario: '08:00', linha: 'Linha padrão' }, { motorista: 'Ana', horario: '16:30', linha: 'Droga Raia' }],
+    standardRows: [{ motorista: 'Ana', extraNormalPadrao: 0, horarios: ['08:00'] }],
+    trackerRows: [{ motorista: 'Ana', paradas: [{ horario: '19:25', local: 'Local não previsto' }] }]
+  });
+  assert.equal(row.linhaExtraCandidata, false);
+  assert.equal(row.foraDaEscalaProblema, true);
+  assert.match(row.foraDaEscalaDetalhe, /19:25/);
+});
