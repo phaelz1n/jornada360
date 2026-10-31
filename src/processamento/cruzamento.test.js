@@ -42,7 +42,7 @@ test('usa a coluna EXTRA individual do horário padrão', () => {
 
 test('separa extra dentro e fora do padrão e informa evidência do rastreador', () => {
   const [row] = crossSources({
-    pointRows: [{ motorista: 'Ademir Monteiro', totalHE: 30, he1min: 30, batidas: ['08:00', '12:30'] }],
+    pointRows: [{ motorista: 'Ademir Monteiro', totalHE: 30, he1min: 30, batidas: ['12:20', '12:30'] }],
     standardRows: [{ motorista: 'Ademir Monteiro', extraNormalPadrao: 10, horarios: ['08:00'] }],
     trackerRows: [{ colaborador: 'Ademir Monteiro', paradas: [{ horario: '12:20', duracaoMin: 20 }] }]
   });

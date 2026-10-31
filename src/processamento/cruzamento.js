@@ -53,14 +53,19 @@ function buildEvidence({ batidas = [], paradaAnalysis, totalHE = 0, metaDiaMin =
   const stops = paradaAnalysis?.paradas || [];
   const punches = batidas.map(minutes).filter(value => value != null);
   const outside = Math.max(0, Number(totalHE) - Number(metaDiaMin));
-  const evidence = stops.map(stop => ({
-    horario: stop.horario,
-    diferencaMin: stop.diferencaMin,
-    status: stop.status === 'confirmada' || punches.some(punch => Math.abs(punch - minutes(stop.horario)) <= 15) ? 'confirmada' : 'sem-evidencia',
-    motivo: stop.motivo,
-    escalaHorario: stop.escalaHorario,
-    local: stop.local
-  }));
+  const evidence = punches.map(punch => {
+    const nearest = stops.map(stop => ({ stop, distance: Math.abs(punch - minutes(stop.horario)) })).sort((a, b) => a.distance - b.distance)[0];
+    const stop = nearest?.stop;
+    const confirmed = Boolean(nearest && nearest.distance <= 15);
+    return {
+      horario: `${String(Math.floor(punch / 60) % 24).padStart(2, '0')}:${String(punch % 60).padStart(2, '0')}`,
+      diferencaMin: nearest ? nearest.distance : null,
+      status: confirmed ? 'confirmada' : 'sem-evidencia',
+      motivo: confirmed ? (stop?.motivo || 'rastreio-próximo') : (stops.length ? 'nenhuma-parada-proxima' : 'sem-rastreio-no-periodo'),
+      escalaHorario: stop?.escalaHorario || '',
+      local: stop?.local || ''
+    };
+  });
   if (!evidence.length && outside > 0) evidence.push({ horario: '', diferencaMin: null, status: 'sem-evidencia', motivo: 'nenhuma-parada-proxima', local: '' });
   return { evidence, outside };
 }
