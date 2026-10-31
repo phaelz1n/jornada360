@@ -81,3 +81,7 @@ test('calcula meta do período pela média diária dos padrões carregados', () 
   assert.equal(result.summary.metaPeriodoMin, 180);
   assert.equal(result.summary.excedenteVsMetaMin, 0);
 });
+test('desconsidera padrões negativos na meta do período', () => {
+  const result = consultarPeriodo([{ dateKey: '2026-10-27', items: [{ motorista: 'Ana', he1min: 60, metaDiaMin: -10 }, { motorista: 'Bia', he1min: 60, metaDiaMin: 20 }] }], { inicio: '2026-10-27', fim: '2026-10-27' });
+  assert.equal(result.summary.metaPeriodoMin, 20);
+});

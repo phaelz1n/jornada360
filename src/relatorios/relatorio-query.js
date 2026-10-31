@@ -37,11 +37,11 @@ function buildResult(items, days, forcedMetaDiaMin = null) {
   const dailyMeta = new Map();
   normalized.forEach(item => {
     const key = item.dateKey || 'sem-data';
-    dailyMeta.set(key, (dailyMeta.get(key) || 0) + (minutes(item.metaDiaMin) || 0));
+    dailyMeta.set(key, (dailyMeta.get(key) || 0) + Math.max(0, minutes(item.metaDiaMin) || 0));
   });
   const totalMetaLoaded = [...dailyMeta.values()].reduce((total, value) => total + value, 0);
   const metaDays = Math.max(dailyMeta.size, days || 1);
-  const metaMediaDiariaMin = forcedMetaDiaMin == null ? Math.round(totalMetaLoaded / metaDays) : (minutes(forcedMetaDiaMin) || 0);
+  const metaMediaDiariaMin = forcedMetaDiaMin == null ? Math.round(totalMetaLoaded / metaDays) : Math.max(0, minutes(forcedMetaDiaMin) || 0);
   const metaPeriodoMin = forcedMetaDiaMin == null ? metaMediaDiariaMin * metaDays : metaMediaDiariaMin;
   const metaDiaMin = metaPeriodoMin;
   const metaIndividual = item => {
