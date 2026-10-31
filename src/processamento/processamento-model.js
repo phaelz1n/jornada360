@@ -23,7 +23,7 @@ function normalizeExtraBuckets(item = {}) {
   return item;
 }
 
-export function summarizeDay(items = []) {
+export function summarizeDay(items = [], cadastro = {}) {
   return items.reduce((summary, item) => {
     summary.registros += 1;
     summary.he1min += Number(item.he1min || 0);
@@ -31,15 +31,15 @@ export function summarizeDay(items = []) {
     summary.he3min += Number(item.he3min || 0);
     if (item.interjornada) summary.interjornada += 1;
     if (item.intrajornada || item.intraJornada || item.temLacuna) summary.intrajornada += 1;
-    const setor = classifyDriverSector(item);
+    const setor = classifyDriverSector(item, cadastro);
     summary.porSetor[setor] = (summary.porSetor[setor] || 0) + 1;
     return summary;
   }, { registros: 0, he1min: 0, he2min: 0, he3min: 0, interjornada: 0, intrajornada: 0, porSetor: {} });
 }
 
-export function prepareProcessedDay({ dateKey, items = [], source = 'importacao' }) {
+export function prepareProcessedDay({ dateKey, items = [], source = 'importacao', cadastro = {} }) {
   const normalizedItems = items.map(normalizeExtraBuckets);
-  const summary = summarizeDay(normalizedItems);
+  const summary = summarizeDay(normalizedItems, cadastro);
   const totalHEmin = normalizedItems.reduce((sum, item) => sum + Number(item.he1min || 0) + Number(item.he2min || 0) + Number(item.he3min || 0), 0);
   const standardFor = item => Number(item.padraoCadastradoMin ?? item.padraoMin ?? item.metaDiaMin ?? item.extraNormalPadrao ?? 0) || 0;
   const metaDiaMin = normalizedItems.reduce((sum, item) => sum + Math.max(0, standardFor(item)), 0);
@@ -48,7 +48,7 @@ export function prepareProcessedDay({ dateKey, items = [], source = 'importacao'
     const { rastreio, paradasRastreador, linhasEscala, batidas, ...numbersAndStatus } = item;
     return {
       ...numbersAndStatus,
-      setorAtual: classifyDriverSector(item),
+      setorAtual: classifyDriverSector(item, cadastro),
       evidenciaRastreador: Array.isArray(item.evidenciaRastreador) ? item.evidenciaRastreador.slice(0, 20).map(evidence => ({ horario: evidence.horario || '', diferencaMin: evidence.diferencaMin ?? null, status: evidence.status || 'sem-evidencia', motivo: evidence.motivo || '' })) : [],
       ...(item.resumoRastreador ? { resumoRastreador: { total: Number(item.resumoRastreador.total) || 0, novas: Number(item.resumoRastreador.novas) || 0, possiveisTransitos: Number(item.resumoRastreador.possiveisTransitos) || 0, confirmadas: Number(item.resumoRastreador.confirmadas) || 0 } } : {})
     };

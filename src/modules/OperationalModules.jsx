@@ -63,9 +63,10 @@ export function ReportsPanel(props) {
   return <><AvailableReportDays snapshots={props.snapshots || []} selected={selected} onSelect={setSelected} /><ReportsPanelBody {...props} initialDate={selected} /></>;
 }
 
-export function RegistersPanel({ items = [] }) {
+export function RegistersPanel({ items = [], drivers = [] }) {
   const [filter, setFilter] = useState('');
-  const [sectors, setSectors] = useState(() => Object.fromEntries(items.map(item => [item.motorista, item.setorAtual || item.setor || 'Sem setor'])));
+  const [sectors, setSectors] = useState(() => Object.fromEntries([...items.map(item => [item.motorista, item.setorAtual || item.setor || 'Sem setor']), ...drivers.map(driver => [driver.nome, driver.setor || driver.categoria || 'Sem setor'])]));
+  useEffect(() => { if (drivers.length) setSectors(current => ({ ...current, ...Object.fromEntries(drivers.map(driver => [driver.nome, driver.setor || driver.categoria || 'Sem setor'])) })); }, [drivers]);
   const names = [...new Set(items.map(item => item.motorista).filter(Boolean))].sort((a, b) => a.localeCompare(b));
   const visible = names.filter(name => name.toLocaleLowerCase('pt-BR').includes(filter.toLocaleLowerCase('pt-BR'))).slice(0, 50);
   async function save(name, sector) { setSectors(current => ({ ...current, [name]: sector })); try { const { saveDriver } = await import('../lib/firestore-writes.js'); await saveDriver({ nome: name, setor: sector }); } catch { /* permanece na sessão até o Firebase voltar */ } }

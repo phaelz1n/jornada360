@@ -12,6 +12,11 @@ test('prepara resultado persistível sem perder itens', () => {
   assert.equal(result.dateKey, '2026-10-29');
   assert.equal(result.items[0].setorAtual, 'Sem setor');
 });
+test('reutiliza setor salvo no cadastro ao preparar nova importação', () => {
+  const result = prepareProcessedDay({ dateKey: '2026-10-29', cadastro: { 'ANA SILVA': { nome: 'Ana Silva', setor: 'ADM' } }, items: [{ motorista: 'Ana Silva', he1min: 12 }] });
+  assert.equal(result.items[0].setorAtual, 'ADM');
+  assert.equal(result.summary.porSetor.ADM, 1);
+});
 test('classifica o excedente acima de duas horas como HE.2', () => {
   assert.deepEqual(splitExtraHours(150), { he1min: 120, he2min: 30, he3min: 0 });
   assert.deepEqual(splitExtraHours(120), { he1min: 120, he2min: 0, he3min: 0 });

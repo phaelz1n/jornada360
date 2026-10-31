@@ -23,6 +23,7 @@ function ChecklistHistory({ liveData }) {
 export function AppShell({ user, dashboardData, onLogout }) {
   const [activeSection, setActiveSection] = useState('Início');
   const [liveData, setLiveData] = useState(dashboardData || { items: [], snapshots: [] });
+  const [motoristas, setMotoristas] = useState([]);
   const [eventos, setEventos] = useState([]);
   const [profileOpen, setProfileOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('jornada360:dark-mode') === 'true');
@@ -53,6 +54,7 @@ export function AppShell({ user, dashboardData, onLogout }) {
   useEffect(() => {
     let unsubscribe = () => {};
     let unsubscribeEvents = () => {};
+    let unsubscribeDrivers = () => {};
     import('../lib/firestore-store.js').then(({ firestoreStore }) => {
       unsubscribe = firestoreStore.subscribe('snapshots_dias', snapshots => {
         const ordered = snapshots.filter(item => item.dateKey).sort((a, b) => String(a.dateKey).localeCompare(String(b.dateKey)));
@@ -60,15 +62,17 @@ export function AppShell({ user, dashboardData, onLogout }) {
         if (latest) setLiveData(current => ({ ...current, items: latest.items || [], dateKey: latest.dateKey, snapshots: ordered, source: 'firebase' }));
       }, () => {});
       unsubscribeEvents = firestoreStore.subscribe('ocorrencias', setEventos, () => setEventos([]));
+      unsubscribeDrivers = firestoreStore.subscribe('motoristas', setMotoristas, () => setMotoristas([]));
     }).catch(() => {});
-    return () => { unsubscribe(); unsubscribeEvents(); };
+    return () => { unsubscribe(); unsubscribeEvents(); unsubscribeDrivers(); };
   }, []);
 
   async function handleImportComplete(payload) {
     const pointRows = extractPointRows(payload.rowData?.espelhoHoje || []);
     const dateKey = extractReportDate(payload.rowData?.espelhoHoje || []) || payload.dateKey || new Date().toISOString().slice(0, 10);
     const items = crossSources({ pointRows: pointRows.map(row => ({ ...row, dateKey })), scaleRows: payload.rowData?.escala?.slice(1).map(row => ({ motorista: row?.[0], horario: row?.[1], linha: row?.[2], dados: row })) || [], trackerRows: normalizeTrackerRows(payload.rowData?.rastreador || []), standardRows: extractStandardRows(payload.rowData?.horarioPadrao || []) });
-    const processedDay = prepareProcessedDay({ dateKey, items });
+    const cadastro = Object.fromEntries(motoristas.map(driver => [String(driver.nome || '').trim().toLocaleUpperCase('pt-BR'), driver]));
+    const processedDay = prepareProcessedDay({ dateKey, items, cadastro });
     const record = buildImportRecord(payload);
     try {
       const { saveImportRecord, saveProcessedDay } = await import('../lib/firestore-writes.js');
@@ -100,7 +104,7 @@ export function AppShell({ user, dashboardData, onLogout }) {
         {activeSection === 'Checklist' && <ChecklistHistory liveData={liveData} />}
         {activeSection === 'Processamento' && <ProcessingPanel items={liveData?.items} />}
         {activeSection === 'Relatórios' && <ReportsPanel items={liveData?.items} snapshots={liveData?.snapshots} />}
-        {activeSection === 'Cadastros' && <RegistersPanel items={liveData?.items} />}
+        {activeSection === 'Cadastros' && <RegistersPanel items={liveData?.items} drivers={motoristas} />}
         {activeSection === 'Firebase' && <MigrationPanel onMigrated={snapshot => dashboardData?.items !== snapshot.items && window.dispatchEvent(new CustomEvent('jornada360:data-updated', { detail: snapshot }))} />}
         {activeSection === 'Início' && <InicioDashboard snapshots={liveData?.snapshots || []} eventos={eventos} />}
         {activeSection === 'Ocorrências' && <OcorrenciasPanel />}
