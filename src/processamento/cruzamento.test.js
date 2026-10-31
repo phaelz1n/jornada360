@@ -115,5 +115,7 @@ test('calcula extra efetiva comparando duração das batidas com o padrão', () 
   });
   assert.equal(row.extraCalculadaPelasBatidas, true);
   assert.equal(row.batidasExtraMin, 0);
+  assert.equal(row.he1min, 0);
+  assert.equal(row.totalHE, 0);
   assert.equal(row.heAcimaPadraoMin, 0);
 });

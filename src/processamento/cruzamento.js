@@ -181,6 +181,7 @@ export function crossSources({ pointRows = [], previousPointRows = [], scaleRows
     }));
     return {
       ...point,
+      ...(batidasExtra != null ? { totalHE: totalHE, excedenteMin: totalHE, he1min: totalHE, he2min: 0, he3min: 0, heBucketsExplicit: true } : {}),
       ...intervalAnalysis,
       descansoInterjornadaMin,
       interjornadaProblema: descansoInterjornadaMin != null ? descansoInterjornadaMin < 660 : intervalAnalysis.interjornadaProblema,
