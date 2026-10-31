@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { IMPORT_SOURCES, createImportState, setSourceFile } from './importacao-model.js';
 import { readWorkbookRows } from './xlsx-reader.js';
+import { extractReportDate } from '../processamento/planilha-normalizer.js';
 
 function formatSize(bytes) {
   if (!bytes) return '';
@@ -26,6 +27,10 @@ export function ImportacaoPanel({ onProcess }) {
     if (file && window.XLSX) {
       try {
         const rows = await readWorkbookRows(file, window.XLSX);
+        if (sourceId === 'espelhoHoje') {
+          const detectedDate = extractReportDate(rows);
+          if (detectedDate) setDateKey(detectedDate);
+        }
         setRowData(current => ({ ...current, [sourceId]: rows }));
         setState(current => ({ ...current, rows: { ...(current.rows || {}), [sourceId]: rows.length } }));
       } catch (error) {
