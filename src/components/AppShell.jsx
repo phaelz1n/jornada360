@@ -94,9 +94,9 @@ export function AppShell({ user, dashboardData, onLogout }) {
     const processedDay = prepareProcessedDay({ dateKey, items, cadastro });
     const record = buildImportRecord(payload);
     try {
-      const { saveImportRecord, saveProcessedDay } = await import('../lib/firestore-writes.js');
-      await saveImportRecord(record);
-      if (pointRows.length) await saveProcessedDay(processedDay);
+      const { saveImportRecord, saveProcessedDay, saveImportAndProcessedDay } = await import('../lib/firestore-writes.js');
+      if (pointRows.length) await saveImportAndProcessedDay(record, processedDay);
+      else await saveImportRecord(record);
       window.dispatchEvent(new CustomEvent('jornada360:data-updated', { detail: processedDay }));
     } catch (error) {
       console.warn('Não foi possível salvar o histórico de importação:', error);

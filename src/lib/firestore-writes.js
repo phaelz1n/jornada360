@@ -2,6 +2,7 @@ import { doc, setDoc, writeBatch } from 'firebase/firestore';
 import { firebaseApp } from './firebase.js';
 import { getFirestore } from 'firebase/firestore';
 import { createSnapshotWritePlan } from '../dados/snapshot-write-plan.js';
+import { createImportSyncPlan } from '../dados/import-sync-plan.js';
 
 const db = getFirestore(firebaseApp);
 
@@ -36,5 +37,11 @@ export async function saveProcessedDay(day) {
   // precisam substituir o conteúdo anterior daquele dia.
   const batch = writeBatch(db);
   createSnapshotWritePlan(day).forEach(write => batch.set(doc(db, write.collection, write.id), write.data, write.merge ? { merge: true } : undefined));
+  await batch.commit();
+}
+
+export async function saveImportAndProcessedDay(record, day) {
+  const batch = writeBatch(db);
+  createImportSyncPlan(record, day).forEach(write => batch.set(doc(db, write.collection, write.id), write.data, write.merge ? { merge: true } : undefined));
   await batch.commit();
 }
