@@ -39,6 +39,16 @@ test('calcula extra do ADM acima de oito horas em dia útil', () => {
   assert.equal(row.totalHE, 60);
   assert.equal(row.jornadaBaseMin, 480);
 });
+test('calcula extra da Reserva pela base de sete horas e vinte sem rastreador', () => {
+  const [row] = crossSources({
+    pointRows: [{ motorista: 'Bruno Reserva', dateKey: '2026-11-03', batidas: ['08:00', '12:00', '13:00', '16:20'] }],
+    cadastro: { 'BRUNO RESERVA': { setor: 'Reserva' } }
+  });
+  assert.equal(row.totalHE, 0);
+  assert.equal(row.jornadaBaseMin, 440);
+  assert.equal(row.rastreadorStatus, 'nao-aplicavel');
+  assert.equal(row.padraoStatus, 'dispensado_reserva');
+});
 test('aponta motorista sem horário padrão mesmo sem hora extra', () => {
   const [row] = crossSources({ pointRows: [{ motorista: 'Bia', he1min: 0 }], scaleRows: [{ nome: 'Bia', horario: '08:00' }] });
   assert.equal(row.semHorarioPadrao, true);

@@ -46,6 +46,11 @@ function admBaseMinutes(dateKey) {
   return weekday === 6 ? 240 : 480;
 }
 
+function exemptSectorBaseMinutes(setor, dateKey) {
+  if (String(setor).trim().toLocaleUpperCase('pt-BR') === 'RESERVA') return 440;
+  return admBaseMinutes(dateKey);
+}
+
 function isOvernightJourney(point = {}, escala = []) {
   const punches = (point.batidas || []).map(minutes).filter(value => value != null);
   if (punches.some((value, index) => index > 0 && value < punches[index - 1] - 60)) return true;
@@ -124,7 +129,8 @@ export function crossSources({ pointRows = [], previousPointRows = [], scaleRows
   return pointRows.map(point => {
     const key = normalizeDriverName(point.motorista);
     const setor = cadastro[key]?.setor || cadastro[key]?.categoria || '';
-    const rastreioDispensado = String(setor).trim().toLocaleUpperCase('pt-BR') === 'ADM';
+    const setorNormalizado = String(setor).trim().toLocaleUpperCase('pt-BR');
+    const rastreioDispensado = setorNormalizado === 'ADM' || setorNormalizado === 'RESERVA';
     const scaleRows = findDriver(scale, key) || [];
     const trackerMatch = findDriver(tracker, key);
     const rawTrackerRow = Array.isArray(trackerMatch) ? trackerMatch[0] : trackerMatch;
@@ -174,7 +180,7 @@ export function crossSources({ pointRows = [], previousPointRows = [], scaleRows
     const batidasExtra = actualDuration && standardDuration ? Math.max(0, actualDuration - standardDuration) : null;
     const hasReportedExtra = ['totalHE', 'he1min', 'he2min', 'he3min', 'excedenteMin'].some(field => point[field] != null);
     const standardExtra = Number(standardRow?.extraNormalPadrao);
-    const jornadaBaseMin = rastreioDispensado ? admBaseMinutes(point.dateKey) : null;
+    const jornadaBaseMin = rastreioDispensado ? exemptSectorBaseMinutes(setor, point.dateKey) : null;
     const admExtra = rastreioDispensado && actualDuration > 0 ? Math.max(0, actualDuration - jornadaBaseMin) : null;
     const effectiveExtra = admExtra ?? batidasExtra;
     const extraScaleRows = scaleRows.filter(row => !lineMatchesStandard(row, standardRow));
@@ -211,7 +217,7 @@ export function crossSources({ pointRows = [], previousPointRows = [], scaleRows
       descansoInterjornadaMin,
       interjornadaProblema: descansoInterjornadaMin != null ? descansoInterjornadaMin < 660 : intervalAnalysis.interjornadaProblema,
       semHorarioPadrao: !standardRow && !rastreioDispensado,
-      padraoStatus: standardRow ? 'encontrado' : rastreioDispensado ? 'dispensado_adm' : 'sem_cadastro',
+      padraoStatus: standardRow ? 'encontrado' : rastreioDispensado ? `dispensado_${setorNormalizado.toLocaleLowerCase('pt-BR')}` : 'sem_cadastro',
       ...(rastreioDispensado ? { jornadaBaseMin } : {}),
       ...(standardRow ? { padraoCadastradoMin: standardRow.extraNormalPadrao, metaDiaMin: standardRow.extraNormalPadrao } : {}),
       ...(standardRow ? { padraoHorarios: standardRow.horarios || [] } : {}),
