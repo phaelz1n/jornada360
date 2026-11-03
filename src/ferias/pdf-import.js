@@ -22,9 +22,11 @@ export function parseVacationPdfText(text, sourceImportId = '') {
     const block = source.slice(match.index, blockEnd > match.index ? blockEnd : source.length);
     const next = block.match(new RegExp(`Próximas férias: \\| ${DATE} \\| até \\| ${DATE} \\| ${DATE} \\| (\\d+)`));
     if (!next) continue;
+    const roleMatch = block.match(/(?:Cargo|Função|Funcao|Função do trabalhador)\s*:\s*([^|]+)/i);
     records.push(normalizeVacationRecord({
       codigo: '',
       trabalhador: match[2],
+      cargo: roleMatch?.[1] || '',
       saldo: next[4],
       limiteGozo: brDate(next[3]),
       periodoAquisitivo: `${next[1]} a ${next[2]}`,

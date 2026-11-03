@@ -51,11 +51,16 @@ export function normalizeVacationRecord(input = {}) {
   return {
     employeeCode: normalizeText(input.employeeCode ?? input.codigo ?? input.codReg),
     employeeName: normalizeText(input.employeeName ?? input.trabalhador ?? input.nome),
+    role: normalizeText(input.role ?? input.cargo ?? input.funcao),
     balanceDays: numberValue(input.balanceDays ?? input.saldo),
     gozoLimit: normalizeDate(input.gozoLimit ?? input.limiteGozo),
     accrualPeriod: normalizeText(input.accrualPeriod ?? input.periodoAquisitivo),
     sourceImportId: normalizeText(input.sourceImportId ?? input.origem ?? input.importId)
   };
+}
+
+export function isDriverRole(role) {
+  return /motorista|condutor|ferista/i.test(String(role || ''));
 }
 
 export function validateVacationSuggestion({ today, startDate, endDate, employee = {}, shift, ferista }) {

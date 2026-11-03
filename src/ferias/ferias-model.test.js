@@ -22,6 +22,7 @@ test('normaliza registro importado e preserva origem', () => {
   assert.deepEqual(record, {
     employeeCode: '42',
     employeeName: 'Ana Maria',
+    role: '',
     balanceDays: 30,
     gozoLimit: '2026-12-15',
     accrualPeriod: '01/01/2025 a 31/12/2025',

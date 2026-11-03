@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { businessDaysBefore, detectVacationConflicts, validateVacationSuggestion, suggestVacation } from './ferias-model.js';
+import { businessDaysBefore, detectVacationConflicts, isDriverRole, validateVacationSuggestion, suggestVacation } from './ferias-model.js';
 import { acceptSuggestion, cancelProgramacao, persistPersonShift, persistSuggestion, persistTurno, persistVacationImport, subscribeFeriasData } from './ferias-store.js';
 import { extractVacationPdf, parseVacationPdfText } from './pdf-import.js';
 
@@ -14,7 +14,7 @@ function StatusBadge({ children, tone = 'blue' }) {
   return <span className={`ferias-status ${tone}`}>{children}</span>;
 }
 
-export function FeriasPanel({ user }) {
+export function FeriasPanel({ user, motoristas = [] }) {
   const [tab, setTab] = useState('visao');
   const [turnos, setTurnos] = useState([]);
   const [feristas, setFeristas] = useState([]);
@@ -43,8 +43,16 @@ export function FeriasPanel({ user }) {
     approved: programacoes.filter(item => item.status === 'aprovada').length,
     pending: suggestions.filter(item => item.status === 'com_pendencias').length,
     unassigned: people.filter(person => !personShifts[person.employeeCode || person.employeeName]).length,
+    nonDrivers: people.filter(person => !isEligibleDriver(person)).length,
     conflicts: detectVacationConflicts(suggestions).length
-  }), [suggestions, programacoes, people, personShifts]);
+  }), [suggestions, programacoes, people, personShifts, motoristas]);
+
+  function normalizeName(value) { return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, ''); }
+  function isEligibleDriver(person) {
+    if (person.role) return isDriverRole(person.role);
+    if (!motoristas.length) return true;
+    return motoristas.some(driver => normalizeName(driver.nome) === normalizeName(person.employeeName));
+  }
 
   function addTurno(event) {
     event.preventDefault();
@@ -57,7 +65,8 @@ export function FeriasPanel({ user }) {
 
   function generateExampleSuggestion() {
     if (!people.length) { setNotice('Importe a previsão de férias antes de gerar sugestões.'); setTab('importar'); return; }
-    const employees = people;
+    const employees = people.filter(isEligibleDriver);
+    if (!employees.length) { setNotice('Nenhum motorista elegível foi encontrado no cadastro.'); return; }
     const generated = employees.map((employee, index) => {
       const shiftId = personShifts[employee.id || employee.employeeName] || turnos[0]?.id;
       const shift = turnos.find(item => item.id === shiftId) || null;
