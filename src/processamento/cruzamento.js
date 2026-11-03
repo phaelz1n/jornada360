@@ -173,6 +173,10 @@ export function crossSources({ pointRows = [], previousPointRows = [], scaleRows
       return (sameLine && !stop.foraDaEscala) || (scaleTime != null && trackerTime != null && Math.abs(scaleTime - trackerTime) <= 30);
     }));
     const extraValidatedBySources = Boolean(trackerExtraLine);
+    const extraCandidate = Math.max(0, reportedHE, batidasExtra || 0);
+    const extraAuditoriaStatus = standardExtra <= 0 && extraCandidate > 0
+      ? trackerExtraLine ? 'linha-extra-com-rastreio' : extraScaleRows.length ? 'possivel-linha-extra' : trackerRow ? 'rastreio-sem-linha' : 'sem-escala-sem-rastreio'
+      : 'sem-extra';
     const totalHE = standardExtra > 0 && hasReportedExtra
       ? reportedHE
       : standardExtra <= 0 && hasReportedExtra && extraValidatedBySources
@@ -207,6 +211,9 @@ export function crossSources({ pointRows = [], previousPointRows = [], scaleRows
       linhasEscala: scaleRows,
       linhaExtraCandidata: Boolean(trackerExtraLine),
       linhaExtraDetalhe: trackerExtraLine ? `Possível linha extra: ${trackerExtraLine.linha || 'linha da escala'} — consta na escala de ${point.dateKey || 'do relatório'} e há rastreio compatível, mas não consta no horário padrão.` : '',
+      extraAuditoriaStatus,
+      extraCandidataMin: standardExtra <= 0 ? extraCandidate : 0,
+      extraAuditoriaDetalhe: extraAuditoriaStatus === 'possivel-linha-extra' ? 'Há uma linha na escala fora do horário padrão, mas falta confirmação do rastreador.' : extraAuditoriaStatus === 'rastreio-sem-linha' ? 'Há rastreio no período, mas não foi encontrada linha correspondente na escala.' : extraAuditoriaStatus === 'sem-escala-sem-rastreio' ? 'Há extra candidata no ponto, mas não foi encontrada escala nem rastreio para comprovação.' : '',
       foraDaEscalaProblema: Boolean(foraDaEscalaSemLinha),
       foraDaEscalaDetalhe: foraDaEscalaSemLinha ? `Problema para conferir: o veículo rodou às ${foraDaEscalaSemLinha.horario}, mas esse horário não bateu com nenhuma linha da escala de ${point.dateKey || 'do relatório'}.` : '',
       rastreioEncontrado: Boolean(trackerRow),

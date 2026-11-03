@@ -53,6 +53,13 @@ test('preserva padrão, divisão da HE e evidência do rastreador no checklist',
   assert.equal(item.evidenciaRastreador[0].status, 'confirmada');
 });
 
+test('não esconde extra candidata de padrão negativo no checklist', () => {
+  const [item] = snapshotItemsToChecklist([{ motorista: 'Ademar', he1min: 0, padraoCadastradoMin: -25, extraCandidataMin: 25, extraAuditoriaStatus: 'sem-escala-sem-rastreio', extraAuditoriaDetalhe: 'Não há comprovação.' }]);
+  assert.equal(item.status, 'Pendente de comprovação');
+  assert.equal(item.extraCandidataMin, 25);
+  assert.equal(item.extraAuditoriaStatus, 'sem-escala-sem-rastreio');
+});
+
 test('ignora itens sem motorista e preserva categorias especiais', () => {
   const items = snapshotItemsToChecklist([{ motorista: '', setor: 'Motoristas' }, { motorista: 'Olívio Rodrigues', categoria: 'Folguista', totalHE: 0 }]);
   assert.equal(items.length, 1);
