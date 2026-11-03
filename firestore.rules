@@ -3,13 +3,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     function isAuthenticated() {
-      return request.auth != null
-        && request.auth.token.email_verified == true
-        && request.auth.token.email in [
-          'operacional4@transpinho.com',
-          'rh@transpinho.com',
-          'tielle@transpinho.com'
-        ];
+      return request.auth != null && request.auth.token.email_verified == true;
     }
 
     function isAdmin() {
@@ -26,6 +20,13 @@ service cloud.firestore {
 
     function isFeriasManager() {
       return hasFeriasAccess();
+    }
+
+    function hasJornadaAccess() {
+      return isAdmin()
+        || (isAuthenticated()
+          && exists(/databases/$(database)/documents/permissoes_sistemas/$(request.auth.token.email))
+          && get(/databases/$(database)/documents/permissoes_sistemas/$(request.auth.token.email)).data.jornada == true);
     }
 
     function validAuditEntry() {
@@ -64,23 +65,23 @@ service cloud.firestore {
           && request.resource.data.dayCount >= 0));
     }
 
-    match /motoristas/{id} { allow read, write: if isAuthenticated(); }
-    match /escalas/{id} { allow read, write: if isAuthenticated(); }
-    match /padroes_horario/{id} { allow read, write: if isAuthenticated(); }
-    match /dias_processados/{id} { allow read, write: if isAuthenticated(); }
-    match /checklist/{id} { allow read, write: if isAuthenticated(); }
-    match /memoria_escala/{id} { allow read, write: if isAuthenticated(); }
-    match /importacoes/{id} { allow read, write: if isAuthenticated(); }
+    match /motoristas/{id} { allow read, write: if hasJornadaAccess(); }
+    match /escalas/{id} { allow read, write: if hasJornadaAccess(); }
+    match /padroes_horario/{id} { allow read, write: if hasJornadaAccess(); }
+    match /dias_processados/{id} { allow read, write: if hasJornadaAccess(); }
+    match /checklist/{id} { allow read, write: if hasJornadaAccess(); }
+    match /memoria_escala/{id} { allow read, write: if hasJornadaAccess(); }
+    match /importacoes/{id} { allow read, write: if hasJornadaAccess(); }
 
-    match /workspaces/{workspaceId} { allow read, write: if isAuthenticated(); }
-    match /snapshots_dias/{docId} { allow read, write: if isAuthenticated(); }
-    match /pendencias/{pendenciaId} { allow read, write: if isAuthenticated(); }
+    match /workspaces/{workspaceId} { allow read, write: if hasJornadaAccess(); }
+    match /snapshots_dias/{docId} { allow read, write: if hasJornadaAccess(); }
+    match /pendencias/{pendenciaId} { allow read, write: if hasJornadaAccess(); }
     match /historico_auditoria/{entryId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && validAuditEntry();
+      allow create: if (hasJornadaAccess() || hasFeriasAccess()) && validAuditEntry();
       allow update, delete: if false;
     }
-    match /ocorrencias/{id} { allow read, write: if isAuthenticated(); }
+    match /ocorrencias/{id} { allow read, write: if hasJornadaAccess(); }
     match /permissoes_sistemas/{email} {
       allow read: if isAuthenticated() && (request.auth.token.email == email || request.auth.token.email == 'operacional4@transpinho.com');
       allow create, update: if isAuthenticated() && request.auth.token.email == 'operacional4@transpinho.com';
