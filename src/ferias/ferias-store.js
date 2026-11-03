@@ -5,15 +5,17 @@ export const FERIAS_COLLECTIONS = Object.freeze({
   turnos: 'ferias_turnos',
   feristas: 'ferias_feristas',
   people: 'ferias_pessoas',
+  personShifts: 'ferias_pessoa_turnos',
   suggestions: 'ferias_sugestoes',
   programs: 'ferias_programacoes'
 });
 
-export function subscribeFeriasData({ onTurnos, onFeristas, onPeople, onSuggestions, onPrograms, onError }) {
+export function subscribeFeriasData({ onTurnos, onFeristas, onPeople, onPersonShifts, onSuggestions, onPrograms, onError }) {
   const subscriptions = [
     [FERIAS_COLLECTIONS.turnos, onTurnos],
     [FERIAS_COLLECTIONS.feristas, onFeristas],
     [FERIAS_COLLECTIONS.people, onPeople],
+    [FERIAS_COLLECTIONS.personShifts, onPersonShifts],
     [FERIAS_COLLECTIONS.suggestions, onSuggestions],
     [FERIAS_COLLECTIONS.programs, onPrograms]
   ].filter(([, listener]) => typeof listener === 'function').map(([collection, listener]) => firestoreStore.subscribe(collection, listener, error => onError?.(error)));
