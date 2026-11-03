@@ -49,6 +49,13 @@ test('calcula extra da Reserva pela base de sete horas e vinte sem rastreador', 
   assert.equal(row.rastreadorStatus, 'nao-aplicavel');
   assert.equal(row.padraoStatus, 'dispensado_reserva');
 });
+test('encontra política do cadastro mesmo com acentos no nome', () => {
+  const [row] = crossSources({
+    pointRows: [{ motorista: 'José Weber', dateKey: '2026-11-03', batidas: ['08:00', '16:00'] }],
+    cadastro: { 'JOSE WEBER': { setor: 'ADM' } }
+  });
+  assert.equal(row.rastreadorStatus, 'nao-aplicavel');
+});
 test('aponta motorista sem horário padrão mesmo sem hora extra', () => {
   const [row] = crossSources({ pointRows: [{ motorista: 'Bia', he1min: 0 }], scaleRows: [{ nome: 'Bia', horario: '08:00' }] });
   assert.equal(row.semHorarioPadrao, true);

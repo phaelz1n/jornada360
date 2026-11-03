@@ -89,7 +89,7 @@ export function AppShell({ user, dashboardData, onLogout }) {
     const pointRows = extractPointRows(payload.rowData?.espelhoHoje || []);
     const dateKey = extractReportDate(payload.rowData?.espelhoHoje || []) || payload.dateKey || new Date().toISOString().slice(0, 10);
     const previousPointRows = extractPointRows(payload.rowData?.espelhoOntem || []);
-    const cadastro = Object.fromEntries(motoristas.map(driver => [String(driver.nome || '').trim().toLocaleUpperCase('pt-BR'), driver]));
+    const cadastro = Object.fromEntries(motoristas.map(driver => [normalizeDriverName(driver.nome), driver]));
     const items = crossSources({ pointRows: pointRows.map(row => ({ ...row, dateKey })), previousPointRows, scaleRows: extractScaleRows(payload.rowData?.escala || [], dateKey), trackerRows: normalizeTrackerRows(payload.rowData?.rastreador || []), standardRows: extractStandardRows(payload.rowData?.horarioPadrao || []), cadastro });
     const processedDay = prepareProcessedDay({ dateKey, items, cadastro });
     const record = buildImportRecord(payload);
