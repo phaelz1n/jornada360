@@ -6,7 +6,7 @@ import {
   normalizeVacationRecord,
   suggestVacation,
   validateVacationSuggestion
-  , detectVacationConflicts, feristaCanCover
+  , detectVacationConflicts, detectVacationImportConflicts, feristaCanCover
 } from './ferias-model.js';
 
 test('normaliza registro importado e preserva origem', () => {
@@ -87,4 +87,13 @@ test('detecta ferista ocupado em períodos sobrepostos', () => {
 test('aplica alcance especial do ferista para longe da garagem', () => {
   assert.equal(feristaCanCover({ coverageScope: 'longe_garagem' }, { garageDistance: 'longe' }), true);
   assert.equal(feristaCanCover({ coverageScope: 'longe_garagem' }, { garageDistance: 'proximo' }), false);
+});
+
+test('detecta alteração do período do mesmo funcionário em nova importação', () => {
+  const conflicts = detectVacationImportConflicts(
+    [{ employeeName: 'Ciclano', startDate: '2027-02-12', endDate: '2027-03-16', balanceDays: 30 }],
+    [{ employeeName: 'CIclano', startDate: '2027-03-15', endDate: '2027-03-20', balanceDays: 30 }]
+  );
+  assert.equal(conflicts.length, 1);
+  assert.equal(conflicts[0].previous.endDate, '2027-03-16');
 });

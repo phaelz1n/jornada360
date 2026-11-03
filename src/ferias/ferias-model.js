@@ -69,6 +69,29 @@ export function feristaCanCover(ferista, employee) {
   return employee?.garageDistance === 'longe';
 }
 
+function comparableEmployeeName(value) {
+  return normalizeText(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+
+export function detectVacationImportConflicts(existing = [], incoming = []) {
+  const conflicts = [];
+  incoming.forEach(next => {
+    const previous = existing.find(item => comparableEmployeeName(item.employeeName) === comparableEmployeeName(next.employeeName));
+    if (!previous) return;
+    const same = ['balanceDays', 'gozoLimit', 'accrualPeriod', 'startDate', 'endDate'].every(field => String(previous[field] ?? '') === String(next[field] ?? ''));
+    if (same) return;
+    const previousStart = parseDate(previous.startDate || previous.gozoLimit);
+    const previousEnd = parseDate(previous.endDate || previous.startDate || previous.gozoLimit);
+    const nextStart = parseDate(next.startDate || next.gozoLimit);
+    const nextEnd = parseDate(next.endDate || next.startDate || next.gozoLimit);
+    if (!previousStart || !previousEnd || !nextStart || !nextEnd) return;
+    const gap = Math.min(Math.abs(nextStart - previousEnd), Math.abs(previousStart - nextEnd)) / 86400000;
+    const overlaps = nextStart <= previousEnd && previousStart <= nextEnd;
+    if (overlaps || gap <= 30) conflicts.push({ employeeName: next.employeeName, previous, incoming: next });
+  });
+  return conflicts;
+}
+
 export function validateVacationSuggestion({ today, startDate, endDate, employee = {}, shift, ferista }) {
   const errors = [];
   const minimumStart = addCalendarDays(today, 30);
