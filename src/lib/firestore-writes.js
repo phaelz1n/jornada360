@@ -4,6 +4,7 @@ import { getFirestore } from 'firebase/firestore';
 import { createSnapshotWritePlan } from '../dados/snapshot-write-plan.js';
 import { createImportSyncPlan } from '../dados/import-sync-plan.js';
 import { buildChecklistAudit } from '../dados/checklist-audit.js';
+import { validateOccurrence } from '../dados/occurrence-validation.js';
 
 const db = getFirestore(firebaseApp);
 
@@ -33,6 +34,8 @@ export async function saveDriver(driver) {
 }
 
 export async function saveOccurrence(event) {
+  const validation = validateOccurrence(event);
+  if (!validation.valid) throw new Error(validation.errors.join(' '));
   const id = `${event.dataKey}-${encodeURIComponent(String(event.motorista).toLowerCase())}-${Date.now()}`;
   await setDoc(doc(db, 'ocorrencias', id), { ...event, updatedAt: new Date().toISOString() });
   return id;
