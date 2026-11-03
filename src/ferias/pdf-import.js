@@ -44,6 +44,7 @@ export function buildVacationImportKey(records = [], sourceName = '') {
 export async function extractVacationPdf(file) {
   if (!file) throw new Error('Selecione um PDF de previsão de férias.');
   const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
+  pdfjs.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.mjs', import.meta.url).toString();
   const buffer = new Uint8Array(await file.arrayBuffer());
   const document = await pdfjs.getDocument({ data: buffer }).promise;
   const pages = [];
