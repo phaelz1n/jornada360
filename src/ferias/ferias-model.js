@@ -85,6 +85,8 @@ export function suggestVacation({ today, employee, shift, feristas = [] }) {
     status: base.status,
     employeeCode: employee.employeeCode,
     employeeName: employee.employeeName,
+    balanceDays: employee.balanceDays,
+    gozoLimit: employee.gozoLimit,
     shiftId: shift?.id || null,
     feristaId: compatible?.id || null,
     trainingStartDate,
