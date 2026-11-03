@@ -90,10 +90,10 @@ export function AppShell({ user, dashboardData, onLogout }) {
         const ordered = dedupeSnapshots(snapshots);
         const latest = ordered.at(-1);
         if (latest) setLiveData(current => ({ ...current, items: latest.items || [], dateKey: latest.dateKey, snapshots: ordered, source: 'firebase' }));
-      }, () => {});
-      unsubscribeEvents = firestoreStore.subscribe('ocorrencias', setEventos, () => setEventos([]));
-      unsubscribeDrivers = firestoreStore.subscribe('motoristas', setMotoristas, () => setMotoristas([]));
-    }).catch(() => {});
+      }, error => window.dispatchEvent(new CustomEvent('jornada360:sync-error', { detail: { message: error?.message || 'Não foi possível ler os snapshots do Firebase.' } })));
+      unsubscribeEvents = firestoreStore.subscribe('ocorrencias', setEventos, error => { setEventos([]); window.dispatchEvent(new CustomEvent('jornada360:sync-error', { detail: { message: error?.message || 'Não foi possível ler as ocorrências do Firebase.' } })); });
+      unsubscribeDrivers = firestoreStore.subscribe('motoristas', setMotoristas, error => { setMotoristas([]); window.dispatchEvent(new CustomEvent('jornada360:sync-error', { detail: { message: error?.message || 'Não foi possível ler o cadastro do Firebase.' } })); });
+    }).catch(error => window.dispatchEvent(new CustomEvent('jornada360:sync-error', { detail: { message: error?.message || 'Não foi possível conectar ao Firebase.' } })));
     return () => { unsubscribe(); unsubscribeEvents(); unsubscribeDrivers(); };
   }, []);
 
