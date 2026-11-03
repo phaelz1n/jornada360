@@ -17,6 +17,10 @@ test('reutiliza setor salvo no cadastro ao preparar nova importação', () => {
   assert.equal(result.items[0].setorAtual, 'ADM');
   assert.equal(result.summary.porSetor.ADM, 1);
 });
+test('substitui setor antigo pelo setor atual do cadastro ao preparar o snapshot', () => {
+  const result = prepareProcessedDay({ dateKey: '2026-10-29', cadastro: { 'ANA SILVA': { nome: 'Ana Silva', setor: 'ADM' } }, items: [{ motorista: 'Ana Silva', setorAtual: 'Operações', setor: 'Operações', he1min: 12 }] });
+  assert.equal(result.items[0].setorAtual, 'ADM');
+});
 test('classifica o excedente acima de duas horas como HE.2', () => {
   assert.deepEqual(splitExtraHours(150), { he1min: 120, he2min: 30, he3min: 0 });
   assert.deepEqual(splitExtraHours(120), { he1min: 120, he2min: 0, he3min: 0 });

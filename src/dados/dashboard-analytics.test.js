@@ -38,3 +38,11 @@ test('retorna coleções vazias e números finitos sem registros', () => {
   const result = buildDashboardAnalytics({ report: { items: [], summary: {} }, snapshots: [] });
   assert.deepEqual(result, { dailySeries: [], bucketComposition: { he1min: 0, he2min: 0, he3min: 0, totalHEmin: 0 }, driverDistribution: [], sectorComparison: [], riskMatrix: { interjornada: 0, intrajornada: 0, foraDaEscala: 0, semPadrao: 0, rastreioDivergente: 0 } });
 });
+
+test('prioriza o setor atual do cadastro sobre o setor antigo do snapshot', () => {
+  const result = buildDashboardAnalytics({
+    report: { items: [{ motorista: 'Ana Silva', setorAtual: 'Operações', he1min: 60 }], summary: {} },
+    motoristas: [{ nome: 'Ana Silva', setor: 'ADM' }]
+  });
+  assert.equal(result.sectorComparison[0].setor, 'ADM');
+});

@@ -4,24 +4,32 @@ import { consultarDia, consultarPeriodo } from '../relatorios/relatorio-query.js
 import { ExecutiveCards, ExecutiveEvents } from './ExecutiveCards.jsx';
 import { DashboardCharts } from './DashboardCharts.jsx';
 import { buildDashboardAnalytics } from '../dados/dashboard-analytics.js';
+import { normalizeDriverName } from '../processamento/processamento-model.js';
 
 const fmt = min => `${Math.floor((min || 0) / 60)}h${String((min || 0) % 60).padStart(2, '0')}`;
 
-export function InicioDashboard({ snapshots = [], eventos = [] }) {
-  const latest = snapshots.at(-1);
+export function InicioDashboard({ snapshots = [], eventos = [], motoristas = [] }) {
+  const snapshotsWithCadastro = useMemo(() => {
+    const cadastro = new Map(motoristas.map(driver => [normalizeDriverName(driver.nome), driver.setor || driver.categoria]).filter(([, setor]) => setor));
+    return snapshots.map(snapshot => ({ ...snapshot, items: (snapshot.items || []).map(item => {
+      const setor = cadastro.get(normalizeDriverName(item.motorista || item.nome));
+      return setor ? { ...item, setorAtual: setor, setor } : item;
+    }) }));
+  }, [snapshots, motoristas]);
+  const latest = snapshotsWithCadastro.at(-1);
   const [mode, setMode] = useState('periodo');
   const [selectedDate, setSelectedDate] = useState(latest?.dateKey || '');
   const [selectedPeriod, setSelectedPeriod] = useState('');
-  const dates = useMemo(() => snapshots.map(snapshot => snapshot.dateKey).filter(Boolean).sort(), [snapshots]);
+  const dates = useMemo(() => snapshotsWithCadastro.map(snapshot => snapshot.dateKey).filter(Boolean).sort(), [snapshotsWithCadastro]);
   const periods = useMemo(() => [...new Map(dates.map(date => { const period = competenciaParaData(date); return [period.chave, period]; })).values()], [dates]);
   const period = periods.find(item => item.chave === selectedPeriod) || (selectedDate ? competenciaParaData(selectedDate) : null);
-  const report = useMemo(() => mode === 'dia' ? consultarDia(snapshots, selectedDate) : period ? consultarPeriodo(snapshots, period) : { items: [], summary: {} }, [mode, snapshots, selectedDate, period]);
+  const report = useMemo(() => mode === 'dia' ? consultarDia(snapshotsWithCadastro, selectedDate) : period ? consultarPeriodo(snapshotsWithCadastro, period) : { items: [], summary: {} }, [mode, snapshotsWithCadastro, selectedDate, period]);
   const previous = useMemo(() => {
     if (!period) return null;
     const previousEnd = new Date(`${period.inicio}T12:00:00`);
     previousEnd.setDate(previousEnd.getDate() - 1);
-    return consultarPeriodo(snapshots, competenciaParaData(previousEnd.toISOString().slice(0, 10)));
-  }, [snapshots, period]);
+    return consultarPeriodo(snapshotsWithCadastro, competenciaParaData(previousEnd.toISOString().slice(0, 10)));
+  }, [snapshotsWithCadastro, period]);
   const delta = (report.summary.totalHEmin || 0) - (previous?.summary.totalHEmin || 0);
   const visibleDates = mode === 'dia' ? new Set(selectedDate ? [selectedDate] : []) : new Set((report.items || []).map(item => item.dateKey));
   const faltas = useMemo(() => eventos.filter(event => visibleDates.has(event.dataKey) && ['Falta', 'Atestado', 'Horas faltantes'].includes(event.tipo)), [eventos, visibleDates]);
@@ -32,7 +40,7 @@ export function InicioDashboard({ snapshots = [], eventos = [] }) {
   const top20Min = allRanking.slice(0, 20).reduce((sum, row) => sum + row.he1min, 0);
   const top20Share = report.summary.he1min ? Math.round(top20Min / report.summary.he1min * 100) : 0;
   const semPadraoMin = report.summary.semPadraoMin || 0;
-  const analytics = useMemo(() => buildDashboardAnalytics({ report, snapshots }), [report, snapshots]);
+  const analytics = useMemo(() => buildDashboardAnalytics({ report, snapshots: snapshotsWithCadastro, motoristas }), [report, snapshotsWithCadastro, motoristas]);
   return <section className="executive-dashboard">
     <div className="executive-heading"><span className="eyebrow">PAINEL EXECUTIVO</span><h2>Resumo da operação</h2><p>{mode === 'dia' ? `Dia selecionado: ${selectedDate ? selectedDate.split('-').reverse().join('/') : '—'}` : `Período: ${period?.rotulo || '—'}`}</p></div>
     <div className="executive-filters"><button className={mode === 'dia' ? 'active' : ''} onClick={() => setMode('dia')}>Por dia</button><button className={mode === 'periodo' ? 'active' : ''} onClick={() => setMode('periodo')}>Por ciclo</button>{mode === 'dia' ? <select value={selectedDate} onChange={event => setSelectedDate(event.target.value)}>{dates.map(date => <option key={date} value={date}>{date.split('-').reverse().join('/')}</option>)}</select> : <select value={selectedPeriod} onChange={event => setSelectedPeriod(event.target.value)}><option value="">Último ciclo</option>{periods.map(item => <option key={item.chave} value={item.chave}>{item.rotulo}</option>)}</select>}</div>

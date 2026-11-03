@@ -4,6 +4,7 @@ const RISK_KEYS = ['interjornada', 'intrajornada', 'foraDaEscala', 'semPadrao', 
 const finite = value => Number.isFinite(Number(value)) ? Number(value) : 0;
 const totalHE = item => BUCKETS.reduce((sum, bucket) => sum + Math.max(0, finite(item?.[bucket])), 0);
 const positiveMeta = item => Math.max(0, finite(item?.metaDiaMin ?? item?.padraoCadastradoMin ?? item?.padraoMin));
+const normalizeName = value => String(value || '').trim().replace(/\s+/g, ' ').toLocaleUpperCase('pt-BR');
 
 function dailySeries(items) {
   const days = new Map();
@@ -24,11 +25,15 @@ function dailySeries(items) {
   return [...days.values()].sort((a, b) => a.dateKey.localeCompare(b.dateKey));
 }
 
-function buildDashboardAnalytics({ report = {}, snapshots = [] } = {}) {
+function buildDashboardAnalytics({ report = {}, snapshots = [], motoristas = [] } = {}) {
   const snapshotItems = snapshots.flatMap(snapshot => (snapshot.items || []).map(item => ({ ...item, dateKey: item.dateKey || snapshot.dateKey })));
-  const items = (report.items || []).length && (report.items || []).every(item => item.dateKey)
-    ? report.items.map(item => ({ ...item }))
-    : snapshotItems;
+  const cadastro = new Map(motoristas.map(driver => [normalizeName(driver.nome), driver.setor || driver.categoria]).filter(([, setor]) => setor));
+  const reportItems = report.items || [];
+  const sourceItems = reportItems.length && (reportItems.every(item => item.dateKey) || !snapshotItems.length) ? reportItems : snapshotItems;
+  const items = sourceItems.map(item => ({
+    ...item,
+    ...(cadastro.get(normalizeName(item.motorista || item.nome)) ? { setorAtual: cadastro.get(normalizeName(item.motorista || item.nome)) } : {})
+  }));
   const bucketComposition = BUCKETS.reduce((result, bucket) => {
     result[bucket] = items.reduce((sum, item) => sum + Math.max(0, finite(item[bucket])), 0);
     return result;

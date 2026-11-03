@@ -116,6 +116,11 @@ body { background: linear-gradient(135deg, #f5f9fd 0%, #eef4fa 100%); color: var
 .theme-dark .profile-dropdown button:hover, .theme-dark .nav-item:hover { background: #353e4b; }
 .theme-dark input, .theme-dark select, .theme-dark textarea { background: #242a33; border-color: #465264; color: #e4eaf2; }
 .theme-dark .module-stats strong, .theme-dark .daily-summary-grid article, .theme-dark .executive-cards article, .theme-dark .report-row { background: #252c36; }
+.theme-dark .product-mark, .theme-dark .nav-item.active, .theme-dark .executive-list, .theme-dark .executive-bars, .theme-dark .executive-period, .theme-dark .executive-events, .theme-dark .executive-recommendations, .theme-dark .recommendation-grid b, .theme-dark .executive-bar-row, .theme-dark .executive-list b { color: #dce5ef; }
+.theme-dark .executive-heading h2, .theme-dark .executive-period strong, .theme-dark .executive-recommendations h3 { color: #edf2f8; }
+.theme-dark .executive-cards small, .theme-dark .chart-explanation, .theme-dark .executive-heading p, .theme-dark .executive-period span, .theme-dark .executive-events small, .theme-dark .recommendation-grid span { color: #aeb9c8; }
+.theme-dark .executive-list, .theme-dark .executive-bars, .theme-dark .executive-period, .theme-dark .executive-events { background: #2b313b; border-color: #3b4655; }
+.theme-dark .executive-list div, .theme-dark .executive-events div { border-color: #3b4655; }.theme-dark .executive-bar-row i { background: #404b5b; }.theme-dark .recommendation-grid { border-color: #3b4655; }.theme-dark .recommendation-grid article { border-color: #4d87c4; }.theme-dark .executive-filters button, .theme-dark .executive-filters select { background: #242a33; border-color: #465264; color: #e4eaf2; }.theme-dark .executive-filters button.active { background: #2d679b; color: #fff; }
 .product-mark { color: var(--tp-blue-800); letter-spacing: .08em; }
 .nav-item { transition: background .2s, color .2s, transform .2s; }
 .nav-item:hover { background: var(--tp-blue-100); color: var(--tp-blue-800); transform: translateX(2px); }

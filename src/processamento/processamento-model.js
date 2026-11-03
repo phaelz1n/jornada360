@@ -4,7 +4,7 @@ export function normalizeDriverName(name) {
 
 export function classifyDriverSector(item = {}, cadastro = {}) {
   const name = normalizeDriverName(item.motorista || item.nome);
-  return item.setorAtual || item.setor || cadastro[name]?.setor || 'Sem setor';
+  return cadastro[name]?.setor || item.setorAtual || item.setor || 'Sem setor';
 }
 
 export function splitExtraHours(totalMinutes = 0) {

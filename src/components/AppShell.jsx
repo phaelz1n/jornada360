@@ -122,7 +122,7 @@ export function AppShell({ user, dashboardData, onLogout }) {
         {activeSection === 'Relatórios' && <ReportsPanel items={liveData?.items} snapshots={liveData?.snapshots} />}
         {activeSection === 'Cadastros' && <RegistersPanel items={liveData?.items} drivers={motoristas} />}
         {activeSection === 'Firebase' && <MigrationPanel onMigrated={snapshot => dashboardData?.items !== snapshot.items && window.dispatchEvent(new CustomEvent('jornada360:data-updated', { detail: snapshot }))} />}
-        {activeSection === 'Início' && <InicioDashboard snapshots={liveData?.snapshots || []} eventos={eventos} />}
+        {activeSection === 'Início' && <InicioDashboard snapshots={liveData?.snapshots || []} eventos={eventos} motoristas={motoristas} />}
         {activeSection === 'Ocorrências' && <OcorrenciasPanel />}
       </main>
     </div>
