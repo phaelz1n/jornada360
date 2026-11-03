@@ -97,6 +97,19 @@ export async function saveFeriasProgramacao(suggestion, actorEmail) {
   return id;
 }
 
+export async function cancelFeriasProgramacao(programacao, actorEmail, reason) {
+  const justification = String(reason || '').trim();
+  if (!justification) throw new Error('Informe a justificativa do cancelamento.');
+  const id = feriasId(programacao);
+  const cancelledAt = new Date().toISOString();
+  const cancelledBy = actorEmail || auth.currentUser?.email || '';
+  const batch = writeBatch(db);
+  batch.set(doc(db, 'ferias_programacoes', id), { status: 'cancelada', cancellationReason: justification, cancelledAt, cancelledBy }, { merge: true });
+  batch.set(doc(db, 'ferias_auditoria', `programacao-cancelada-${id}-${Date.now()}`), { action: 'ferias_programacao_cancelada', programId: id, reason: justification, actorEmail: cancelledBy, createdAt: cancelledAt });
+  await batch.commit();
+  return id;
+}
+
 export async function saveFeriasImport(records, actorEmail, sourceName = '') {
   const importId = `ferias-${new Date().toISOString().replace(/[^\d]/g, '').slice(0, 14)}`;
   const createdAt = new Date().toISOString();
