@@ -14,11 +14,12 @@ import { normalizeTrackerRows } from '../importacao/rastreador-normalizer.js';
 import { InicioDashboard } from '../modules/InicioDashboard.jsx';
 import { OcorrenciasPanel } from '../modules/OcorrenciasPanel.jsx';
 import { dedupeSnapshots } from '../dados/snapshot-history.js';
+import { DateCalendar } from '../modules/OperationalModules.jsx';
 
 function ChecklistHistory({ liveData }) {
   const dates = dedupeSnapshots(liveData?.snapshots || []);
   const [dateKey, setDateKey] = useState(liveData?.dateKey || dates.at(-1)?.dateKey || 'latest');
-  return <><div className="history-picker"><label>Dia do checklist <select value={dateKey} onChange={event => setDateKey(event.target.value)}>{dates.map(snapshot => <option key={snapshot.dateKey} value={snapshot.dateKey}>{snapshot.dateKey.split('-').reverse().join('/')}</option>)}</select></label></div><ChecklistPanel key={dateKey} snapshotItems={liveData?.items} snapshots={dates} dateKey={dateKey} /></>;
+  return <><div className="history-picker"><b>Dia do checklist</b>{dates.length ? <DateCalendar snapshots={dates} selected={dateKey} onSelect={setDateKey} /> : <span className="history-empty">Nenhuma data disponível</span>}</div><ChecklistPanel key={dateKey} snapshotItems={liveData?.items} snapshots={dates} dateKey={dateKey} /></>;
 }
 
 export function AppShell({ user, dashboardData, onLogout }) {
