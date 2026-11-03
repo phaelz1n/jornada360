@@ -39,6 +39,13 @@ function nextDate(dateKey) {
   return date.toISOString().slice(0, 10);
 }
 
+function admBaseMinutes(dateKey) {
+  if (!dateKey) return 480;
+  const [year, month, day] = String(dateKey).split('-').map(Number);
+  const weekday = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+  return weekday === 6 ? 240 : 480;
+}
+
 function isOvernightJourney(point = {}, escala = []) {
   const punches = (point.batidas || []).map(minutes).filter(value => value != null);
   if (punches.some((value, index) => index > 0 && value < punches[index - 1] - 60)) return true;
@@ -110,12 +117,14 @@ function buildEvidence({ batidas = [], paradaAnalysis, totalHE = 0, metaDiaMin =
   return { evidence, outside };
 }
 
-export function crossSources({ pointRows = [], previousPointRows = [], scaleRows = [], trackerRows = [], standardRows = [], patternHistory = {} } = {}) {
+export function crossSources({ pointRows = [], previousPointRows = [], scaleRows = [], trackerRows = [], standardRows = [], patternHistory = {}, cadastro = {} } = {}) {
   const scale = indexByDriver(scaleRows);
   const tracker = indexByDriver(trackerRows);
   const standard = indexByDriver(standardRows);
   return pointRows.map(point => {
     const key = normalizeDriverName(point.motorista);
+    const setor = cadastro[key]?.setor || cadastro[key]?.categoria || '';
+    const rastreioDispensado = String(setor).trim().toLocaleUpperCase('pt-BR') === 'ADM';
     const scaleRows = findDriver(scale, key) || [];
     const trackerMatch = findDriver(tracker, key);
     const rawTrackerRow = Array.isArray(trackerMatch) ? trackerMatch[0] : trackerMatch;
@@ -165,6 +174,9 @@ export function crossSources({ pointRows = [], previousPointRows = [], scaleRows
     const batidasExtra = actualDuration && standardDuration ? Math.max(0, actualDuration - standardDuration) : null;
     const hasReportedExtra = ['totalHE', 'he1min', 'he2min', 'he3min', 'excedenteMin'].some(field => point[field] != null);
     const standardExtra = Number(standardRow?.extraNormalPadrao);
+    const jornadaBaseMin = rastreioDispensado ? admBaseMinutes(point.dateKey) : null;
+    const admExtra = rastreioDispensado && actualDuration > 0 ? Math.max(0, actualDuration - jornadaBaseMin) : null;
+    const effectiveExtra = admExtra ?? batidasExtra;
     const extraScaleRows = scaleRows.filter(row => !lineMatchesStandard(row, standardRow));
     const trackerExtraLine = paradaAnalysis.paradas.find(stop => extraScaleRows.some(row => {
       const scaleTime = timeOf(row.horario || row.inicio || row.horarioInicio);
@@ -177,12 +189,14 @@ export function crossSources({ pointRows = [], previousPointRows = [], scaleRows
     const extraAuditoriaStatus = standardExtra <= 0 && extraCandidate > 0
       ? trackerExtraLine ? 'linha-extra-com-rastreio' : extraScaleRows.length ? 'possivel-linha-extra' : trackerRow ? 'rastreio-sem-linha' : 'sem-escala-sem-rastreio'
       : 'sem-extra';
-    const totalHE = standardExtra > 0 && hasReportedExtra
+    const totalHE = rastreioDispensado && admExtra != null
+      ? admExtra
+      : standardExtra > 0 && hasReportedExtra
       ? reportedHE
       : standardExtra <= 0 && hasReportedExtra && extraValidatedBySources
         ? reportedHE
         : batidasExtra != null ? batidasExtra : reportedHE;
-    const trackerEvidence = buildEvidence({ batidas: point.batidas || [], paradaAnalysis, totalHE, metaDiaMin });
+    const trackerEvidence = rastreioDispensado ? { evidence: [], outside: 0 } : buildEvidence({ batidas: point.batidas || [], paradaAnalysis, totalHE, metaDiaMin });
     const history = patternHistory?.[key] || [];
     const repeatedRealized = history.length >= 5 && history.slice(-5).every(value => Math.abs(Number(value) - totalHE) <= 5);
     const foraDaEscalaSemLinha = paradaAnalysis.paradas.find(stop => stop.foraDaEscala && !extraScaleRows.some(row => {
@@ -192,19 +206,21 @@ export function crossSources({ pointRows = [], previousPointRows = [], scaleRows
     }));
     return {
       ...point,
-      ...(batidasExtra != null ? { totalHE: totalHE, excedenteMin: totalHE, he1min: totalHE, he2min: 0, he3min: 0, heBucketsExplicit: true } : {}),
+      ...(effectiveExtra != null ? { totalHE: totalHE, excedenteMin: totalHE, he1min: totalHE, he2min: 0, he3min: 0, heBucketsExplicit: true } : {}),
       ...intervalAnalysis,
       descansoInterjornadaMin,
       interjornadaProblema: descansoInterjornadaMin != null ? descansoInterjornadaMin < 660 : intervalAnalysis.interjornadaProblema,
-      semHorarioPadrao: !standardRow,
-      padraoStatus: standardRow ? 'encontrado' : 'sem_cadastro',
+      semHorarioPadrao: !standardRow && !rastreioDispensado,
+      padraoStatus: standardRow ? 'encontrado' : rastreioDispensado ? 'dispensado_adm' : 'sem_cadastro',
+      ...(rastreioDispensado ? { jornadaBaseMin } : {}),
       ...(standardRow ? { padraoCadastradoMin: standardRow.extraNormalPadrao, metaDiaMin: standardRow.extraNormalPadrao } : {}),
       ...(standardRow ? { padraoHorarios: standardRow.horarios || [] } : {}),
-      ...(batidasExtra != null ? { batidasExtraMin: batidasExtra, extraCalculadaPelasBatidas: true } : {}),
+      ...(effectiveExtra != null ? { batidasExtraMin: effectiveExtra, extraCalculadaPelasBatidas: true } : {}),
       ...(standardRow ? { heDentroPadraoMin: Math.min(totalHE, metaDiaMin), heAcimaPadraoMin: Math.max(0, totalHE - metaDiaMin) } : {}),
       evidenciaRastreador: trackerEvidence.evidence,
       rastreiosForaDaEscala: paradaAnalysis.paradas.filter(stop => stop.foraDaEscala).map(stop => ({ horario: stop.horario, escalaHorario: stop.escalaHorario, diferencaMin: stop.diferencaMin, local: stop.local, motivo: stop.motivo })),
-      rastreadorStatus: trackerEvidence.evidence.some(item => item.status === 'confirmada') ? 'confirmado' : trackerEvidence.evidence.length ? 'divergente' : 'sem-evidencia',
+      rastreadorStatus: rastreioDispensado ? 'nao-aplicavel' : trackerEvidence.evidence.some(item => item.status === 'confirmada') ? 'confirmado' : trackerEvidence.evidence.length ? 'divergente' : 'sem-evidencia',
+      rastreioDispensado,
       padraoSuspeito: repeatedRealized && standardRow && totalHE > metaDiaMin,
       escalaEncontrada: scaleRows.length > 0,
       escala: matchedScale || null,
@@ -225,7 +241,7 @@ export function crossSources({ pointRows = [], previousPointRows = [], scaleRows
         possiveisTransitos: paradaAnalysis.possiveisTransitos,
         confirmadas: paradaAnalysis.confirmadas
       },
-      statusCruzamento: scaleRows.length && trackerRow ? 'completo' : scaleRows.length ? 'sem rastreador' : trackerRow ? 'sem escala' : 'sem correspondência',
+      statusCruzamento: scaleRows.length && (trackerRow || rastreioDispensado) ? 'completo' : scaleRows.length ? 'sem rastreador' : trackerRow ? 'sem escala' : 'sem correspondência',
     };
   });
 }

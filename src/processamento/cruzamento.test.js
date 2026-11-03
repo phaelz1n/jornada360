@@ -10,6 +10,35 @@ test('cruza ponto, escala e rastreador pelo nome normalizado', () => {
 });
 
 test('classifica fonte ausente sem descartar o ponto', () => assert.equal(crossSources({ pointRows: [{ motorista: 'Bia' }] })[0].statusCruzamento, 'sem correspondência'));
+test('dispensa rastreador para ADM em sábado reduzido', () => {
+  const [row] = crossSources({
+    pointRows: [{ motorista: 'Adriano Eduardo dos Santos', dateKey: '2026-10-31', batidas: ['07:59', '12:02'] }],
+    standardRows: [{ motorista: 'Adriano Eduardo dos Santos', extraNormalPadrao: 0, horarios: ['08:00', '12:00', '13:00', '17:00'] }],
+    cadastro: { 'ADRIANO EDUARDO DOS SANTOS': { setor: 'ADM' } }
+  });
+  assert.equal(row.rastreadorStatus, 'nao-aplicavel');
+  assert.equal(row.rastreioDispensado, true);
+  assert.equal(row.evidenciaRastreador.length, 0);
+  assert.notEqual(row.statusCruzamento, 'sem rastreador');
+});
+test('calcula extra do ADM pela base de quatro horas no sábado sem padrão', () => {
+  const [row] = crossSources({
+    pointRows: [{ motorista: 'Adriano Eduardo dos Santos', dateKey: '2026-10-31', batidas: ['07:59', '12:02'] }],
+    cadastro: { 'ADRIANO EDUARDO DOS SANTOS': { setor: 'ADM' } }
+  });
+  assert.equal(row.totalHE, 0);
+  assert.equal(row.semHorarioPadrao, false);
+  assert.equal(row.padraoStatus, 'dispensado_adm');
+  assert.equal(row.jornadaBaseMin, 240);
+});
+test('calcula extra do ADM acima de oito horas em dia útil', () => {
+  const [row] = crossSources({
+    pointRows: [{ motorista: 'Adriano Eduardo dos Santos', dateKey: '2026-11-03', batidas: ['08:00', '12:00', '13:00', '18:00'] }],
+    cadastro: { 'ADRIANO EDUARDO DOS SANTOS': { setor: 'ADM' } }
+  });
+  assert.equal(row.totalHE, 60);
+  assert.equal(row.jornadaBaseMin, 480);
+});
 test('aponta motorista sem horário padrão mesmo sem hora extra', () => {
   const [row] = crossSources({ pointRows: [{ motorista: 'Bia', he1min: 0 }], scaleRows: [{ nome: 'Bia', horario: '08:00' }] });
   assert.equal(row.semHorarioPadrao, true);
