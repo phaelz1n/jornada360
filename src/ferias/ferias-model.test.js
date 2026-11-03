@@ -1,0 +1,74 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {
+  addCalendarDays,
+  businessDaysBefore,
+  normalizeVacationRecord,
+  suggestVacation,
+  validateVacationSuggestion
+} from './ferias-model.js';
+
+test('normaliza registro importado e preserva origem', () => {
+  const record = normalizeVacationRecord({
+    codigo: '42',
+    trabalhador: ' Ana Maria  ',
+    saldo: '30',
+    limiteGozo: '15/12/2026',
+    periodoAquisitivo: '01/01/2025 a 31/12/2025',
+    origem: 'pdf-001'
+  });
+
+  assert.deepEqual(record, {
+    employeeCode: '42',
+    employeeName: 'Ana Maria',
+    balanceDays: 30,
+    gozoLimit: '2026-12-15',
+    accrualPeriod: '01/01/2025 a 31/12/2025',
+    sourceImportId: 'pdf-001'
+  });
+});
+
+test('calcula dois dias úteis antes da folga ignorando fim de semana', () => {
+  assert.equal(businessDaysBefore('2026-11-09', 2), '2026-11-05');
+});
+
+test('sugestão respeita 30 dias e encontra ferista compatível', () => {
+  const suggestion = suggestVacation({
+    today: '2026-11-03',
+    employee: { employeeCode: '1', employeeName: 'João', balanceDays: 10, gozoLimit: '2026-12-31' },
+    shift: { id: 'turno-a', name: 'Motorista manhã' },
+    feristas: [{ id: 'f1', name: 'Carlos', shiftIds: ['turno-a'], availableFrom: '2026-11-01', availableTo: '2026-12-31' }]
+  });
+
+  assert.equal(suggestion.status, 'pronta');
+  assert.equal(suggestion.startDate, '2026-12-03');
+  assert.equal(suggestion.trainingStartDate, '2026-12-01');
+  assert.equal(suggestion.feristaId, 'f1');
+});
+
+test('bloqueia sugestão sem turno ou sem ferista compatível', () => {
+  const result = validateVacationSuggestion({
+    today: '2026-11-03',
+    startDate: addCalendarDays('2026-11-03', 30),
+    employee: { balanceDays: 10, gozoLimit: '2026-12-31' },
+    shift: null,
+    ferista: null
+  });
+
+  assert.equal(result.status, 'com_pendencias');
+  assert.deepEqual(result.errors, ['turno_ausente', 'ferista_ausente']);
+});
+
+test('bloqueia período que ultrapassa limite de gozo', () => {
+  const result = validateVacationSuggestion({
+    today: '2026-11-03',
+    startDate: '2026-12-20',
+    endDate: '2027-01-18',
+    employee: { balanceDays: 30, gozoLimit: '2026-12-31' },
+    shift: { id: 'a' },
+    ferista: { id: 'f' }
+  });
+
+  assert.equal(result.status, 'com_pendencias');
+  assert.ok(result.errors.includes('limite_gozo_excedido'));
+});
