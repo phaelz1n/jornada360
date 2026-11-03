@@ -4,14 +4,16 @@ import { saveFeriasEntity, saveFeriasImport, saveFeriasProgramacao } from '../li
 export const FERIAS_COLLECTIONS = Object.freeze({
   turnos: 'ferias_turnos',
   feristas: 'ferias_feristas',
+  people: 'ferias_pessoas',
   suggestions: 'ferias_sugestoes',
   programs: 'ferias_programacoes'
 });
 
-export function subscribeFeriasData({ onTurnos, onFeristas, onSuggestions, onPrograms, onError }) {
+export function subscribeFeriasData({ onTurnos, onFeristas, onPeople, onSuggestions, onPrograms, onError }) {
   const subscriptions = [
     [FERIAS_COLLECTIONS.turnos, onTurnos],
     [FERIAS_COLLECTIONS.feristas, onFeristas],
+    [FERIAS_COLLECTIONS.people, onPeople],
     [FERIAS_COLLECTIONS.suggestions, onSuggestions],
     [FERIAS_COLLECTIONS.programs, onPrograms]
   ].filter(([, listener]) => typeof listener === 'function').map(([collection, listener]) => firestoreStore.subscribe(collection, listener, error => onError?.(error)));
@@ -36,4 +38,15 @@ export async function acceptSuggestion(suggestion, actorEmail) {
 
 export async function persistVacationImport(records, actorEmail, sourceName) {
   return saveFeriasImport(records, actorEmail, sourceName);
+}
+
+export async function persistPersonShift(person, shiftId, actorEmail) {
+  return saveFeriasEntity('ferias_pessoa_turnos', {
+    id: `${person.employeeCode || person.employeeName}-${shiftId}`,
+    employeeCode: person.employeeCode,
+    employeeName: person.employeeName,
+    shiftId,
+    effectiveFrom: new Date().toISOString().slice(0, 10),
+    status: 'confirmado'
+  }, actorEmail);
 }

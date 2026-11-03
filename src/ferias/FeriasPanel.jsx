@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { suggestVacation } from './ferias-model.js';
-import { acceptSuggestion, persistSuggestion, persistTurno, persistVacationImport, subscribeFeriasData } from './ferias-store.js';
+import { acceptSuggestion, persistPersonShift, persistSuggestion, persistTurno, persistVacationImport, subscribeFeriasData } from './ferias-store.js';
 import { extractVacationPdf, parseVacationPdfText } from './pdf-import.js';
 
 const emptyTurno = { name: '', description: '', days: 'Segunda a sábado' };
@@ -18,6 +18,8 @@ export function FeriasPanel({ user }) {
   const [tab, setTab] = useState('visao');
   const [turnos, setTurnos] = useState([]);
   const [feristas, setFeristas] = useState([]);
+  const [people, setPeople] = useState([]);
+  const [personShifts, setPersonShifts] = useState({});
   const [suggestions, setSuggestions] = useState([]);
   const [programacoes, setProgramacoes] = useState([]);
   const [turnoDraft, setTurnoDraft] = useState(emptyTurno);
@@ -28,6 +30,7 @@ export function FeriasPanel({ user }) {
   useEffect(() => subscribeFeriasData({
     onTurnos: setTurnos,
     onFeristas: setFeristas,
+    onPeople: setPeople,
     onSuggestions: setSuggestions,
     onPrograms: setProgramacoes,
     onError: error => setNotice(`Não foi possível sincronizar férias agora: ${error?.message || 'verifique a conexão.'}`)
@@ -50,13 +53,22 @@ export function FeriasPanel({ user }) {
   }
 
   function generateExampleSuggestion() {
-    const shift = turnos[0] || { id: 'turno-pendente', name: 'Turno ainda não cadastrado' };
-    const employee = { employeeCode: 'exemplo', employeeName: 'Funcionário aguardando importação', balanceDays: 30, gozoLimit: '2027-12-31' };
-    const result = suggestVacation({ today: new Date().toISOString().slice(0, 10), employee, shift, feristas });
-    const suggestion = { ...result, id: `sugestao-${Date.now()}` };
-    setSuggestions(items => [suggestion, ...items]);
-    persistSuggestion(suggestion, user?.email).catch(error => setNotice(`Sugestão criada, mas não sincronizada: ${error?.message || 'verifique a conexão.'}`));
+    const employees = people.length ? people : [{ employeeCode: 'exemplo', employeeName: 'Funcionário aguardando importação', balanceDays: 30, gozoLimit: '2027-12-31' }];
+    const generated = employees.map((employee, index) => {
+      const shiftId = personShifts[employee.id || employee.employeeName] || turnos[0]?.id;
+      const shift = turnos.find(item => item.id === shiftId) || null;
+      return { ...suggestVacation({ today: new Date().toISOString().slice(0, 10), employee, shift, feristas }), id: `sugestao-${employee.employeeCode || index}-${Date.now()}` };
+    });
+    setSuggestions(items => [...generated, ...items.filter(item => !generated.some(next => next.employeeName === item.employeeName))]);
+    Promise.all(generated.map(item => persistSuggestion(item, user?.email))).then(() => setNotice(`${generated.length} sugestões geradas e sincronizadas.`)).catch(error => setNotice(`Sugestões geradas, mas há falha na sincronização: ${error?.message || 'verifique a conexão.'}`));
     setTab('sugestoes');
+  }
+
+  function assignPersonShift(person, shiftId) {
+    const key = person.id || person.employeeName;
+    setPersonShifts(current => ({ ...current, [key]: shiftId }));
+    const shift = turnos.find(item => item.id === shiftId);
+    if (shift) persistPersonShift(person, shift.id, user?.email).catch(error => setNotice(`Turno selecionado, mas não sincronizado: ${error?.message || 'verifique a conexão.'}`));
   }
 
   function acceptSuggestion(item) {
@@ -105,6 +117,6 @@ export function FeriasPanel({ user }) {
     {tab === 'importar' && <section className="ferias-card"><div className="section-heading"><div><h3>Importar previsão de férias</h3><p>O processamento acontece no navegador. Salvamos somente os dados necessários para auditoria e planejamento.</p></div></div><label className="pdf-dropzone"><input type="file" accept="application/pdf,.pdf" onChange={handlePdfImport} disabled={importing} /><span>{importing ? 'Processando PDF…' : 'Selecionar PDF de previsão de férias'}</span><small>O arquivo original não é enviado nem armazenado.</small></label>{importedRecords.length > 0 && <div className="ferias-list import-preview">{importedRecords.slice(0, 12).map(item => <div className="ferias-row" key={`${item.employeeName}-${item.gozoLimit}`}><div><strong>{item.employeeName}</strong><span>Saldo: {item.balanceDays} dias · Limite: {formatDate(item.gozoLimit)}</span><small>Período aquisitivo: {item.accrualPeriod}</small></div><StatusBadge tone="green">Importado</StatusBadge></div>)}{importedRecords.length > 12 && <small className="preview-more">+ {importedRecords.length - 12} registros importados</small>}</div>}</section>}
     {tab === 'sugestoes' && <section className="ferias-card"><div className="section-heading"><div><h3>Sugestões para revisar</h3><p>Antecedência, limite de gozo e cobertura são recalculados após cada edição.</p></div></div>{suggestions.length === 0 ? <div className="ferias-empty">Nenhuma sugestão gerada. Importe a previsão ou gere uma simulação para testar as regras.</div> : <div className="ferias-list">{suggestions.map(item => <div className="ferias-row" key={item.id}><div><strong>{item.employeeName}</strong><span>{item.startDate ? `${formatDate(item.startDate)} a ${formatDate(item.endDate)}` : 'Período pendente'}</span><small>Treinamento: {formatDate(item.trainingStartDate)} a {formatDate(item.trainingEndDate)}</small></div><div className="ferias-row-meta"><StatusBadge tone={item.status === 'pronta' ? 'green' : 'red'}>{item.status === 'pronta' ? 'Pronta' : 'Com pendências'}</StatusBadge><button className="secondary-button" type="button" onClick={() => acceptSuggestion(item)}>Aceitar</button></div></div>)}</div>}</section>}
     {tab === 'programacoes' && <section className="ferias-card"><div className="section-heading"><div><h3>Programações aprovadas</h3><p>Somente registros aceitos pelo RH aparecem nesta lista.</p></div></div>{programacoes.length === 0 ? <div className="ferias-empty">Nenhuma programação aprovada.</div> : <div className="ferias-list">{programacoes.map(item => <div className="ferias-row" key={item.id}><div><strong>{item.employeeName}</strong><span>{formatDate(item.startDate)} a {formatDate(item.endDate)}</span></div><StatusBadge tone="green">Aprovada</StatusBadge></div>)}</div>}</section>}
-    {tab === 'turnos' && <section className="ferias-card"><div className="section-heading"><div><h3>Turnos e feristas</h3><p>Cadastre manualmente a base usada pelo motor de sugestões.</p></div></div><form className="ferias-form" onSubmit={addTurno}><label>Nome do turno<input value={turnoDraft.name} onChange={event => setTurnoDraft({ ...turnoDraft, name: event.target.value })} placeholder="Ex.: Motoristas manhã" /></label><label>Dias aplicáveis<input value={turnoDraft.days} onChange={event => setTurnoDraft({ ...turnoDraft, days: event.target.value })} /></label><button className="primary-button" type="submit">Cadastrar turno <span>+</span></button></form>{turnos.length === 0 ? <div className="ferias-empty">Nenhum turno cadastrado ainda.</div> : <div className="ferias-list">{turnos.map(item => <div className="ferias-row" key={item.id}><div><strong>{item.name}</strong><span>{item.days}</span></div><StatusBadge>{feristas.length} feristas compatíveis</StatusBadge></div>)}</div>}</section>}
+    {tab === 'turnos' && <section className="ferias-card"><div className="section-heading"><div><h3>Turnos e feristas</h3><p>Cadastre manualmente a base usada pelo motor de sugestões.</p></div></div><form className="ferias-form" onSubmit={addTurno}><label>Nome do turno<input value={turnoDraft.name} onChange={event => setTurnoDraft({ ...turnoDraft, name: event.target.value })} placeholder="Ex.: Motoristas manhã" /></label><label>Dias aplicáveis<input value={turnoDraft.days} onChange={event => setTurnoDraft({ ...turnoDraft, days: event.target.value })} /></label><button className="primary-button" type="submit">Cadastrar turno <span>+</span></button></form>{turnos.length === 0 ? <div className="ferias-empty">Nenhum turno cadastrado ainda.</div> : <div className="ferias-list">{turnos.map(item => <div className="ferias-row" key={item.id}><div><strong>{item.name}</strong><span>{item.days}</span></div><StatusBadge>{feristas.filter(ferista => ferista.shiftIds?.includes(item.id)).length} feristas compatíveis</StatusBadge></div>)}</div>}<div className="section-heading people-heading"><div><h3>Pessoas importadas</h3><p>Confirme o turno de cada pessoa para liberar sugestões confiáveis.</p></div><StatusBadge tone={people.filter(person => personShifts[person.id || person.employeeName]).length === people.length && people.length ? 'green' : 'red'}>{people.filter(person => personShifts[person.id || person.employeeName]).length}/{people.length} vinculadas</StatusBadge></div>{people.length === 0 ? <div className="ferias-empty">Importe o PDF para listar as pessoas.</div> : <div className="ferias-list people-list">{people.map(person => <div className="ferias-row" key={person.id || person.employeeName}><div><strong>{person.employeeName}</strong><span>Saldo: {person.balanceDays} dias · Limite: {formatDate(person.gozoLimit)}</span></div><select value={personShifts[person.id || person.employeeName] || ''} onChange={event => assignPersonShift(person, event.target.value)}><option value="">Selecionar turno</option>{turnos.map(turno => <option key={turno.id} value={turno.id}>{turno.name}</option>)}</select></div>)}</div>}</section>}
   </div>;
 }
