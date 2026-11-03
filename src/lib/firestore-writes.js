@@ -1,7 +1,7 @@
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, writeBatch } from 'firebase/firestore';
 import { firebaseApp } from './firebase.js';
 import { getFirestore } from 'firebase/firestore';
-import { createSnapshotEnvelope } from '../dados/snapshot-envelope.js';
+import { createSnapshotWritePlan } from '../dados/snapshot-write-plan.js';
 
 const db = getFirestore(firebaseApp);
 
@@ -34,8 +34,7 @@ export async function saveOccurrence(event) {
 export async function saveProcessedDay(day) {
   // Sem merge de propósito: HE corrigida, batidas removidas e paradas atualizadas
   // precisam substituir o conteúdo anterior daquele dia.
-  const envelope = createSnapshotEnvelope(day);
-  await setDoc(doc(db, 'dias_processados', day.dateKey), envelope);
-  await setDoc(doc(db, 'snapshots_dias', day.dateKey), { ...envelope, items: day.items });
-  await setDoc(doc(db, 'snapshots_dias', 'latest'), { ...envelope, items: day.items }, { merge: true });
+  const batch = writeBatch(db);
+  createSnapshotWritePlan(day).forEach(write => batch.set(doc(db, write.collection, write.id), write.data, write.merge ? { merge: true } : undefined));
+  await batch.commit();
 }
