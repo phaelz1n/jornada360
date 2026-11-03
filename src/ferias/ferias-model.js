@@ -76,7 +76,7 @@ export function suggestVacation({ today, employee, shift, feristas = [] }) {
   const compatible = feristas.find(item => {
     const supportsShift = Array.isArray(item.shiftIds) && shift && item.shiftIds.includes(shift.id);
     const inWindow = (!item.availableFrom || startDate >= item.availableFrom) && (!item.availableTo || startDate <= item.availableTo);
-    return supportsShift && inWindow;
+    return supportsShift && item.status !== 'inativo' && inWindow;
   }) || null;
   const base = validateVacationSuggestion({ today, startDate, employee, shift, ferista: compatible });
   const trainingStartDate = businessDaysBefore(startDate, 2);
