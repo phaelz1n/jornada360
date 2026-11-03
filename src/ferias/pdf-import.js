@@ -34,6 +34,13 @@ export function parseVacationPdfText(text, sourceImportId = '') {
   return records.filter(record => record.employeeName && record.gozoLimit);
 }
 
+export function buildVacationImportKey(records = [], sourceName = '') {
+  const fingerprint = records.map(record => [record.employeeName, record.balanceDays, record.gozoLimit, record.accrualPeriod].join('|')).sort().join('||');
+  let hash = 2166136261;
+  for (const character of `${sourceName}|${fingerprint}`) hash = Math.imul(hash ^ character.charCodeAt(0), 16777619);
+  return `ferias-${(hash >>> 0).toString(16)}`;
+}
+
 export async function extractVacationPdf(file) {
   if (!file) throw new Error('Selecione um PDF de previsão de férias.');
   const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');

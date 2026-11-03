@@ -1,5 +1,6 @@
 import { firestoreStore } from '../lib/firestore-store.js';
 import { cancelFeriasProgramacao, saveFeriasEntity, saveFeriasImport, saveFeriasProgramacao } from '../lib/firestore-writes.js';
+import { buildVacationImportKey } from './pdf-import.js';
 
 export const FERIAS_COLLECTIONS = Object.freeze({
   turnos: 'ferias_turnos',
@@ -43,7 +44,7 @@ export async function cancelProgramacao(programacao, actorEmail, reason) {
 }
 
 export async function persistVacationImport(records, actorEmail, sourceName) {
-  return saveFeriasImport(records, actorEmail, sourceName);
+  return saveFeriasImport(records, actorEmail, sourceName, buildVacationImportKey(records, sourceName));
 }
 
 export async function persistPersonShift(person, shiftId, actorEmail) {

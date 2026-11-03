@@ -123,16 +123,16 @@ export async function saveSystemPermission(permission, actorEmail) {
   return id;
 }
 
-export async function saveFeriasImport(records, actorEmail, sourceName = '') {
-  const importId = `ferias-${new Date().toISOString().replace(/[^\d]/g, '').slice(0, 14)}`;
+export async function saveFeriasImport(records, actorEmail, sourceName = '', importId) {
+  const finalImportId = importId || `ferias-${encodeURIComponent(String(sourceName).toLowerCase().replace(/[^a-z0-9]+/g, '-'))}-${records.length}`;
   const createdAt = new Date().toISOString();
   const batch = writeBatch(db);
-  batch.set(doc(db, 'ferias_importacoes', importId), { id: importId, sourceName, itemCount: records.length, createdAt, createdBy: actorEmail || auth.currentUser?.email || '' });
+  batch.set(doc(db, 'ferias_importacoes', finalImportId), { id: finalImportId, sourceName, itemCount: records.length, createdAt, createdBy: actorEmail || auth.currentUser?.email || '' });
   records.forEach(record => {
-    const id = feriasId({ ...record, id: `${importId}-${record.employeeName}` });
-    batch.set(doc(db, 'ferias_pessoas', id), { ...record, id, importId, updatedAt: createdAt }, { merge: true });
+    const id = feriasId({ ...record, id: `${finalImportId}-${record.employeeName}` });
+    batch.set(doc(db, 'ferias_pessoas', id), { ...record, id, importId: finalImportId, updatedAt: createdAt }, { merge: true });
   });
-  batch.set(doc(db, 'ferias_auditoria', `import-${importId}`), { action: 'ferias_importacao_criada', importId, itemCount: records.length, actorEmail: actorEmail || auth.currentUser?.email || '', createdAt });
+  batch.set(doc(db, 'ferias_auditoria', `import-${finalImportId}`), { action: 'ferias_importacao_criada', importId: finalImportId, itemCount: records.length, actorEmail: actorEmail || auth.currentUser?.email || '', createdAt });
   await batch.commit();
-  return importId;
+  return finalImportId;
 }
