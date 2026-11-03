@@ -165,10 +165,6 @@ export function crossSources({ pointRows = [], previousPointRows = [], scaleRows
     const batidasExtra = actualDuration && standardDuration ? Math.max(0, actualDuration - standardDuration) : null;
     const hasReportedExtra = ['totalHE', 'he1min', 'he2min', 'he3min', 'excedenteMin'].some(field => point[field] != null);
     const standardExtra = Number(standardRow?.extraNormalPadrao);
-    const totalHE = standardExtra > 0 && hasReportedExtra ? reportedHE : batidasExtra != null ? batidasExtra : reportedHE;
-    const trackerEvidence = buildEvidence({ batidas: point.batidas || [], paradaAnalysis, totalHE, metaDiaMin });
-    const history = patternHistory?.[key] || [];
-    const repeatedRealized = history.length >= 5 && history.slice(-5).every(value => Math.abs(Number(value) - totalHE) <= 5);
     const extraScaleRows = scaleRows.filter(row => !lineMatchesStandard(row, standardRow));
     const trackerExtraLine = paradaAnalysis.paradas.find(stop => extraScaleRows.some(row => {
       const scaleTime = timeOf(row.horario || row.inicio || row.horarioInicio);
@@ -176,6 +172,15 @@ export function crossSources({ pointRows = [], previousPointRows = [], scaleRows
       const sameLine = String(row.linha || row.nome || '').trim() && String(row.linha || row.nome || '').trim() === String(stop.linha || '').trim();
       return (sameLine && !stop.foraDaEscala) || (scaleTime != null && trackerTime != null && Math.abs(scaleTime - trackerTime) <= 30);
     }));
+    const extraValidatedBySources = Boolean(trackerExtraLine);
+    const totalHE = standardExtra > 0 && hasReportedExtra
+      ? reportedHE
+      : standardExtra <= 0 && hasReportedExtra && extraValidatedBySources
+        ? reportedHE
+        : batidasExtra != null ? batidasExtra : reportedHE;
+    const trackerEvidence = buildEvidence({ batidas: point.batidas || [], paradaAnalysis, totalHE, metaDiaMin });
+    const history = patternHistory?.[key] || [];
+    const repeatedRealized = history.length >= 5 && history.slice(-5).every(value => Math.abs(Number(value) - totalHE) <= 5);
     const foraDaEscalaSemLinha = paradaAnalysis.paradas.find(stop => stop.foraDaEscala && !extraScaleRows.some(row => {
       const scaleTime = timeOf(row.horario || row.inicio || row.horarioInicio);
       const trackerTime = timeOf(stop.horario);

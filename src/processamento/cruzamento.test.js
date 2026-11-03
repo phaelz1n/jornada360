@@ -129,3 +129,16 @@ test('usa a quantidade de extra do ponto dentro do padrão mesmo com horários d
   assert.equal(row.heDentroPadraoMin, 25);
   assert.equal(row.heAcimaPadraoMin, 0);
 });
+
+test('aceita extra de padrão negativo somente quando escala e rastreador comprovam', () => {
+  const [row] = crossSources({
+    pointRows: [{ motorista: 'Ademar', dateKey: '2026-10-29', totalHE: 25, he1min: 25, batidas: ['21:37', '00:28', '03:42', '07:46'] }],
+    standardRows: [{ motorista: 'Ademar', extraNormalPadrao: -25, horarios: ['21:25', '00:30', '04:10', '08:00'] }],
+    scaleRows: [{ motorista: 'Ademar', horario: '08:30', linha: 'Linha extra' }],
+    trackerRows: [{ motorista: 'Ademar', paradas: [{ horario: '08:30', local: 'Linha extra' }] }]
+  });
+  assert.equal(row.totalHE, 25);
+  assert.equal(row.heDentroPadraoMin, 0);
+  assert.equal(row.heAcimaPadraoMin, 25);
+  assert.equal(row.linhaExtraCandidata, true);
+});
