@@ -182,13 +182,13 @@ export function FeriasPanel({ user, motoristas = [] }) {
       const records = parseVacationPdfText(text, `preview-${Date.now()}`);
       if (!records.length) throw new Error('Não encontrei registros no formato esperado do relatório.');
       setImportedRecords(records);
+      setPeople(records);
       const conflicts = detectVacationImportConflicts(people, records);
       if (conflicts.length) {
         setPendingImport({ records, fileName: file.name, conflicts });
         setNotice(`${conflicts.length} período(s) próximo(s) encontrado(s). Revise antes de salvar.`);
       } else {
         await persistVacationImport(records, user?.email, file.name);
-        setPeople(records);
         setSyncError('');
         setNotice(`${records.length} pessoas importadas. O PDF original não foi armazenado.`);
       }
