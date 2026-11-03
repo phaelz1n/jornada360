@@ -6,7 +6,7 @@ import {
   normalizeVacationRecord,
   suggestVacation,
   validateVacationSuggestion
-  , detectVacationConflicts
+  , detectVacationConflicts, feristaCanCover
 } from './ferias-model.js';
 
 test('normaliza registro importado e preserva origem', () => {
@@ -23,6 +23,7 @@ test('normaliza registro importado e preserva origem', () => {
     employeeCode: '42',
     employeeName: 'Ana Maria',
     role: '',
+    garageDistance: 'nao_classificado',
     balanceDays: 30,
     gozoLimit: '2026-12-15',
     accrualPeriod: '01/01/2025 a 31/12/2025',
@@ -81,4 +82,9 @@ test('detecta ferista ocupado em períodos sobrepostos', () => {
     { id: 'b', employeeName: 'Bruno', feristaId: 'f1', trainingStartDate: '2026-12-10', startDate: '2026-12-12', endDate: '2026-12-20', status: 'pronta' }
   ]);
   assert.equal(conflicts[0].type, 'ferista_sobreposto');
+});
+
+test('aplica alcance especial do ferista para longe da garagem', () => {
+  assert.equal(feristaCanCover({ coverageScope: 'longe_garagem' }, { garageDistance: 'longe' }), true);
+  assert.equal(feristaCanCover({ coverageScope: 'longe_garagem' }, { garageDistance: 'proximo' }), false);
 });

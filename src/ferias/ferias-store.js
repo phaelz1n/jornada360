@@ -31,6 +31,10 @@ export async function persistFerista(ferista, actorEmail) {
   return saveFeriasEntity('ferias_feristas', ferista, actorEmail);
 }
 
+export async function persistVacationPerson(person, actorEmail) {
+  return saveFeriasEntity('ferias_pessoas', person, actorEmail);
+}
+
 export async function persistSuggestion(suggestion, actorEmail) {
   return saveFeriasEntity('ferias_sugestoes', suggestion, actorEmail);
 }

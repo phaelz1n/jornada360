@@ -52,6 +52,7 @@ export function normalizeVacationRecord(input = {}) {
     employeeCode: normalizeText(input.employeeCode ?? input.codigo ?? input.codReg),
     employeeName: normalizeText(input.employeeName ?? input.trabalhador ?? input.nome),
     role: normalizeText(input.role ?? input.cargo ?? input.funcao),
+    garageDistance: normalizeText(input.garageDistance ?? input.distanciaGaragem) || 'nao_classificado',
     balanceDays: numberValue(input.balanceDays ?? input.saldo),
     gozoLimit: normalizeDate(input.gozoLimit ?? input.limiteGozo),
     accrualPeriod: normalizeText(input.accrualPeriod ?? input.periodoAquisitivo),
@@ -61,6 +62,11 @@ export function normalizeVacationRecord(input = {}) {
 
 export function isDriverRole(role) {
   return /motorista|condutor|ferista/i.test(String(role || ''));
+}
+
+export function feristaCanCover(ferista, employee) {
+  if (ferista?.coverageScope !== 'longe_garagem') return true;
+  return employee?.garageDistance === 'longe';
 }
 
 export function validateVacationSuggestion({ today, startDate, endDate, employee = {}, shift, ferista }) {
@@ -81,7 +87,7 @@ export function suggestVacation({ today, employee, shift, feristas = [] }) {
   const compatible = feristas.find(item => {
     const supportsShift = Array.isArray(item.shiftIds) && shift && item.shiftIds.includes(shift.id);
     const inWindow = (!item.availableFrom || startDate >= item.availableFrom) && (!item.availableTo || startDate <= item.availableTo);
-    return supportsShift && item.status !== 'inativo' && inWindow;
+    return supportsShift && item.status !== 'inativo' && inWindow && feristaCanCover(item, employee);
   }) || null;
   const base = validateVacationSuggestion({ today, startDate, employee, shift, ferista: compatible });
   const trainingStartDate = businessDaysBefore(startDate, 2);
