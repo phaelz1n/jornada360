@@ -10,10 +10,11 @@ function dailySeries(items) {
   const days = new Map();
   items.forEach(item => {
     const dateKey = item.dateKey || 'sem-data';
-    const row = days.get(dateKey) || { dateKey, totalHEmin: 0, he1min: 0, he2min: 0, he3min: 0, dentroPadraoMin: 0, acimaPadraoMin: 0, metaMin: 0 };
+    const row = days.get(dateKey) || { dateKey, totalHEmin: 0, extraCandidataMin: 0, he1min: 0, he2min: 0, he3min: 0, dentroPadraoMin: 0, acimaPadraoMin: 0, metaMin: 0 };
     const total = totalHE(item);
     const meta = positiveMeta(item);
     row.totalHEmin += total;
+    row.extraCandidataMin += Math.max(0, finite(item.extraCandidataMin));
     row.he1min += Math.max(0, finite(item.he1min));
     row.he2min += Math.max(0, finite(item.he2min));
     row.he3min += Math.max(0, finite(item.he3min));
@@ -38,6 +39,7 @@ function buildDashboardAnalytics({ report = {}, snapshots = [], motoristas = [] 
     result[bucket] = items.reduce((sum, item) => sum + Math.max(0, finite(item[bucket])), 0);
     return result;
   }, { he1min: 0, he2min: 0, he3min: 0 });
+  bucketComposition.extraCandidataMin = items.reduce((sum, item) => sum + Math.max(0, finite(item.extraCandidataMin)), 0);
   bucketComposition.totalHEmin = BUCKETS.reduce((sum, bucket) => sum + bucketComposition[bucket], 0);
 
   const drivers = new Map();
@@ -56,7 +58,7 @@ function buildDashboardAnalytics({ report = {}, snapshots = [], motoristas = [] 
     const meta = positiveMeta(item);
     sector.totalHEmin += total;
     sector.dentroPadraoMin += Math.min(total, meta);
-    sector.acimaPadraoMin += Math.max(total - meta, 0);
+    sector.acimaPadraoMin += Math.max(total - meta, 0) + Math.max(0, finite(item.extraCandidataMin));
     sectors.set(setor, sector);
   });
 

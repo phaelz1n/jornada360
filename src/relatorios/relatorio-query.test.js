@@ -85,3 +85,10 @@ test('desconsidera padrões negativos na meta do período', () => {
   const result = consultarPeriodo([{ dateKey: '2026-10-27', items: [{ motorista: 'Ana', he1min: 60, metaDiaMin: -10 }, { motorista: 'Bia', he1min: 60, metaDiaMin: 20 }] }], { inicio: '2026-10-27', fim: '2026-10-27' });
   assert.equal(result.summary.metaPeriodoMin, 20);
 });
+
+test('preserva e soma extras candidatas sem misturar com HE validada', () => {
+  const result = consultarDia([{ dateKey: '2026-10-27', items: [{ motorista: 'Ademar', he1min: 0, extraCandidataMin: 25, extraAuditoriaStatus: 'sem-escala-sem-rastreio', padraoCadastradoMin: -25 }] }], '2026-10-27');
+  assert.equal(result.summary.totalHEmin, 0);
+  assert.equal(result.summary.extraCandidataMin, 25);
+  assert.equal(result.items[0].extraCandidataMin, 25);
+});
