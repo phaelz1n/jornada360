@@ -44,9 +44,17 @@ test('resume riscos operacionais sem duplicar o mesmo item', () => {
   assert.deepEqual(result.riskDetails.intrajornada, ['Bia']);
 });
 
+test('guarda evidência de interjornada com o dia anterior', () => {
+  const result = buildDashboardAnalytics({
+    report: { items: [{ motorista: 'Agnaldo', dateKey: '2026-10-28', batidas: ['21:00', '07:00'], interjornada: true }], summary: {} },
+    snapshots: [{ dateKey: '2026-10-27', items: [{ motorista: 'Agnaldo', batidas: ['08:00', '19:00'] }] }]
+  });
+  assert.deepEqual(result.riskEvidence.interjornada[0], { motorista: 'Agnaldo', dateKey: '2026-10-28', batidas: ['21:00', '07:00'], previousDateKey: '2026-10-27', previousBatidas: ['08:00', '19:00'] });
+});
+
 test('retorna coleções vazias e números finitos sem registros', () => {
   const result = buildDashboardAnalytics({ report: { items: [], summary: {} }, snapshots: [] });
-  assert.deepEqual(result, { dailySeries: [], bucketComposition: { he1min: 0, he2min: 0, he3min: 0, extraCandidataMin: 0, semPadraoMin: 0, totalHEmin: 0 }, driverDistribution: [], sectorComparison: [], riskMatrix: { interjornada: 0, intrajornada: 0, foraDaEscala: 0, semPadrao: 0, rastreioDivergente: 0 }, riskDetails: { interjornada: [], intrajornada: [], foraDaEscala: [], semPadrao: [], rastreioDivergente: [] } });
+  assert.deepEqual(result, { dailySeries: [], bucketComposition: { he1min: 0, he2min: 0, he3min: 0, extraCandidataMin: 0, semPadraoMin: 0, totalHEmin: 0 }, driverDistribution: [], sectorComparison: [], riskMatrix: { interjornada: 0, intrajornada: 0, foraDaEscala: 0, semPadrao: 0, rastreioDivergente: 0 }, riskDetails: { interjornada: [], intrajornada: [], foraDaEscala: [], semPadrao: [], rastreioDivergente: [] }, riskEvidence: { interjornada: [], intrajornada: [], foraDaEscala: [], semPadrao: [], rastreioDivergente: [] } });
 });
 
 test('prioriza o setor atual do cadastro sobre o setor antigo do snapshot', () => {

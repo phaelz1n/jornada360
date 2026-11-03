@@ -15,6 +15,8 @@ export function DashboardCharts({ analytics }) {
   const sectors = (analytics?.sectorComparison || []).slice(0, 6);
   const risks = analytics?.riskMatrix || {};
   const riskDetails = analytics?.riskDetails || {};
+  const riskEvidence = analytics?.riskEvidence || {};
+  const [selectedPerson, setSelectedPerson] = useState(null);
   const maxDaily = Math.max(...daily.map(row => Math.max(row.totalHEmin, row.metaMin)), 1);
   const maxDriver = Math.max(...drivers.map(row => row.totalHEmin), 1);
   const maxSector = Math.max(...sectors.map(row => row.totalHEmin), 1);
@@ -36,7 +38,7 @@ export function DashboardCharts({ analytics }) {
       <div className="dashboard-chart-heading"><div><b>Setores e riscos</b><p>Compara setores e sinaliza pontos que exigem conferência.</p></div></div>
       {sectors.length ? <div className="dashboard-sector-bars">{sectors.map(row => <div className="dashboard-sector-row" key={row.setor}><span>{row.setor}</span><div><i style={{ width: `${Math.max(3, row.totalHEmin / maxSector * 100)}%` }} /><small>{fmt(row.totalHEmin)} · acima {fmt(row.acimaPadraoMin)}</small></div></div>)}</div> : <EmptyChart />}
       <div className="dashboard-risk-grid">{[['interjornada', 'Interjornada'], ['intrajornada', 'Intrajornada'], ['foraDaEscala', 'Fora da escala'], ['semPadrao', 'Sem padrão'], ['rastreioDivergente', 'Rastreio divergente']].map(([key, label]) => <button type="button" className={`${risks[key] ? 'risk-active' : ''} ${selectedRisk === key ? 'risk-selected' : ''}`} onClick={() => setSelectedRisk(current => current === key ? '' : key)} key={key}><b>{risks[key] || 0}</b><small>{label}</small></button>)}</div>
-      {selectedRisk && <div className="dashboard-risk-details"><b>{[['interjornada', 'Interjornada'], ['intrajornada', 'Intrajornada'], ['foraDaEscala', 'Fora da escala'], ['semPadrao', 'Sem padrão'], ['rastreioDivergente', 'Rastreio divergente']].find(([key]) => key === selectedRisk)?.[1]}</b>{(riskDetails[selectedRisk] || []).map(name => <span key={name}>{name}</span>)}{!(riskDetails[selectedRisk] || []).length && <small>Nenhuma pessoa neste recorte.</small>}</div>}
+      {selectedRisk && <div className="dashboard-risk-details"><b>{[['interjornada', 'Interjornada'], ['intrajornada', 'Intrajornada'], ['foraDaEscala', 'Fora da escala'], ['semPadrao', 'Sem padrão'], ['rastreioDivergente', 'Rastreio divergente']].find(([key]) => key === selectedRisk)?.[1]}</b>{(riskDetails[selectedRisk] || []).map(name => <button type="button" className="risk-person-button" key={name} onClick={() => setSelectedPerson((riskEvidence[selectedRisk] || []).find(item => item.motorista === name) || { motorista: name })}>{name}</button>)}{!(riskDetails[selectedRisk] || []).length && <small>Nenhuma pessoa neste recorte.</small>}{selectedPerson && selectedPerson.motorista && <div className="risk-person-evidence"><strong>{selectedPerson.motorista}</strong>{selectedPerson.dateKey && <span>Dia do problema: {selectedPerson.dateKey.split('-').reverse().join('/')}</span>}{selectedPerson.batidas?.length > 0 && <span>Batidas do dia: {selectedPerson.batidas.join(' · ')}</span>}{selectedPerson.previousDateKey && <span>Dia anterior: {selectedPerson.previousDateKey.split('-').reverse().join('/')} · {selectedPerson.previousBatidas?.length ? selectedPerson.previousBatidas.join(' · ') : 'sem batidas registradas'}</span>}</div>}</div>}
     </article>
   </div>;
 }

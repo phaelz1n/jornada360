@@ -5,6 +5,7 @@ const finite = value => Number.isFinite(Number(value)) ? Number(value) : 0;
 const totalHE = item => BUCKETS.reduce((sum, bucket) => sum + Math.max(0, finite(item?.[bucket])), 0);
 const positiveMeta = item => Math.max(0, finite(item?.metaDiaMin ?? item?.padraoCadastradoMin ?? item?.padraoMin));
 const normalizeName = value => String(value || '').trim().replace(/\s+/g, ' ').toLocaleUpperCase('pt-BR');
+const previousDate = dateKey => { const date = new Date(`${dateKey}T12:00:00`); date.setDate(date.getDate() - 1); return date.toISOString().slice(0, 10); };
 
 function dailySeries(items) {
   const days = new Map();
@@ -65,6 +66,8 @@ function buildDashboardAnalytics({ report = {}, snapshots = [], motoristas = [] 
 
   const riskMatrix = RISK_KEYS.reduce((result, key) => { result[key] = 0; return result; }, {});
   const riskDetails = RISK_KEYS.reduce((result, key) => { result[key] = new Set(); return result; }, {});
+  const snapshotByDate = new Map(snapshots.map(snapshot => [snapshot.dateKey, snapshot]));
+  const riskEvidence = RISK_KEYS.reduce((result, key) => { result[key] = []; return result; }, {});
   items.forEach(item => {
     const name = item.motorista || 'Sem motorista';
     const risks = {
@@ -75,6 +78,12 @@ function buildDashboardAnalytics({ report = {}, snapshots = [], motoristas = [] 
       rastreioDivergente: item.rastreadorStatus === 'divergente'
     };
     Object.entries(risks).forEach(([key, active]) => { if (active) riskDetails[key].add(name); });
+    Object.entries(risks).forEach(([key, active]) => {
+      if (!active) return;
+      const previous = key === 'interjornada' && item.dateKey ? snapshotByDate.get(previousDate(item.dateKey)) : null;
+      const previousItem = previous?.items?.find(candidate => normalizeName(candidate.motorista || candidate.nome) === normalizeName(name));
+      riskEvidence[key].push({ motorista: name, dateKey: item.dateKey || null, batidas: item.batidas || [], ...(key === 'interjornada' ? { previousDateKey: previous?.dateKey || previousDate(item.dateKey), previousBatidas: previousItem?.batidas || [] } : {}) });
+    });
   });
 
   return {
@@ -83,7 +92,8 @@ function buildDashboardAnalytics({ report = {}, snapshots = [], motoristas = [] 
     driverDistribution: [...drivers.values()].sort((a, b) => b.totalHEmin - a.totalHEmin || a.motorista.localeCompare(b.motorista)),
     sectorComparison: [...sectors.values()].sort((a, b) => b.totalHEmin - a.totalHEmin || a.setor.localeCompare(b.setor)),
     riskMatrix: RISK_KEYS.reduce((result, key) => { result[key] = riskDetails[key].size; return result; }, {}),
-    riskDetails: RISK_KEYS.reduce((result, key) => { result[key] = [...riskDetails[key]].sort((a, b) => a.localeCompare(b)); return result; }, {})
+    riskDetails: RISK_KEYS.reduce((result, key) => { result[key] = [...riskDetails[key]].sort((a, b) => a.localeCompare(b)); return result; }, {}),
+    riskEvidence
   };
 }
 
