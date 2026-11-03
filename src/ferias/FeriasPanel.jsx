@@ -10,6 +10,16 @@ function formatDate(value) {
   return new Intl.DateTimeFormat('pt-BR').format(new Date(`${value}T12:00:00`));
 }
 
+function uniquePeople(records = []) {
+  const seen = new Set();
+  return records.filter(record => {
+    const key = String(record.employeeCode || record.employeeName || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 function printVacationReport(programacoes, feristas, turnos) {
   const oficiais = programacoes.filter(item => item.status === 'aprovada');
   if (!oficiais.length) return false;
@@ -48,7 +58,7 @@ export function FeriasPanel({ user, motoristas = [] }) {
   useEffect(() => subscribeFeriasData({
     onTurnos: setTurnos,
     onFeristas: setFeristas,
-    onPeople: setPeople,
+    onPeople: records => setPeople(uniquePeople(records)),
     onPersonShifts: records => setPersonShifts(records.reduce((map, item) => ({ ...map, [item.employeeCode || item.employeeName]: item.shiftId }), {})),
     onSuggestions: setSuggestions,
     onPrograms: setProgramacoes,
@@ -182,7 +192,7 @@ export function FeriasPanel({ user, motoristas = [] }) {
       const records = parseVacationPdfText(text, `preview-${Date.now()}`);
       if (!records.length) throw new Error('Não encontrei registros no formato esperado do relatório.');
       setImportedRecords(records);
-      setPeople(records);
+      setPeople(uniquePeople(records));
       const conflicts = detectVacationImportConflicts(people, records);
       if (conflicts.length) {
         setPendingImport({ records, fileName: file.name, conflicts });
@@ -201,7 +211,7 @@ export function FeriasPanel({ user, motoristas = [] }) {
     if (!pendingImport) return;
     try {
       await persistVacationImport(pendingImport.records, user?.email, pendingImport.fileName);
-      setPeople(pendingImport.records);
+      setPeople(uniquePeople(pendingImport.records));
       setSyncError('');
       setPendingImport(null);
       setNotice(`${pendingImport.records.length} pessoas importadas; os períodos conflitantes foram substituídos.`);

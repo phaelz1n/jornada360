@@ -130,7 +130,7 @@ export async function saveFeriasImport(records, actorEmail, sourceName = '', imp
   const batch = writeBatch(db);
   batch.set(doc(db, 'ferias_importacoes', finalImportId), { id: finalImportId, sourceName, itemCount: records.length, createdAt, createdBy: actorEmail || auth.currentUser?.email || '' });
   records.forEach(record => {
-    const id = feriasId({ ...record, id: `${finalImportId}-${record.employeeName}` });
+    const id = feriasId({ ...record, id: record.employeeCode || record.employeeName });
     batch.set(doc(db, 'ferias_pessoas', id), { ...record, id, importId: finalImportId, updatedAt: createdAt }, { merge: true });
   });
   batch.set(doc(db, 'ferias_auditoria', `import-${finalImportId}`), { action: 'ferias_importacao_criada', importId: finalImportId, itemCount: records.length, actorEmail: actorEmail || auth.currentUser?.email || '', createdAt });
