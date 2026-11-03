@@ -8,12 +8,13 @@ function formatSize(bytes) {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-export function ImportacaoPanel({ onProcess }) {
-  const [state, setState] = useState(createImportState);
+export function ImportacaoPanel({ onProcess, draft, onDraftChange }) {
+  const [state, setState] = useState(() => draft?.state || createImportState());
   const [dateKey, setDateKey] = useState(() => { const now = new Date(); return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`; });
   const [message, setMessage] = useState('');
-  const [rowData, setRowData] = useState({});
+  const [rowData, setRowData] = useState(() => draft?.rowData || {});
   const selectedCount = useMemo(() => Object.values(state.files).filter(Boolean).length, [state.files]);
+  useEffect(() => { onDraftChange?.({ state, rowData, dateKey }); }, [state, rowData, dateKey, onDraftChange]);
   useEffect(() => {
     const onSyncError = event => setMessage(`Falha ao salvar no Firebase: ${event.detail?.message || 'verifique as permissões.'}`);
     window.addEventListener('jornada360:sync-error', onSyncError);

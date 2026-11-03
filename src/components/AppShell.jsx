@@ -26,6 +26,7 @@ export function AppShell({ user, dashboardData, onLogout }) {
   const [liveData, setLiveData] = useState(dashboardData || { items: [], snapshots: [] });
   const [motoristas, setMotoristas] = useState([]);
   const [eventos, setEventos] = useState([]);
+  const [importDraft, setImportDraft] = useState(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('jornada360:dark-mode') === 'true');
   const section = SECTION_CONTENT[activeSection];
@@ -117,7 +118,7 @@ export function AppShell({ user, dashboardData, onLogout }) {
         <header className="topbar"><div><span className="eyebrow">PAINEL DE OPERAÇÃO</span><h1>Bom trabalho, equipe.</h1></div><div className="profile-menu"><button type="button" className="user-chip" onClick={() => setProfileOpen(value => !value)} aria-expanded={profileOpen}><span className="avatar">{user?.email?.[0]?.toUpperCase() || 'U'}</span><span>{user?.email}</span><span className="profile-caret">▾</span></button>{profileOpen && <div className="profile-dropdown"><span className="profile-email">{user?.email}</span><button type="button" onClick={() => setDarkMode(value => !value)}><span>{darkMode ? '☀' : '◐'}</span>{darkMode ? 'Modo claro' : 'Modo escuro'}</button></div>}</div></header>
         <section className="welcome-card"><div><span className="eyebrow">JORNADA360 / {activeSection.toUpperCase()}</span><h2>{section.title}</h2><p>{section.description} A lógica atual de processamento continua preservada durante a migração.</p></div></section>
         {activeSection === 'Início' && <section className="status-grid"><article onClick={() => setActiveSection('Importação')}><span className="status-icon blue">↥</span><div><strong>Importação</strong><p>Planilhas do dia e fontes operacionais</p></div><span className="arrow">→</span></article><article onClick={() => setActiveSection('Checklist')}><span className="status-icon green">✓</span><div><strong>Checklist</strong><p>Validações e pendências da jornada</p></div><span className="arrow">→</span></article><article onClick={() => setActiveSection('Relatórios')}><span className="status-icon orange">▥</span><div><strong>Relatórios</strong><p>HE.1, HE.2, HE.3, inter e intra</p></div><span className="arrow">→</span></article></section>}
-        {activeSection === 'Importação' && <ImportacaoPanel onProcess={handleImportComplete} />}
+        {activeSection === 'Importação' && <ImportacaoPanel draft={importDraft} onDraftChange={setImportDraft} onProcess={handleImportComplete} />}
         {activeSection === 'Checklist' && <ChecklistHistory liveData={liveData} />}
         {activeSection === 'Processamento' && <ProcessingPanel items={liveData?.items} />}
         {activeSection === 'Relatórios' && <ReportsPanel items={liveData?.items} snapshots={liveData?.snapshots} />}
