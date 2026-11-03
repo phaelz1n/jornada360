@@ -119,3 +119,13 @@ test('calcula extra efetiva comparando duração das batidas com o padrão', () 
   assert.equal(row.totalHE, 0);
   assert.equal(row.heAcimaPadraoMin, 0);
 });
+
+test('usa a quantidade de extra do ponto dentro do padrão mesmo com horários diferentes', () => {
+  const [row] = crossSources({
+    pointRows: [{ motorista: 'Ana', totalHE: 25, he1min: 25, batidas: ['08:00', '17:10'] }],
+    standardRows: [{ motorista: 'Ana', extraNormalPadrao: 25, horarios: ['08:00', '17:00'] }]
+  });
+  assert.equal(row.totalHE, 25);
+  assert.equal(row.heDentroPadraoMin, 25);
+  assert.equal(row.heAcimaPadraoMin, 0);
+});

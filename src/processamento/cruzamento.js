@@ -163,7 +163,9 @@ export function crossSources({ pointRows = [], previousPointRows = [], scaleRows
     const actualDuration = durationFromPairs(point.batidas || []);
     const standardDuration = durationFromPairs(standardRow?.horarios || []);
     const batidasExtra = actualDuration && standardDuration ? Math.max(0, actualDuration - standardDuration) : null;
-    const totalHE = batidasExtra != null ? batidasExtra : reportedHE;
+    const hasReportedExtra = ['totalHE', 'he1min', 'he2min', 'he3min', 'excedenteMin'].some(field => point[field] != null);
+    const standardExtra = Number(standardRow?.extraNormalPadrao);
+    const totalHE = standardExtra > 0 && hasReportedExtra ? reportedHE : batidasExtra != null ? batidasExtra : reportedHE;
     const trackerEvidence = buildEvidence({ batidas: point.batidas || [], paradaAnalysis, totalHE, metaDiaMin });
     const history = patternHistory?.[key] || [];
     const repeatedRealized = history.length >= 5 && history.slice(-5).every(value => Math.abs(Number(value) - totalHE) <= 5);
