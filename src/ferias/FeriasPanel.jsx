@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { suggestVacation } from './ferias-model.js';
-import { acceptSuggestion, persistSuggestion, persistTurno, subscribeFeriasData } from './ferias-store.js';
+import { acceptSuggestion, persistSuggestion, persistTurno, persistVacationImport, subscribeFeriasData } from './ferias-store.js';
+import { extractVacationPdf, parseVacationPdfText } from './pdf-import.js';
 
 const emptyTurno = { name: '', description: '', days: 'Segunda a sábado' };
 
@@ -21,6 +22,8 @@ export function FeriasPanel({ user }) {
   const [programacoes, setProgramacoes] = useState([]);
   const [turnoDraft, setTurnoDraft] = useState(emptyTurno);
   const [notice, setNotice] = useState('');
+  const [importedRecords, setImportedRecords] = useState([]);
+  const [importing, setImporting] = useState(false);
 
   useEffect(() => subscribeFeriasData({
     onTurnos: setTurnos,
@@ -68,6 +71,23 @@ export function FeriasPanel({ user }) {
     }).catch(error => setNotice(`Não foi possível aceitar a programação: ${error?.message || 'verifique a conexão.'}`));
   }
 
+  async function handlePdfImport(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setImporting(true);
+    setNotice('Lendo o PDF no navegador…');
+    try {
+      const text = await extractVacationPdf(file);
+      const records = parseVacationPdfText(text, `preview-${Date.now()}`);
+      if (!records.length) throw new Error('Não encontrei registros no formato esperado do relatório.');
+      setImportedRecords(records);
+      await persistVacationImport(records, user?.email, file.name);
+      setNotice(`${records.length} pessoas importadas. O PDF original não foi armazenado.`);
+    } catch (error) {
+      setNotice(`Não foi possível importar o PDF: ${error?.message || 'formato não reconhecido.'}`);
+    } finally { setImporting(false); event.target.value = ''; }
+  }
+
   return <div className="ferias-page">
     {notice && <div className="ferias-notice" role="status">{notice}<button type="button" onClick={() => setNotice('')}>×</button></div>}
     <div className="ferias-toolbar">
@@ -80,8 +100,9 @@ export function FeriasPanel({ user }) {
       <article className={metrics.pending ? 'warning' : ''}><strong>{metrics.pending}</strong><span>Com pendências</span></article>
       <article><strong>{metrics.unassigned}</strong><span>Sem turno</span></article>
     </div>
-    <div className="ferias-tabs" role="tablist">{[['visao','Visão geral'],['sugestoes','Sugestões'],['programacoes','Programações'],['turnos','Turnos e feristas']].map(([id,label]) => <button key={id} className={tab === id ? 'active' : ''} type="button" onClick={() => setTab(id)} role="tab" aria-selected={tab === id}>{label}</button>)}</div>
+    <div className="ferias-tabs" role="tablist">{[['visao','Visão geral'],['importar','Importar PDF'],['sugestoes','Sugestões'],['programacoes','Programações'],['turnos','Turnos e feristas']].map(([id,label]) => <button key={id} className={tab === id ? 'active' : ''} type="button" onClick={() => setTab(id)} role="tab" aria-selected={tab === id}>{label}</button>)}</div>
     {tab === 'visao' && <section className="ferias-card"><div className="section-heading"><div><h3>Próximas etapas</h3><p>O PDF será importado e revisado antes de qualquer programação oficial.</p></div><StatusBadge>Rascunho seguro</StatusBadge></div><div className="ferias-checklist"><div><b>1</b><span><strong>Importar previsão de férias</strong><small>Extrair saldo, período aquisitivo e limite de gozo.</small></span></div><div><b>2</b><span><strong>Confirmar turnos e feristas</strong><small>O cadastro manual é a fonte oficial para cobertura.</small></span></div><div><b>3</b><span><strong>Aceitar as programações</strong><small>Somente o aceite cria a programação oficial.</small></span></div></div></section>}
+    {tab === 'importar' && <section className="ferias-card"><div className="section-heading"><div><h3>Importar previsão de férias</h3><p>O processamento acontece no navegador. Salvamos somente os dados necessários para auditoria e planejamento.</p></div></div><label className="pdf-dropzone"><input type="file" accept="application/pdf,.pdf" onChange={handlePdfImport} disabled={importing} /><span>{importing ? 'Processando PDF…' : 'Selecionar PDF de previsão de férias'}</span><small>O arquivo original não é enviado nem armazenado.</small></label>{importedRecords.length > 0 && <div className="ferias-list import-preview">{importedRecords.slice(0, 12).map(item => <div className="ferias-row" key={`${item.employeeName}-${item.gozoLimit}`}><div><strong>{item.employeeName}</strong><span>Saldo: {item.balanceDays} dias · Limite: {formatDate(item.gozoLimit)}</span><small>Período aquisitivo: {item.accrualPeriod}</small></div><StatusBadge tone="green">Importado</StatusBadge></div>)}{importedRecords.length > 12 && <small className="preview-more">+ {importedRecords.length - 12} registros importados</small>}</div>}</section>}
     {tab === 'sugestoes' && <section className="ferias-card"><div className="section-heading"><div><h3>Sugestões para revisar</h3><p>Antecedência, limite de gozo e cobertura são recalculados após cada edição.</p></div></div>{suggestions.length === 0 ? <div className="ferias-empty">Nenhuma sugestão gerada. Importe a previsão ou gere uma simulação para testar as regras.</div> : <div className="ferias-list">{suggestions.map(item => <div className="ferias-row" key={item.id}><div><strong>{item.employeeName}</strong><span>{item.startDate ? `${formatDate(item.startDate)} a ${formatDate(item.endDate)}` : 'Período pendente'}</span><small>Treinamento: {formatDate(item.trainingStartDate)} a {formatDate(item.trainingEndDate)}</small></div><div className="ferias-row-meta"><StatusBadge tone={item.status === 'pronta' ? 'green' : 'red'}>{item.status === 'pronta' ? 'Pronta' : 'Com pendências'}</StatusBadge><button className="secondary-button" type="button" onClick={() => acceptSuggestion(item)}>Aceitar</button></div></div>)}</div>}</section>}
     {tab === 'programacoes' && <section className="ferias-card"><div className="section-heading"><div><h3>Programações aprovadas</h3><p>Somente registros aceitos pelo RH aparecem nesta lista.</p></div></div>{programacoes.length === 0 ? <div className="ferias-empty">Nenhuma programação aprovada.</div> : <div className="ferias-list">{programacoes.map(item => <div className="ferias-row" key={item.id}><div><strong>{item.employeeName}</strong><span>{formatDate(item.startDate)} a {formatDate(item.endDate)}</span></div><StatusBadge tone="green">Aprovada</StatusBadge></div>)}</div>}</section>}
     {tab === 'turnos' && <section className="ferias-card"><div className="section-heading"><div><h3>Turnos e feristas</h3><p>Cadastre manualmente a base usada pelo motor de sugestões.</p></div></div><form className="ferias-form" onSubmit={addTurno}><label>Nome do turno<input value={turnoDraft.name} onChange={event => setTurnoDraft({ ...turnoDraft, name: event.target.value })} placeholder="Ex.: Motoristas manhã" /></label><label>Dias aplicáveis<input value={turnoDraft.days} onChange={event => setTurnoDraft({ ...turnoDraft, days: event.target.value })} /></label><button className="primary-button" type="submit">Cadastrar turno <span>+</span></button></form>{turnos.length === 0 ? <div className="ferias-empty">Nenhum turno cadastrado ainda.</div> : <div className="ferias-list">{turnos.map(item => <div className="ferias-row" key={item.id}><div><strong>{item.name}</strong><span>{item.days}</span></div><StatusBadge>{feristas.length} feristas compatíveis</StatusBadge></div>)}</div>}</section>}

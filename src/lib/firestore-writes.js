@@ -96,3 +96,17 @@ export async function saveFeriasProgramacao(suggestion, actorEmail) {
   await batch.commit();
   return id;
 }
+
+export async function saveFeriasImport(records, actorEmail, sourceName = '') {
+  const importId = `ferias-${new Date().toISOString().replace(/[^\d]/g, '').slice(0, 14)}`;
+  const createdAt = new Date().toISOString();
+  const batch = writeBatch(db);
+  batch.set(doc(db, 'ferias_importacoes', importId), { id: importId, sourceName, itemCount: records.length, createdAt, createdBy: actorEmail || auth.currentUser?.email || '' });
+  records.forEach(record => {
+    const id = feriasId({ ...record, id: `${importId}-${record.employeeName}` });
+    batch.set(doc(db, 'ferias_pessoas', id), { ...record, id, importId, updatedAt: createdAt }, { merge: true });
+  });
+  batch.set(doc(db, 'ferias_auditoria', `import-${importId}`), { action: 'ferias_importacao_criada', importId, itemCount: records.length, actorEmail: actorEmail || auth.currentUser?.email || '', createdAt });
+  await batch.commit();
+  return importId;
+}
