@@ -1,8 +1,9 @@
 import { doc, setDoc, writeBatch } from 'firebase/firestore';
-import { firebaseApp } from './firebase.js';
+import { firebaseApp, auth } from './firebase.js';
 import { getFirestore } from 'firebase/firestore';
 import { createSnapshotWritePlan } from '../dados/snapshot-write-plan.js';
 import { createImportSyncPlan } from '../dados/import-sync-plan.js';
+import { buildChecklistAudit } from '../dados/checklist-audit.js';
 
 const db = getFirestore(firebaseApp);
 
@@ -16,7 +17,12 @@ export async function saveImportRecord(record) {
 
 export async function saveChecklistSnapshot(snapshot, dateKey = 'latest') {
   const ref = doc(db, 'checklist', dateKey);
-  await setDoc(ref, { ...snapshot, updatedAt: new Date().toISOString() }, { merge: true });
+  const updatedAt = new Date().toISOString();
+  const batch = writeBatch(db);
+  batch.set(ref, { ...snapshot, updatedAt }, { merge: true });
+  const auditId = `checklist-${encodeURIComponent(String(dateKey))}-${Date.now()}`;
+  batch.set(doc(db, 'historico_auditoria', auditId), buildChecklistAudit(snapshot, dateKey, auth.currentUser?.email, updatedAt));
+  await batch.commit();
   return ref.id;
 }
 
