@@ -36,8 +36,9 @@ export async function saveDriver(driver) {
 export async function saveOccurrence(event) {
   const validation = validateOccurrence(event);
   if (!validation.valid) throw new Error(validation.errors.join(' '));
-  const id = `${event.dataKey}-${encodeURIComponent(String(event.motorista).toLowerCase())}-${Date.now()}`;
-  await setDoc(doc(db, 'ocorrencias', id), { ...event, updatedAt: new Date().toISOString() });
+  const normalized = { ...event, motorista: String(event.motorista).trim(), observacao: String(event.observacao || '').trim(), minutos: Number(event.minutos) };
+  const id = `${normalized.dataKey}-${encodeURIComponent(normalized.motorista.toLowerCase())}-${Date.now()}`;
+  await setDoc(doc(db, 'ocorrencias', id), { ...normalized, updatedAt: new Date().toISOString() });
   return id;
 }
 
