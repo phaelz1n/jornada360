@@ -13,9 +13,10 @@ import { crossSources } from '../processamento/cruzamento.js';
 import { normalizeTrackerRows } from '../importacao/rastreador-normalizer.js';
 import { InicioDashboard } from '../modules/InicioDashboard.jsx';
 import { OcorrenciasPanel } from '../modules/OcorrenciasPanel.jsx';
+import { dedupeSnapshots } from '../dados/snapshot-history.js';
 
 function ChecklistHistory({ liveData }) {
-  const dates = liveData?.snapshots || [];
+  const dates = dedupeSnapshots(liveData?.snapshots || []);
   const [dateKey, setDateKey] = useState(liveData?.dateKey || dates.at(-1)?.dateKey || 'latest');
   return <><div className="history-picker"><label>Dia do checklist <select value={dateKey} onChange={event => setDateKey(event.target.value)}>{dates.map(snapshot => <option key={snapshot.dateKey} value={snapshot.dateKey}>{snapshot.dateKey.split('-').reverse().join('/')}</option>)}</select></label></div><ChecklistPanel key={dateKey} snapshotItems={liveData?.items} snapshots={dates} dateKey={dateKey} /></>;
 }
@@ -72,7 +73,7 @@ export function AppShell({ user, dashboardData, onLogout }) {
     let unsubscribeDrivers = () => {};
     import('../lib/firestore-store.js').then(({ firestoreStore }) => {
       unsubscribe = firestoreStore.subscribe('snapshots_dias', snapshots => {
-        const ordered = snapshots.filter(item => item.dateKey).sort((a, b) => String(a.dateKey).localeCompare(String(b.dateKey)));
+        const ordered = dedupeSnapshots(snapshots);
         const latest = ordered.at(-1);
         if (latest) setLiveData(current => ({ ...current, items: latest.items || [], dateKey: latest.dateKey, snapshots: ordered, source: 'firebase' }));
       }, () => {});
