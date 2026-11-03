@@ -78,6 +78,35 @@ button, input { font: inherit; }
 .status-icon { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 10px; font-weight: 900; font-size: 18px; }
 .status-icon.blue { color: #1765b2; background: #eaf3fe; }.status-icon.green { color: #16866c; background: #e3f6f0; }.status-icon.orange { color: #b56b16; background: #fff2dd; }
 .arrow { color: #a2b1c3; margin-left: auto; }
+.ferias-page { margin-top: 28px; display: grid; gap: 18px; }
+.ferias-toolbar { display: flex; justify-content: space-between; align-items: end; gap: 20px; }
+.ferias-toolbar h2 { margin: 8px 0 5px; color: #122d50; letter-spacing: -.04em; }
+.ferias-toolbar p, .section-heading p { color: #7890ad; font-size: 13px; margin: 0; }
+.ferias-action { width: auto; min-width: 170px; margin: 0; }
+.ferias-metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.ferias-metrics article { padding: 18px; border: 1px solid #dce8f5; border-radius: 14px; background: #eef5fd; }
+.ferias-metrics article.warning { background: #fff2ee; border-color: #f1b8af; }
+.ferias-metrics strong { display: block; color: #1765b2; font-size: 25px; letter-spacing: -.04em; }
+.ferias-metrics span { display: block; margin-top: 4px; color: #69809d; font-size: 11px; }
+.ferias-tabs { display: flex; gap: 8px; border-bottom: 1px solid #dfe8f2; }
+.ferias-tabs button { border: 0; border-bottom: 3px solid transparent; padding: 12px 15px; color: #7187a2; background: transparent; cursor: pointer; font-weight: 700; font-size: 12px; }
+.ferias-tabs button.active { color: #1765b2; border-bottom-color: #1765b2; }
+.ferias-card { background: #fff; border: 1px solid #dfe8f2; border-radius: 16px; padding: 24px; box-shadow: 0 7px 22px rgba(29,65,107,.04); }
+.section-heading { display: flex; justify-content: space-between; align-items: start; gap: 15px; margin-bottom: 20px; }
+.section-heading h3 { margin: 0 0 5px; color: #163454; font-size: 18px; }
+.ferias-status { display: inline-flex; align-items: center; white-space: nowrap; border-radius: 20px; padding: 6px 10px; color: #1765b2; background: #eaf3fe; font-size: 10px; font-weight: 800; }
+.ferias-status.green { color: #13795f; background: #e3f6f0; }.ferias-status.red { color: #b94a42; background: #fff0ed; }
+.ferias-checklist { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+.ferias-checklist > div { display: flex; gap: 12px; padding: 15px; border: 1px solid #e8eef5; border-radius: 12px; }
+.ferias-checklist b { display: grid; place-items: center; flex: 0 0 28px; height: 28px; border-radius: 50%; color: #1765b2; background: #eaf3fe; }
+.ferias-checklist strong, .ferias-checklist small { display: block; }.ferias-checklist strong { color: #284664; font-size: 12px; }.ferias-checklist small { margin-top: 6px; color: #8799af; font-size: 11px; line-height: 1.4; }
+.ferias-empty { padding: 35px; border: 1px dashed #cbd9e8; border-radius: 12px; color: #7e91a8; text-align: center; font-size: 13px; }
+.ferias-list { display: grid; gap: 9px; }.ferias-row { display: flex; align-items: center; justify-content: space-between; gap: 15px; padding: 14px 0; border-top: 1px solid #edf1f6; }.ferias-row > div:first-child { display: grid; gap: 4px; }.ferias-row strong { color: #274562; font-size: 13px; }.ferias-row span:not(.ferias-status), .ferias-row small { color: #8294aa; font-size: 11px; }.ferias-row-meta { display: flex; align-items: center; gap: 12px; }.secondary-button { border: 1px solid #cddbeb; border-radius: 8px; background: white; color: #1765b2; padding: 8px 11px; cursor: pointer; font-size: 11px; font-weight: 800; }.secondary-button:hover { background: #eef5fd; }
+.ferias-form { display: grid; grid-template-columns: 1fr 1fr auto; align-items: end; gap: 12px; margin-bottom: 22px; }.ferias-form label { display: grid; gap: 6px; color: #58708e; font-size: 11px; font-weight: 700; }.ferias-form input { border: 1px solid #d6e1ee; border-radius: 8px; padding: 11px; color: #294563; background: #fbfcfe; }.ferias-form .primary-button { margin: 0; padding: 12px 14px; }
+.ferias-notice { display: flex; justify-content: space-between; gap: 15px; align-items: center; padding: 11px 14px; border: 1px solid #b9d9f5; border-radius: 10px; background: #eef7ff; color: #275b91; font-size: 12px; }.ferias-notice button { border: 0; background: transparent; color: inherit; font-size: 18px; cursor: pointer; }
+.theme-dark .ferias-toolbar h2, .theme-dark .section-heading h3, .theme-dark .ferias-row strong { color: #eef5ff; }.theme-dark .ferias-card { background: #252e3b; border-color: #3c4b60; }.theme-dark .ferias-toolbar p, .theme-dark .section-heading p, .theme-dark .ferias-row span:not(.ferias-status), .theme-dark .ferias-row small { color: #aabbd0; }.theme-dark .ferias-tabs { border-color: #3c4b60; }.theme-dark .ferias-form input, .theme-dark .secondary-button { background: #202936; color: #e5effb; border-color: #495a70; }.theme-dark .ferias-row { border-color: #3b4a5d; }.theme-dark .ferias-card { box-shadow: none; }
+@media (max-width: 900px) { .ferias-metrics { grid-template-columns: repeat(2, 1fr); }.ferias-checklist { grid-template-columns: 1fr; }.ferias-form { grid-template-columns: 1fr 1fr; }.ferias-form .primary-button { grid-column: 1 / -1; } }
+@media (max-width: 620px) { .ferias-toolbar { display: grid; }.ferias-action { width: 100%; }.ferias-metrics { grid-template-columns: 1fr 1fr; }.ferias-tabs { overflow-x: auto; }.ferias-tabs button { white-space: nowrap; }.ferias-card { padding: 16px; }.ferias-row { align-items: start; }.ferias-row-meta { display: grid; justify-items: end; }.ferias-form { grid-template-columns: 1fr; }.ferias-form .primary-button { grid-column: auto; } }
 .legacy-card { margin-top: 18px; background: #fff; border: 1px dashed #b9cbe0; border-radius: 15px; padding: 24px; }
 .legacy-card h2 { margin: 9px 0 7px; font-size: 18px; color: #203b5e; }
 .legacy-card p { margin: 0 0 15px; color: #73859c; font-size: 13px; line-height: 1.5; }

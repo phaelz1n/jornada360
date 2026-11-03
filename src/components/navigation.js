@@ -1,5 +1,6 @@
 export const NAVIGATION_GROUPS = Object.freeze([
   { label: 'Início', icon: '⌂' },
+  { label: 'Férias', icon: '▣' },
   { label: 'Importação', icon: '↥' },
   { label: 'Processamento', icon: '◈' },
   { label: 'Checklist', icon: '✓' },

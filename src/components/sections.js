@@ -1,5 +1,6 @@
 export const SECTION_CONTENT = Object.freeze({
   'Início': { title: 'Central da operação', description: 'Acompanhe o andamento do dia e acesse rapidamente cada etapa da jornada.' },
+  'Férias': { title: 'Planejamento de férias', description: 'Organize períodos, turnos e coberturas com regras claras para o RH.' },
   'Importação': { title: 'Importar arquivos do dia', description: 'Espelho de ponto, escala, rastreador e horário padrão ficam reunidos em um só lugar.' },
   'Processamento': { title: 'Cruzar informações', description: 'Compare batidas, escala e rastreador para encontrar a linha provável e os desvios.' },
   'Checklist': { title: 'Checklist da jornada', description: 'Valide os casos individualmente ou avance em lote pelos registros do dia.' },
