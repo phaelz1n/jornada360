@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { businessDaysBefore, validateVacationSuggestion, suggestVacation } from './ferias-model.js';
+import { businessDaysBefore, detectVacationConflicts, validateVacationSuggestion, suggestVacation } from './ferias-model.js';
 import { acceptSuggestion, cancelProgramacao, persistPersonShift, persistSuggestion, persistTurno, persistVacationImport, subscribeFeriasData } from './ferias-store.js';
 import { extractVacationPdf, parseVacationPdfText } from './pdf-import.js';
 
@@ -42,8 +42,9 @@ export function FeriasPanel({ user }) {
     suggestions: suggestions.filter(item => item.status !== 'aceita').length,
     approved: programacoes.filter(item => item.status === 'aprovada').length,
     pending: suggestions.filter(item => item.status === 'com_pendencias').length,
-    unassigned: 0
-  }), [suggestions, programacoes]);
+    unassigned: people.filter(person => !personShifts[person.employeeCode || person.employeeName]).length,
+    conflicts: detectVacationConflicts(suggestions).length
+  }), [suggestions, programacoes, people, personShifts]);
 
   function addTurno(event) {
     event.preventDefault();
@@ -90,6 +91,10 @@ export function FeriasPanel({ user }) {
   }
 
   function acceptSuggestion(item) {
+    if (detectVacationConflicts(suggestions).some(conflict => conflict.ids.includes(item.id))) {
+      setNotice('Esta sugestão possui conflito de cobertura com outra programação.');
+      return;
+    }
     if (item.status !== 'pronta') {
       setNotice('Esta sugestão possui pendências e não pode ser aceita ainda.');
       return;
@@ -157,6 +162,7 @@ export function FeriasPanel({ user }) {
       <article><strong>{metrics.approved}</strong><span>Programações aprovadas</span></article>
       <article className={metrics.pending ? 'warning' : ''}><strong>{metrics.pending}</strong><span>Com pendências</span></article>
       <article><strong>{metrics.unassigned}</strong><span>Sem turno</span></article>
+      <article className={metrics.conflicts ? 'warning' : ''}><strong>{metrics.conflicts}</strong><span>Conflitos de cobertura</span></article>
     </div>
     <div className="ferias-tabs" role="tablist">{[['visao','Visão geral'],['importar','Importar PDF'],['sugestoes','Sugestões'],['programacoes','Programações'],['turnos','Turnos e feristas']].map(([id,label]) => <button key={id} className={tab === id ? 'active' : ''} type="button" onClick={() => setTab(id)} role="tab" aria-selected={tab === id}>{label}</button>)}</div>
     {tab === 'visao' && <section className="ferias-card"><div className="section-heading"><div><h3>Próximas etapas</h3><p>O PDF será importado e revisado antes de qualquer programação oficial.</p></div><StatusBadge>Rascunho seguro</StatusBadge></div><div className="ferias-checklist"><div><b>1</b><span><strong>Importar previsão de férias</strong><small>Extrair saldo, período aquisitivo e limite de gozo.</small></span></div><div><b>2</b><span><strong>Confirmar turnos e feristas</strong><small>O cadastro manual é a fonte oficial para cobertura.</small></span></div><div><b>3</b><span><strong>Aceitar as programações</strong><small>Somente o aceite cria a programação oficial.</small></span></div></div></section>}

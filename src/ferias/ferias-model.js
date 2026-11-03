@@ -94,3 +94,21 @@ export function suggestVacation({ today, employee, shift, feristas = [] }) {
     source: 'motor_regras'
   };
 }
+
+function overlaps(firstStart, firstEnd, secondStart, secondEnd) {
+  return Boolean(firstStart && firstEnd && secondStart && secondEnd && firstStart <= secondEnd && secondStart <= firstEnd);
+}
+
+export function detectVacationConflicts(items = []) {
+  const conflicts = [];
+  for (let index = 0; index < items.length; index += 1) {
+    for (let nextIndex = index + 1; nextIndex < items.length; nextIndex += 1) {
+      const current = items[index];
+      const next = items[nextIndex];
+      if (current.status === 'rejeitada' || current.status === 'cancelada' || next.status === 'rejeitada' || next.status === 'cancelada') continue;
+      if (current.feristaId && current.feristaId === next.feristaId && overlaps(current.trainingStartDate || current.startDate, current.endDate, next.trainingStartDate || next.startDate, next.endDate)) conflicts.push({ type: 'ferista_sobreposto', ids: [current.id, next.id], message: `Ferista ocupado em períodos sobrepostos: ${current.employeeName} e ${next.employeeName}.` });
+      if (current.employeeName && current.employeeName === next.employeeName && overlaps(current.startDate, current.endDate, next.startDate, next.endDate)) conflicts.push({ type: 'funcionario_sobreposto', ids: [current.id, next.id], message: `Funcionário possui períodos sobrepostos: ${current.employeeName}.` });
+    }
+  }
+  return conflicts;
+}

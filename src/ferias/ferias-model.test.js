@@ -6,6 +6,7 @@ import {
   normalizeVacationRecord,
   suggestVacation,
   validateVacationSuggestion
+  , detectVacationConflicts
 } from './ferias-model.js';
 
 test('normaliza registro importado e preserva origem', () => {
@@ -71,4 +72,12 @@ test('bloqueia período que ultrapassa limite de gozo', () => {
 
   assert.equal(result.status, 'com_pendencias');
   assert.ok(result.errors.includes('limite_gozo_excedido'));
+});
+
+test('detecta ferista ocupado em períodos sobrepostos', () => {
+  const conflicts = detectVacationConflicts([
+    { id: 'a', employeeName: 'Ana', feristaId: 'f1', trainingStartDate: '2026-12-01', startDate: '2026-12-03', endDate: '2026-12-12', status: 'pronta' },
+    { id: 'b', employeeName: 'Bruno', feristaId: 'f1', trainingStartDate: '2026-12-10', startDate: '2026-12-12', endDate: '2026-12-20', status: 'pronta' }
+  ]);
+  assert.equal(conflicts[0].type, 'ferista_sobreposto');
 });
