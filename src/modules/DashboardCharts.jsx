@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 const fmt = min => `${Math.floor((min || 0) / 60)}h${String((min || 0) % 60).padStart(2, '0')}`;
 const colors = { he1min: '#2d68b1', he2min: '#c47b12', he3min: '#9b4d9b' };
 
@@ -6,11 +8,13 @@ function EmptyChart({ children = 'Sem dados suficientes para este gráfico.' }) 
 }
 
 export function DashboardCharts({ analytics }) {
+  const [selectedRisk, setSelectedRisk] = useState('');
   const daily = analytics?.dailySeries || [];
   const buckets = analytics?.bucketComposition || { he1min: 0, he2min: 0, he3min: 0, totalHEmin: 0 };
   const drivers = (analytics?.driverDistribution || []).slice(0, 8);
   const sectors = (analytics?.sectorComparison || []).slice(0, 6);
   const risks = analytics?.riskMatrix || {};
+  const riskDetails = analytics?.riskDetails || {};
   const maxDaily = Math.max(...daily.map(row => Math.max(row.totalHEmin, row.metaMin)), 1);
   const maxDriver = Math.max(...drivers.map(row => row.totalHEmin), 1);
   const maxSector = Math.max(...sectors.map(row => row.totalHEmin), 1);
@@ -31,7 +35,8 @@ export function DashboardCharts({ analytics }) {
     <article className="dashboard-chart">
       <div className="dashboard-chart-heading"><div><b>Setores e riscos</b><p>Compara setores e sinaliza pontos que exigem conferência.</p></div></div>
       {sectors.length ? <div className="dashboard-sector-bars">{sectors.map(row => <div className="dashboard-sector-row" key={row.setor}><span>{row.setor}</span><div><i style={{ width: `${Math.max(3, row.totalHEmin / maxSector * 100)}%` }} /><small>{fmt(row.totalHEmin)} · acima {fmt(row.acimaPadraoMin)}</small></div></div>)}</div> : <EmptyChart />}
-      <div className="dashboard-risk-grid">{[['interjornada', 'Interjornada'], ['intrajornada', 'Intrajornada'], ['foraDaEscala', 'Fora da escala'], ['semPadrao', 'Sem padrão'], ['rastreioDivergente', 'Rastreio divergente']].map(([key, label]) => <span className={risks[key] ? 'risk-active' : ''} key={key}><b>{risks[key] || 0}</b><small>{label}</small></span>)}</div>
+      <div className="dashboard-risk-grid">{[['interjornada', 'Interjornada'], ['intrajornada', 'Intrajornada'], ['foraDaEscala', 'Fora da escala'], ['semPadrao', 'Sem padrão'], ['rastreioDivergente', 'Rastreio divergente']].map(([key, label]) => <button type="button" className={`${risks[key] ? 'risk-active' : ''} ${selectedRisk === key ? 'risk-selected' : ''}`} onClick={() => setSelectedRisk(current => current === key ? '' : key)} key={key}><b>{risks[key] || 0}</b><small>{label}</small></button>)}</div>
+      {selectedRisk && <div className="dashboard-risk-details"><b>{[['interjornada', 'Interjornada'], ['intrajornada', 'Intrajornada'], ['foraDaEscala', 'Fora da escala'], ['semPadrao', 'Sem padrão'], ['rastreioDivergente', 'Rastreio divergente']].find(([key]) => key === selectedRisk)?.[1]}</b>{(riskDetails[selectedRisk] || []).map(name => <span key={name}>{name}</span>)}{!(riskDetails[selectedRisk] || []).length && <small>Nenhuma pessoa neste recorte.</small>}</div>}
     </article>
   </div>;
 }

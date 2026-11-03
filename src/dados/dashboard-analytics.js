@@ -61,12 +61,17 @@ function buildDashboardAnalytics({ report = {}, snapshots = [], motoristas = [] 
   });
 
   const riskMatrix = RISK_KEYS.reduce((result, key) => { result[key] = 0; return result; }, {});
+  const riskDetails = RISK_KEYS.reduce((result, key) => { result[key] = new Set(); return result; }, {});
   items.forEach(item => {
-    if (item.interjornada || item.interjornadaProblema) riskMatrix.interjornada += 1;
-    if (item.intrajornada || item.intraJornada || item.temLacuna || item.intervaloObrigatorioAusente) riskMatrix.intrajornada += 1;
-    if (item.foraDaEscalaProblema) riskMatrix.foraDaEscala += 1;
-    if (item.semHorarioPadrao || item.padraoStatus === 'sem_cadastro') riskMatrix.semPadrao += 1;
-    if (item.rastreadorStatus === 'divergente') riskMatrix.rastreioDivergente += 1;
+    const name = item.motorista || 'Sem motorista';
+    const risks = {
+      interjornada: item.interjornada || item.interjornadaProblema,
+      intrajornada: item.intrajornada || item.intraJornada || item.temLacuna || item.intervaloObrigatorioAusente,
+      foraDaEscala: item.foraDaEscalaProblema,
+      semPadrao: item.semHorarioPadrao || item.padraoStatus === 'sem_cadastro',
+      rastreioDivergente: item.rastreadorStatus === 'divergente'
+    };
+    Object.entries(risks).forEach(([key, active]) => { if (active) riskDetails[key].add(name); });
   });
 
   return {
@@ -74,7 +79,8 @@ function buildDashboardAnalytics({ report = {}, snapshots = [], motoristas = [] 
     bucketComposition,
     driverDistribution: [...drivers.values()].sort((a, b) => b.totalHEmin - a.totalHEmin || a.motorista.localeCompare(b.motorista)),
     sectorComparison: [...sectors.values()].sort((a, b) => b.totalHEmin - a.totalHEmin || a.setor.localeCompare(b.setor)),
-    riskMatrix
+    riskMatrix: RISK_KEYS.reduce((result, key) => { result[key] = riskDetails[key].size; return result; }, {}),
+    riskDetails: RISK_KEYS.reduce((result, key) => { result[key] = [...riskDetails[key]].sort((a, b) => a.localeCompare(b)); return result; }, {})
   };
 }
 
