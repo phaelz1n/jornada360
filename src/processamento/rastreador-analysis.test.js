@@ -42,3 +42,12 @@ test('identifica veículo rodando fora da janela da escala sem chamar de linha e
   assert.equal(result.paradas[0].motivo, 'fora-da-escala');
   assert.equal(result.paradas[0].precisaCadastro, false);
 });
+
+test('confirma parada depois da meia-noite dentro de escala noturna', () => {
+  const result = analisarParadasRastreador({
+    escala: [{ inicio: '21:00', fim: '05:00', linha: 'Linha noturna' }],
+    rastreador: { paradas: [{ horario: '01:00', local: 'Terminal' }] }
+  });
+  assert.equal(result.paradas[0].status, 'confirmada');
+  assert.equal(result.paradas[0].foraDaEscala, false);
+});

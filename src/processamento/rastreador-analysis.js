@@ -30,6 +30,12 @@ function normalizeScale(escala = []) {
 
 function closestDistance(minute, scale) {
   if (scale.fimMin == null) return Math.abs(minute - scale.inicioMin);
+  if (scale.fimMin < scale.inicioMin) {
+    const normalizedMinute = minute < scale.inicioMin ? minute + 1440 : minute;
+    const normalizedEnd = scale.fimMin + 1440;
+    if (normalizedMinute >= scale.inicioMin && normalizedMinute <= normalizedEnd) return 0;
+    return Math.min(Math.abs(normalizedMinute - scale.inicioMin), Math.abs(normalizedMinute - normalizedEnd));
+  }
   if (minute >= scale.inicioMin && minute <= scale.fimMin) return 0;
   return Math.min(Math.abs(minute - scale.inicioMin), Math.abs(minute - scale.fimMin));
 }

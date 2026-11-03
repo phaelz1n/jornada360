@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react';
 import { competenciaParaData } from '../relatorios/competencia.js';
 import { consultarDia, consultarPeriodo } from '../relatorios/relatorio-query.js';
 import { ExecutiveCards, ExecutiveEvents } from './ExecutiveCards.jsx';
+import { DashboardCharts } from './DashboardCharts.jsx';
+import { buildDashboardAnalytics } from '../dados/dashboard-analytics.js';
 
 const fmt = min => `${Math.floor((min || 0) / 60)}h${String((min || 0) % 60).padStart(2, '0')}`;
 
@@ -30,10 +32,12 @@ export function InicioDashboard({ snapshots = [], eventos = [] }) {
   const top20Min = allRanking.slice(0, 20).reduce((sum, row) => sum + row.he1min, 0);
   const top20Share = report.summary.he1min ? Math.round(top20Min / report.summary.he1min * 100) : 0;
   const semPadraoMin = report.summary.semPadraoMin || 0;
+  const analytics = useMemo(() => buildDashboardAnalytics({ report, snapshots }), [report, snapshots]);
   return <section className="executive-dashboard">
     <div className="executive-heading"><span className="eyebrow">PAINEL EXECUTIVO</span><h2>Resumo da operação</h2><p>{mode === 'dia' ? `Dia selecionado: ${selectedDate ? selectedDate.split('-').reverse().join('/') : '—'}` : `Período: ${period?.rotulo || '—'}`}</p></div>
     <div className="executive-filters"><button className={mode === 'dia' ? 'active' : ''} onClick={() => setMode('dia')}>Por dia</button><button className={mode === 'periodo' ? 'active' : ''} onClick={() => setMode('periodo')}>Por ciclo</button>{mode === 'dia' ? <select value={selectedDate} onChange={event => setSelectedDate(event.target.value)}>{dates.map(date => <option key={date} value={date}>{date.split('-').reverse().join('/')}</option>)}</select> : <select value={selectedPeriod} onChange={event => setSelectedPeriod(event.target.value)}><option value="">Último ciclo</option>{periods.map(item => <option key={item.chave} value={item.chave}>{item.rotulo}</option>)}</select>}</div>
     <ExecutiveCards summary={report.summary} delta={delta} faltas={faltas.length} />
+    <DashboardCharts analytics={analytics} />
     <div className="executive-insights"><div className="executive-list"><b>Top 15 colaboradores por H.E.1</b><p className="chart-explanation">Mostra quem concentra mais hora extra no período selecionado. Use a lista para priorizar conferências e justificativas.</p>{ranking.map(row => <div key={row.motorista}><span>{row.motorista}</span><strong>{fmt(row.he1min)}</strong></div>)}{!ranking.length && <small>Nenhum registro no filtro.</small>}</div><div className="executive-bars"><b>H.E.1 por setor / motivo</b><p className="chart-explanation">Compara a concentração de horas extras entre os setores. Barras maiores indicam maior volume para investigar.</p>{setores.map(([name, row]) => <div className="executive-bar-row" key={name}><span>{name}</span><i><em style={{ width: `${Math.max(3, row.he1min / maxSetor * 100)}%` }} /></i><strong>{fmt(row.he1min)}</strong></div>)}{!setores.length && <small>Nenhum setor no filtro.</small>}</div></div>
     <div className="executive-period"><b>Evolução por fechamento</b><span>{period?.rotulo || 'Sem período disponível'}</span><strong>{delta <= 0 ? 'Redução' : 'Aumento'} de {fmt(Math.abs(delta))} em relação ao ciclo anterior</strong></div>
     <ExecutiveEvents events={faltas} />
