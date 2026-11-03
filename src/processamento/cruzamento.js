@@ -1,5 +1,6 @@
 import { normalizeDriverName } from './processamento-model.js';
 import { analisarParadasRastreador } from './rastreador-analysis.js';
+import { getSectorPolicy } from './sector-rules.js';
 
 function indexByDriver(rows = []) {
   const map = new Map();
@@ -37,18 +38,6 @@ function nextDate(dateKey) {
   const date = new Date(`${dateKey}T12:00:00`);
   date.setDate(date.getDate() + 1);
   return date.toISOString().slice(0, 10);
-}
-
-function admBaseMinutes(dateKey) {
-  if (!dateKey) return 480;
-  const [year, month, day] = String(dateKey).split('-').map(Number);
-  const weekday = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
-  return weekday === 6 ? 240 : 480;
-}
-
-function exemptSectorBaseMinutes(setor, dateKey) {
-  if (String(setor).trim().toLocaleUpperCase('pt-BR') === 'RESERVA') return 440;
-  return admBaseMinutes(dateKey);
 }
 
 function isOvernightJourney(point = {}, escala = []) {
@@ -129,8 +118,9 @@ export function crossSources({ pointRows = [], previousPointRows = [], scaleRows
   return pointRows.map(point => {
     const key = normalizeDriverName(point.motorista);
     const setor = cadastro[key]?.setor || cadastro[key]?.categoria || '';
-    const setorNormalizado = String(setor).trim().toLocaleUpperCase('pt-BR');
-    const rastreioDispensado = setorNormalizado === 'ADM' || setorNormalizado === 'RESERVA';
+    const sectorPolicy = getSectorPolicy(setor, point.dateKey);
+    const setorNormalizado = sectorPolicy.key;
+    const rastreioDispensado = !sectorPolicy.trackerRequired;
     const scaleRows = findDriver(scale, key) || [];
     const trackerMatch = findDriver(tracker, key);
     const rawTrackerRow = Array.isArray(trackerMatch) ? trackerMatch[0] : trackerMatch;
@@ -180,7 +170,7 @@ export function crossSources({ pointRows = [], previousPointRows = [], scaleRows
     const batidasExtra = actualDuration && standardDuration ? Math.max(0, actualDuration - standardDuration) : null;
     const hasReportedExtra = ['totalHE', 'he1min', 'he2min', 'he3min', 'excedenteMin'].some(field => point[field] != null);
     const standardExtra = Number(standardRow?.extraNormalPadrao);
-    const jornadaBaseMin = rastreioDispensado ? exemptSectorBaseMinutes(setor, point.dateKey) : null;
+    const jornadaBaseMin = rastreioDispensado ? sectorPolicy.baseMinutes : null;
     const admExtra = rastreioDispensado && actualDuration > 0 ? Math.max(0, actualDuration - jornadaBaseMin) : null;
     const effectiveExtra = admExtra ?? batidasExtra;
     const extraScaleRows = scaleRows.filter(row => !lineMatchesStandard(row, standardRow));
