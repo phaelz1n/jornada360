@@ -48,8 +48,9 @@ export function InicioDashboard({ snapshots = [], eventos = [], motoristas = [] 
       const setor = item.setorAtual || item.setor || 'Sem setor';
       const current = groups.get(setor) || new Map();
       const name = item.motorista || 'Sem motorista';
-      const person = current.get(name) || { motorista: name, totalHEmin: 0 };
-      person.totalHEmin += (Number(item.he1min) || 0) + (Number(item.he2min) || 0) + (Number(item.he3min) || 0);
+      const person = current.get(name) || { motorista: name, totalHEmin: 0, he1min: 0 };
+      person.he1min += Number(item.he1min) || 0;
+      person.totalHEmin += Number(item.he1min) || 0;
       current.set(name, person);
       groups.set(setor, current);
     });
