@@ -53,6 +53,7 @@ export function normalizeVacationRecord(input = {}) {
     employeeName: normalizeText(input.employeeName ?? input.trabalhador ?? input.nome),
     role: normalizeText(input.role ?? input.cargo ?? input.funcao),
     garageDistance: normalizeText(input.garageDistance ?? input.distanciaGaragem) || 'nao_classificado',
+    vacationEligible: input.vacationEligible !== false,
     balanceDays: numberValue(input.balanceDays ?? input.saldo),
     gozoLimit: normalizeDate(input.gozoLimit ?? input.limiteGozo),
     accrualPeriod: normalizeText(input.accrualPeriod ?? input.periodoAquisitivo),
