@@ -8,6 +8,7 @@ const AppShell = React.lazy(() => import('./components/AppShell.jsx').then(modul
 
 function authErrorMessage(error) {
   if (error?.message === 'E-mail não autorizado') return error.message;
+  if (error?.message === 'E-mail não verificado') return 'Verifique o e-mail da conta antes de acessar o Jornada360.';
   if (error?.code === 'auth/invalid-credential' || error?.code === 'auth/wrong-password') return 'E-mail ou senha incorretos.';
   if (error?.code === 'auth/too-many-requests') return 'Muitas tentativas. Aguarde alguns minutos e tente novamente.';
   return 'Não foi possível entrar agora. Verifique sua conexão e tente novamente.';
@@ -36,6 +37,13 @@ function App() {
         subscribe: firebaseAuth.onAuthStateChanged
       });
       unsubscribe = authServiceRef.current.subscribe(async nextUser => {
+        if (nextUser && nextUser.emailVerified !== true) {
+          setUser(null);
+          setDashboardData(null);
+          setError('Verifique o e-mail da conta antes de acessar o Jornada360.');
+          await firebaseAuth.signOut(firebase.auth);
+          return;
+        }
         setUser(nextUser);
         if (nextUser) {
           const { firestoreStore } = await import('./lib/firestore-store.js');
