@@ -110,6 +110,19 @@ export async function cancelFeriasProgramacao(programacao, actorEmail, reason) {
   return id;
 }
 
+export async function saveSystemPermission(permission, actorEmail) {
+  const email = String(permission.email || '').trim().toLowerCase();
+  if (!email || !email.includes('@')) throw new Error('Informe um e-mail válido.');
+  const updatedAt = new Date().toISOString();
+  const id = encodeURIComponent(email);
+  const payload = { email, jornada: Boolean(permission.jornada), ferias: Boolean(permission.ferias), updatedAt, updatedBy: actorEmail || auth.currentUser?.email || '' };
+  const batch = writeBatch(db);
+  batch.set(doc(db, 'permissoes_sistemas', id), payload, { merge: true });
+  batch.set(doc(db, 'ferias_auditoria', `permission-${id}-${Date.now()}`), { action: 'permissao_sistema_atualizada', email, actorEmail: payload.updatedBy, createdAt: updatedAt });
+  await batch.commit();
+  return id;
+}
+
 export async function saveFeriasImport(records, actorEmail, sourceName = '') {
   const importId = `ferias-${new Date().toISOString().replace(/[^\d]/g, '').slice(0, 14)}`;
   const createdAt = new Date().toISOString();

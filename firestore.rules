@@ -73,6 +73,11 @@ service cloud.firestore {
       allow update, delete: if false;
     }
     match /ocorrencias/{id} { allow read, write: if isAuthenticated(); }
+    match /permissoes_sistemas/{email} {
+      allow read: if isAuthenticated() && (request.auth.token.email == email || request.auth.token.email == 'operacional4@transpinho.com');
+      allow create, update: if isAuthenticated() && request.auth.token.email == 'operacional4@transpinho.com';
+      allow delete: if false;
+    }
     match /ferias_turnos/{id} { allow read: if isAuthenticated(); allow create, update: if isFeriasManager(); allow delete: if false; }
     match /ferias_feristas/{id} { allow read: if isAuthenticated(); allow create, update: if isFeriasManager(); allow delete: if false; }
     match /ferias_importacoes/{id} { allow read: if isFeriasManager(); allow create: if isFeriasManager(); allow update, delete: if false; }
