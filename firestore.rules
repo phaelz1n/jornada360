@@ -12,12 +12,20 @@ service cloud.firestore {
         ];
     }
 
+    function isAdmin() {
+      return isAuthenticated() && request.auth.token.email == 'operacional4@transpinho.com';
+    }
+
+    function hasFeriasAccess() {
+      return isAdmin()
+        || (isAuthenticated() && request.auth.token.email in ['rh@transpinho.com', 'tielle@transpinho.com'])
+        || (isAuthenticated()
+          && exists(/databases/$(database)/documents/permissoes_sistemas/$(request.auth.token.email))
+          && get(/databases/$(database)/documents/permissoes_sistemas/$(request.auth.token.email)).data.ferias == true);
+    }
+
     function isFeriasManager() {
-      return isAuthenticated() && request.auth.token.email in [
-        'operacional4@transpinho.com',
-        'rh@transpinho.com',
-        'tielle@transpinho.com'
-      ];
+      return hasFeriasAccess();
     }
 
     function validAuditEntry() {
@@ -78,8 +86,8 @@ service cloud.firestore {
       allow create, update: if isAuthenticated() && request.auth.token.email == 'operacional4@transpinho.com';
       allow delete: if false;
     }
-    match /ferias_turnos/{id} { allow read: if isAuthenticated(); allow create, update: if isFeriasManager(); allow delete: if false; }
-    match /ferias_feristas/{id} { allow read: if isAuthenticated(); allow create, update: if isFeriasManager(); allow delete: if false; }
+    match /ferias_turnos/{id} { allow read: if hasFeriasAccess(); allow create, update: if isFeriasManager(); allow delete: if false; }
+    match /ferias_feristas/{id} { allow read: if hasFeriasAccess(); allow create, update: if isFeriasManager(); allow delete: if false; }
     match /ferias_importacoes/{id} { allow read: if isFeriasManager(); allow create: if isFeriasManager(); allow update, delete: if false; }
     match /ferias_pessoas/{id} { allow read: if isFeriasManager(); allow create, update: if isFeriasManager(); allow delete: if false; }
     match /ferias_pessoa_turnos/{id} { allow read: if isFeriasManager(); allow create, update: if isFeriasManager(); allow delete: if false; }
