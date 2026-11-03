@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import './styles.css';
 import { LoginScreen } from './components/LoginScreen.jsx';
 import { buildDashboardData } from './dados/dashboard-data.js';
+import { createAuthService, ensureVerifiedUser } from './auth/auth-service.js';
 
 const AppShell = React.lazy(() => import('./components/AppShell.jsx').then(module => ({ default: module.AppShell })));
 
@@ -26,10 +27,9 @@ function App() {
     let unsubscribe = () => {};
     Promise.all([
       import('./lib/firebase.js'),
-      import('firebase/auth'),
-      import('./auth/auth-service.js')
-    ]).then(([firebase, firebaseAuth, serviceModule]) => {
-      authServiceRef.current = serviceModule.createAuthService({
+      import('firebase/auth')
+    ]).then(([firebase, firebaseAuth]) => {
+      authServiceRef.current = createAuthService({
         auth: firebase.auth,
         signIn: firebaseAuth.signInWithEmailAndPassword,
         sendReset: firebaseAuth.sendPasswordResetEmail,
@@ -37,7 +37,7 @@ function App() {
         subscribe: firebaseAuth.onAuthStateChanged
       });
       unsubscribe = authServiceRef.current.subscribe(async nextUser => {
-        if (nextUser && nextUser.emailVerified !== true) {
+        try { ensureVerifiedUser(nextUser); } catch (verificationError) {
           setUser(null);
           setDashboardData(null);
           setError('Verifique o e-mail da conta antes de acessar o Jornada360.');

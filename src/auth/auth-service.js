@@ -16,6 +16,11 @@ function ensureAuthorized(email) {
   return normalized;
 }
 
+export function ensureVerifiedUser(user) {
+  if (user && user.emailVerified !== true) throw new Error('E-mail não verificado');
+  return user;
+}
+
 export function createAuthService({ auth, signIn, sendReset, signOut, subscribe }) {
   return {
     async login(email, password) {
