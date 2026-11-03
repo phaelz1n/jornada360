@@ -26,6 +26,13 @@ export function competenciaParaData(dateKeyValue) {
   return { inicio, fim, chave: `${inicio}_${fim}`, rotulo: `${label(inicio)} a ${label(fim)}` };
 }
 
+export function competenciaAnterior(competencia) {
+  if (!competencia?.inicio) return null;
+  const inicio = parseDateKey(competencia.inicio);
+  inicio.setUTCDate(inicio.getUTCDate() - 1);
+  return competenciaParaData(dateKey(inicio));
+}
+
 export function listarDatas(inicio, fim) {
   const current = parseDateKey(inicio);
   const end = parseDateKey(fim);

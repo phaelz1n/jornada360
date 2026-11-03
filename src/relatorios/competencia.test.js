@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { competenciaParaData, listarDatas } from './competencia.js';
+import { competenciaAnterior, competenciaParaData, listarDatas } from './competencia.js';
 
 test('27 de outubro pertence à competência de 28 de setembro a 27 de outubro', () => {
   assert.deepEqual(competenciaParaData('2026-10-27'), {
@@ -13,6 +13,10 @@ test('27 de outubro pertence à competência de 28 de setembro a 27 de outubro',
 
 test('28 de outubro inicia a competência seguinte', () => {
   assert.equal(competenciaParaData('2026-10-28').chave, '2026-10-28_2026-11-27');
+});
+
+test('calcula a competência anterior sem deslocamento de fuso', () => {
+  assert.equal(competenciaAnterior({ inicio: '2026-08-28', fim: '2026-09-27' }).chave, '2026-07-28_2026-08-27');
 });
 
 test('calcula fevereiro e virada de ano sem perder um dia', () => {

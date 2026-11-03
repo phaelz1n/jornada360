@@ -16,13 +16,13 @@ function minutes(value) {
   return Number.isFinite(numeric) ? numeric : null;
 }
 
-function normalizeItem(item = {}) {
+function normalizeItem(item = {}, cadastro = {}) {
   const total = minutes(item.totalHE ?? item.excedenteMin ?? item.he1min) || 0;
   const buckets = item.heBucketsExplicit || item.he2min || item.he3min
     ? { he1min: Number(item.he1min || 0), he2min: Number(item.he2min || 0), he3min: Number(item.he3min || 0) }
     : splitExtraHours(total);
   const he3min = isFeriadoOuDsr(item) ? Math.max(buckets.he3min, total) : buckets.he3min;
-  return { ...item, ...buckets, he3min, setorAtual: classifyDriverSector(item), feriadoOuDsr: isFeriadoOuDsr(item) };
+  return { ...item, ...buckets, he3min, setorAtual: classifyDriverSector(item, cadastro), feriadoOuDsr: isFeriadoOuDsr(item) };
 }
 
 function applyFilters(items, filters = {}) {
@@ -30,8 +30,8 @@ function applyFilters(items, filters = {}) {
   return items.filter(item => (!filters.setor || filters.setor === 'Todos' || item.setorAtual === filters.setor) && (!name || String(item.motorista || '').toLocaleLowerCase('pt-BR').includes(name)) && (!filters.categoria || filters.categoria === 'Todos' || (filters.categoria === 'HE.1' && item.he1min > 0) || (filters.categoria === 'HE.2' && item.he2min > 0) || (filters.categoria === 'HE.3' && item.he3min > 0) || (filters.categoria === 'Interjornada' && item.interjornada) || (filters.categoria === 'Intrajornada' && (item.intrajornada || item.intraJornada || item.temLacuna))));
 }
 
-function buildResult(items, days, forcedMetaDiaMin = null) {
-  const normalized = items.map(normalizeItem);
+function buildResult(items, days, forcedMetaDiaMin = null, cadastro = {}) {
+  const normalized = items.map(item => normalizeItem(item, cadastro));
   const summary = summarizeDay(normalized);
   const totalHEmin = normalized.reduce((total, item) => total + item.he1min + item.he2min + item.he3min, 0);
   const extraCandidataMin = normalized.reduce((total, item) => total + Math.max(0, minutes(item.extraCandidataMin) || 0), 0);
@@ -93,17 +93,17 @@ function buildResult(items, days, forcedMetaDiaMin = null) {
   return { items: normalized, summary: { ...summary, registros: normalized.length, colaboradores: names.size, totalHEmin, extraCandidataMin, foraPadraoAuditoriaMin: heAcimaPadraoMin + extraCandidataMin, metaDiaMin, metaMediaDiariaMin, metaPeriodoMin, diasComMeta: dailyMeta.size, excedenteVsMetaMin: totalHEmin - metaPeriodoMin, heDentroPadraoMin, heAcimaPadraoMin, semPadraoMin, motoristasComHE: driversWithHE.size, motoristasSemPadrao: driversWithoutStandard.size, mediaPorOcorrenciaMin, maxPorOcorrenciaMin: occurrences.at(-1) || 0, porSetorDetalhado: bySector }, porMotorista: [...names.values()], porSetor: summary.porSetor, diasProcessados: days };
 }
 
-export function consultarDia(snapshots = [], dateKey, filters = {}) {
+export function consultarDia(snapshots = [], dateKey, filters = {}, cadastro = {}) {
   const snapshot = snapshots.find(item => item?.dateKey === dateKey);
   const items = applyFilters((snapshot?.items || []).map(item => ({ ...item, dateKey })), filters);
-  const result = buildResult(items, snapshot ? 1 : 0, filters.metaDiaMin);
+  const result = buildResult(items, snapshot ? 1 : 0, filters.metaDiaMin, cadastro);
   const hasFilters = Object.values(filters).some(value => value && value !== 'Todos');
   if (snapshot?.summary && !hasFilters) result.summary = { ...result.summary, ...snapshot.summary };
   return result;
 }
 
-export function consultarPeriodo(snapshots = [], competencia, filters = {}) {
+export function consultarPeriodo(snapshots = [], competencia, filters = {}, cadastro = {}) {
   const selected = snapshots.filter(item => item?.dateKey >= competencia.inicio && item?.dateKey <= competencia.fim);
   const items = applyFilters(selected.flatMap(snapshot => (snapshot.items || []).map(item => ({ ...item, dateKey: snapshot.dateKey }))), filters);
-  return buildResult(items, selected.length, filters.metaDiaMin);
+  return buildResult(items, selected.length, filters.metaDiaMin, cadastro);
 }

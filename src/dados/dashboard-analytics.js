@@ -40,6 +40,7 @@ function buildDashboardAnalytics({ report = {}, snapshots = [], motoristas = [] 
     return result;
   }, { he1min: 0, he2min: 0, he3min: 0 });
   bucketComposition.extraCandidataMin = items.reduce((sum, item) => sum + Math.max(0, finite(item.extraCandidataMin)), 0);
+  bucketComposition.semPadraoMin = items.reduce((sum, item) => sum + (positiveMeta(item) > 0 ? 0 : totalHE(item)), 0);
   bucketComposition.totalHEmin = BUCKETS.reduce((sum, bucket) => sum + bucketComposition[bucket], 0);
 
   const drivers = new Map();
@@ -70,7 +71,7 @@ function buildDashboardAnalytics({ report = {}, snapshots = [], motoristas = [] 
       interjornada: item.interjornada || item.interjornadaProblema,
       intrajornada: item.intrajornada || item.intraJornada || item.temLacuna || item.intervaloObrigatorioAusente,
       foraDaEscala: item.foraDaEscalaProblema,
-      semPadrao: item.semHorarioPadrao || item.padraoStatus === 'sem_cadastro',
+      semPadrao: item.semHorarioPadrao || item.padraoStatus === 'sem_cadastro' || (positiveMeta(item) <= 0 && (totalHE(item) > 0 || finite(item.extraCandidataMin) > 0)),
       rastreioDivergente: item.rastreadorStatus === 'divergente'
     };
     Object.entries(risks).forEach(([key, active]) => { if (active) riskDetails[key].add(name); });

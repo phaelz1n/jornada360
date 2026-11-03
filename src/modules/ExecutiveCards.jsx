@@ -9,7 +9,7 @@ export function ExecutiveCards({ summary = {}, delta = 0, faltas = 0 }) {
     [fmt(summary.he1min || 0), 'HE.1'],
     [fmt(summary.he2min || 0), 'HE.2'],
     [fmt(summary.he3min || 0), 'HE.3'],
-    [`${delta > 0 ? '+' : ''}${fmt(Math.abs(delta))}`, delta > 0 ? 'aumento vs anterior' : 'redução vs anterior', delta > 0 ? 'negative' : 'positive'],
+    [delta == null ? '—' : `${delta > 0 ? '+' : ''}${fmt(Math.abs(delta))}`, delta == null ? 'sem comparação anterior' : delta > 0 ? 'aumento vs anterior' : 'redução vs anterior', delta > 0 ? 'negative' : 'positive'],
     [fmt(summary.heDentroPadraoMin || 0), 'dentro do padrão'],
     [fmt(summary.foraPadraoAuditoriaMin ?? summary.heAcimaPadraoMin ?? 0), 'fora do padrão (inclui candidatas)'],
     [fmt(summary.semPadraoMin || 0), 'sem padrão cadastrado'],

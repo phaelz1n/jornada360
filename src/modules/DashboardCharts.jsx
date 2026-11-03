@@ -10,7 +10,7 @@ function EmptyChart({ children = 'Sem dados suficientes para este gráfico.' }) 
 export function DashboardCharts({ analytics }) {
   const [selectedRisk, setSelectedRisk] = useState('');
   const daily = analytics?.dailySeries || [];
-  const buckets = analytics?.bucketComposition || { he1min: 0, he2min: 0, he3min: 0, totalHEmin: 0 };
+  const buckets = analytics?.bucketComposition || { he1min: 0, he2min: 0, he3min: 0, semPadraoMin: 0, totalHEmin: 0 };
   const drivers = (analytics?.driverDistribution || []).slice(0, 8);
   const sectors = (analytics?.sectorComparison || []).slice(0, 6);
   const risks = analytics?.riskMatrix || {};
@@ -26,7 +26,7 @@ export function DashboardCharts({ analytics }) {
     </article>
     <article className="dashboard-chart">
       <div className="dashboard-chart-heading"><div><b>Composição das extras</b><p>Distribui o volume entre HE.1, HE.2 e HE.3.</p></div><span>{fmt(buckets.totalHEmin)}</span></div>
-      {buckets.totalHEmin ? <div className="dashboard-donut-wrap"><div className="dashboard-donut" style={{ background: `conic-gradient(${colors.he1min} 0 ${buckets.he1min / buckets.totalHEmin * 360}deg, ${colors.he2min} ${buckets.he1min / buckets.totalHEmin * 360}deg ${(buckets.he1min + buckets.he2min) / buckets.totalHEmin * 360}deg, ${colors.he3min} ${(buckets.he1min + buckets.he2min) / buckets.totalHEmin * 360}deg 360deg)` }}><strong>{fmt(buckets.totalHEmin)}</strong></div><div className="dashboard-legend dashboard-legend-stack">{['he1min', 'he2min', 'he3min'].map(bucket => <span key={bucket}><i style={{ background: colors[bucket] }} />{bucket.replace('min', '').toUpperCase()}: {fmt(buckets[bucket])}</span>)}</div></div> : <EmptyChart />}
+      {buckets.totalHEmin ? <div className="dashboard-donut-wrap"><div className="dashboard-donut" style={{ background: `conic-gradient(${colors.he1min} 0 ${buckets.he1min / buckets.totalHEmin * 360}deg, ${colors.he2min} ${buckets.he1min / buckets.totalHEmin * 360}deg ${(buckets.he1min + buckets.he2min) / buckets.totalHEmin * 360}deg, ${colors.he3min} ${(buckets.he1min + buckets.he2min) / buckets.totalHEmin * 360}deg 360deg)` }}><strong>{fmt(buckets.totalHEmin)}</strong></div><div className="dashboard-legend dashboard-legend-stack">{['he1min', 'he2min', 'he3min'].map(bucket => <span key={bucket}><i style={{ background: colors[bucket] }} />{bucket.replace('min', '').toUpperCase()}: {fmt(buckets[bucket])}</span>)}{buckets.semPadraoMin > 0 && <span><i style={{ background: '#d94841' }} />SEM PADRÃO: {fmt(buckets.semPadraoMin)}</span>}</div></div> : <EmptyChart />}
     </article>
     <article className="dashboard-chart">
       <div className="dashboard-chart-heading"><div><b>Concentração por motorista</b><p>Prioriza quem acumula mais HE no período.</p></div></div>

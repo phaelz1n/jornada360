@@ -69,7 +69,7 @@ export function extractReportDate(rows = []) {
 }
 
 export function extractStandardRows(rows = []) {
-  const isDriverHeader = value => ['nome', 'motorista', 'colaborador', 'funcionario', 'empregado'].includes(normalizeHeader(value));
+  const isDriverHeader = value => ['nome', 'motorista', 'colaborador', 'funcionario', 'empregado', 'nomecompleto', 'nomecompletodomotorista', 'motoristacadastrado'].includes(normalizeHeader(value));
   const isExtraHeader = value => {
     const key = normalizeHeader(value);
     return key.includes('extra') || key.includes('horaextra') || key === 'he' || /^he[123]$/.test(key) || key.includes('adicional');

@@ -22,11 +22,19 @@ test('cria série diária com total, buckets, padrão e meta', () => {
 
 test('agrega composição por bucket, motoristas e setores em ordem decrescente', () => {
   const result = buildDashboardAnalytics({ report: { items: snapshots.flatMap(snapshot => snapshot.items), summary: {} }, snapshots });
-  assert.deepEqual(result.bucketComposition, { he1min: 180, he2min: 20, he3min: 30, extraCandidataMin: 15, totalHEmin: 230 });
+  assert.deepEqual(result.bucketComposition, { he1min: 180, he2min: 20, he3min: 30, extraCandidataMin: 15, semPadraoMin: 0, totalHEmin: 230 });
   assert.equal(result.driverDistribution[0].motorista, 'Ana');
   assert.equal(result.driverDistribution[0].totalHEmin, 200);
   assert.equal(result.sectorComparison[0].setor, 'Operação');
   assert.equal(result.sectorComparison[0].totalHEmin, 200);
+});
+
+test('inclui extras sem padrão na composição e nos riscos', () => {
+  const result = buildDashboardAnalytics({ report: { items: [{ motorista: 'Ademar', he1min: 660 }], summary: {} }, snapshots: [] });
+  assert.equal(result.bucketComposition.semPadraoMin, 660);
+  assert.equal(result.bucketComposition.totalHEmin, 660);
+  assert.deepEqual(result.riskDetails.semPadrao, ['Ademar']);
+  assert.equal(result.riskMatrix.semPadrao, 1);
 });
 
 test('resume riscos operacionais sem duplicar o mesmo item', () => {
@@ -38,7 +46,7 @@ test('resume riscos operacionais sem duplicar o mesmo item', () => {
 
 test('retorna coleções vazias e números finitos sem registros', () => {
   const result = buildDashboardAnalytics({ report: { items: [], summary: {} }, snapshots: [] });
-  assert.deepEqual(result, { dailySeries: [], bucketComposition: { he1min: 0, he2min: 0, he3min: 0, extraCandidataMin: 0, totalHEmin: 0 }, driverDistribution: [], sectorComparison: [], riskMatrix: { interjornada: 0, intrajornada: 0, foraDaEscala: 0, semPadrao: 0, rastreioDivergente: 0 }, riskDetails: { interjornada: [], intrajornada: [], foraDaEscala: [], semPadrao: [], rastreioDivergente: [] } });
+  assert.deepEqual(result, { dailySeries: [], bucketComposition: { he1min: 0, he2min: 0, he3min: 0, extraCandidataMin: 0, semPadraoMin: 0, totalHEmin: 0 }, driverDistribution: [], sectorComparison: [], riskMatrix: { interjornada: 0, intrajornada: 0, foraDaEscala: 0, semPadrao: 0, rastreioDivergente: 0 }, riskDetails: { interjornada: [], intrajornada: [], foraDaEscala: [], semPadrao: [], rastreioDivergente: [] } });
 });
 
 test('prioriza o setor atual do cadastro sobre o setor antigo do snapshot', () => {

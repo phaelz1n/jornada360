@@ -1,5 +1,5 @@
 export function normalizeDriverName(name) {
-  return String(name || '').trim().replace(/\s+/g, ' ').toLocaleUpperCase('pt-BR');
+  return String(name || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().replace(/\s+/g, ' ').toLocaleUpperCase('pt-BR');
 }
 
 export function classifyDriverSector(item = {}, cadastro = {}) {
