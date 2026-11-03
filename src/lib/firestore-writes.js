@@ -115,7 +115,8 @@ export async function saveSystemPermission(permission, actorEmail) {
   if (!email || !email.includes('@')) throw new Error('Informe um e-mail válido.');
   const updatedAt = new Date().toISOString();
   const id = encodeURIComponent(email);
-  const payload = { email, jornada: Boolean(permission.jornada), ferias: Boolean(permission.ferias), updatedAt, updatedBy: actorEmail || auth.currentUser?.email || '' };
+  const systemKeys = Object.keys(permission).filter(key => key !== 'email');
+  const payload = { email, ...Object.fromEntries(systemKeys.map(key => [key, Boolean(permission[key])])), updatedAt, updatedBy: actorEmail || auth.currentUser?.email || '' };
   const batch = writeBatch(db);
   batch.set(doc(db, 'permissoes_sistemas', id), payload, { merge: true });
   batch.set(doc(db, 'ferias_auditoria', `permission-${id}-${Date.now()}`), { action: 'permissao_sistema_atualizada', email, actorEmail: payload.updatedBy, createdAt: updatedAt });

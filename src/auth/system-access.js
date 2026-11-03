@@ -19,3 +19,7 @@ export const SYSTEM_CATALOG = Object.freeze([
   { id: 'jornada', name: 'Jornada360', description: 'Ponto, escala, rastreador e checklist operacional.', path: '/jornada', tone: 'blue' },
   { id: 'ferias', name: 'Controle de férias', description: 'Planejamento, cobertura, turnos e aprovação do RH.', path: '/ferias', tone: 'green' }
 ]);
+
+export function defaultSystemPermissions() {
+  return SYSTEM_CATALOG.reduce((permissions, system) => ({ ...permissions, [system.id]: false }), {});
+}
