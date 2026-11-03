@@ -26,7 +26,7 @@ test('calcula extra do ADM pela base de quatro horas no sábado sem padrão', ()
     pointRows: [{ motorista: 'Adriano Eduardo dos Santos', dateKey: '2026-10-31', batidas: ['07:59', '12:02'] }],
     cadastro: { 'ADRIANO EDUARDO DOS SANTOS': { setor: 'ADM' } }
   });
-  assert.equal(row.totalHE, 0);
+  assert.equal(row.totalHE, 3);
   assert.equal(row.semHorarioPadrao, false);
   assert.equal(row.padraoStatus, 'dispensado_adm');
   assert.equal(row.jornadaBaseMin, 240);
