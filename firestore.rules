@@ -12,6 +12,27 @@ service cloud.firestore {
         ];
     }
 
+    function validAuditEntry() {
+      return request.resource.data.keys().hasOnly([
+          'action', 'dateKey', 'actorEmail', 'createdAt', 'updatedAt',
+          'sources', 'itemCount', 'validatedCount', 'detailCount'
+        ])
+        && request.resource.data.action is string
+        && request.resource.data.action.size() <= 64
+        && request.resource.data.dateKey is string
+        && request.resource.data.dateKey.size() <= 32
+        && request.resource.data.actorEmail is string
+        && request.resource.data.actorEmail.size() <= 160
+        && ((request.resource.data.action == 'importacao_processada'
+          && request.resource.data.createdAt is string
+          && request.resource.data.sources is map)
+          || (request.resource.data.action == 'checklist_atualizado'
+          && request.resource.data.updatedAt is string
+          && request.resource.data.itemCount is int
+          && request.resource.data.validatedCount is int
+          && request.resource.data.detailCount is int));
+    }
+
     match /motoristas/{id} { allow read, write: if isAuthenticated(); }
     match /escalas/{id} { allow read, write: if isAuthenticated(); }
     match /padroes_horario/{id} { allow read, write: if isAuthenticated(); }
@@ -23,7 +44,11 @@ service cloud.firestore {
     match /workspaces/{workspaceId} { allow read, write: if isAuthenticated(); }
     match /snapshots_dias/{docId} { allow read, write: if isAuthenticated(); }
     match /pendencias/{pendenciaId} { allow read, write: if isAuthenticated(); }
-    match /historico_auditoria/{entryId} { allow read, write: if isAuthenticated(); }
+    match /historico_auditoria/{entryId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && validAuditEntry();
+      allow update, delete: if false;
+    }
     match /ocorrencias/{id} { allow read, write: if isAuthenticated(); }
   }
 }
