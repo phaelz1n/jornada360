@@ -15,7 +15,7 @@ service cloud.firestore {
     function validAuditEntry() {
       return request.resource.data.keys().hasOnly([
           'action', 'dateKey', 'actorEmail', 'createdAt', 'updatedAt',
-          'sources', 'itemCount', 'validatedCount', 'detailCount'
+          'sources', 'itemCount', 'validatedCount', 'detailCount', 'occurrenceType', 'minutes'
         ])
         && request.resource.data.action is string
         && request.resource.data.action.size() <= 64
@@ -30,7 +30,14 @@ service cloud.firestore {
           && request.resource.data.updatedAt is string
           && request.resource.data.itemCount is int
           && request.resource.data.validatedCount is int
-          && request.resource.data.detailCount is int));
+          && request.resource.data.detailCount is int)
+          || (request.resource.data.action == 'ocorrencia_criada'
+          && request.resource.data.createdAt is string
+          && request.resource.data.occurrenceType is string
+          && request.resource.data.occurrenceType.size() <= 32
+          && request.resource.data.minutes is int
+          && request.resource.data.minutes >= 0
+          && request.resource.data.minutes <= 1440));
     }
 
     match /motoristas/{id} { allow read, write: if isAuthenticated(); }
