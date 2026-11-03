@@ -149,26 +149,28 @@ export function AppShell({ user, dashboardData, onLogout }) {
     <div className={`shell ${darkMode ? 'theme-dark' : ''}`}>
       <aside className="sidebar">
         <div className="sidebar-logo-wrap"><img src={blueLogo} alt="Transpinho" className="sidebar-logo" /></div>
-        <div className="product-mark"><span className="product-dot" />Jornada360</div>
-        <nav aria-label="Navegação principal">
+        <div className="product-mark"><span className="product-dot" />{showSystemHub ? 'Sistemas' : vacationPage ? 'Férias' : 'Jornada360'}</div>
+        {!showSystemHub && <nav aria-label="Navegação principal">
           {NAVIGATION_GROUPS.filter(group => !group.system || canAccessSystem(user?.email, group.system, systemPermissions)).filter(group => vacationPage ? group.label === 'Férias' : group.label !== 'Férias').map(group => <button className={`nav-item ${activeSection === group.label && !showSystemHub ? 'active' : ''}`} key={group.label} type="button" onClick={() => { setShowSystemHub(false); setActiveSection(group.label); }}><span>{group.icon}</span>{group.label}</button>)}
-        </nav>
+        </nav>}
         <div className="sidebar-bottom"><div className="secure-note"><span>●</span> Ambiente conectado</div><button className="logout-button" type="button" onClick={onLogout}>Sair da conta <span>↗</span></button></div>
       </aside>
       <main className="shell-content">
         <header className="topbar"><div><span className="eyebrow">PAINEL DE OPERAÇÃO</span><h1>Bom trabalho, equipe.</h1></div><div className="topbar-actions"><span className={`sync-indicator sync-${syncTone(syncStatus)}`} role="status">● {syncLabel(syncStatus)}</span><div className="profile-menu"><button type="button" className="user-chip" onClick={() => setProfileOpen(value => !value)} aria-expanded={profileOpen}><span className="avatar">{user?.email?.[0]?.toUpperCase() || 'U'}</span><span>{user?.email}</span><span className="profile-caret">▾</span></button>{profileOpen && <div className="profile-dropdown"><span className="profile-email">{user?.email}</span><button type="button" onClick={() => setDarkMode(value => !value)}><span>{darkMode ? '☀' : '◐'}</span>{darkMode ? 'Modo claro' : 'Modo escuro'}</button></div>}</div></div></header>
         {showSystemHub ? <><section className="welcome-card"><div><span className="eyebrow">TRANSPINHO / PORTAL</span><h2>Seus sistemas</h2><p>Escolha o ambiente que deseja acessar. As permissões são vinculadas à sua conta.</p></div></section><SystemHub user={user} permissions={systemPermissions} onOpen={system => { setShowSystemHub(false); setActiveSection(system === 'ferias' ? 'Férias' : 'Início'); window.history.pushState({}, '', system === 'ferias' ? '/ferias' : '/jornada'); }} /></> : activeSection === 'Acessos' ? <section className="welcome-card"><div><span className="eyebrow">TRANSPINHO / ADMINISTRAÇÃO</span><h2>Gerenciamento de acessos</h2><p>Administre os sistemas liberados para cada conta.</p></div></section> : <section className="welcome-card"><div><span className="eyebrow">{vacationPage ? 'FÉRIAS' : 'JORNADA360'} / {activeSection.toUpperCase()}</span><h2>{section.title}</h2><p>{section.description} A lógica atual de processamento continua preservada durante a migração.</p></div></section>}
-        {activeSection === 'Início' && <section className="status-grid"><article onClick={() => setActiveSection('Importação')}><span className="status-icon blue">↥</span><div><strong>Importação</strong><p>Planilhas do dia e fontes operacionais</p></div><span className="arrow">→</span></article><article onClick={() => setActiveSection('Checklist')}><span className="status-icon green">✓</span><div><strong>Checklist</strong><p>Validações e pendências da jornada</p></div><span className="arrow">→</span></article><article onClick={() => setActiveSection('Relatórios')}><span className="status-icon orange">▥</span><div><strong>Relatórios</strong><p>HE.1, HE.2, HE.3, inter e intra</p></div><span className="arrow">→</span></article></section>}
-        {!showSystemHub && activeSection === 'Férias' && canAccessSystem(user?.email, 'ferias', systemPermissions) && <FeriasPanel user={user} />}
-        {!showSystemHub && activeSection === 'Acessos' && user?.email?.toLowerCase() === 'operacional4@transpinho.com' && <AccessManager user={user} />}
-        {activeSection === 'Importação' && <ImportacaoPanel draft={importDraft} onDraftChange={setImportDraft} onProcess={handleImportComplete} />}
-        {activeSection === 'Checklist' && <ChecklistHistory liveData={liveData} />}
-        {activeSection === 'Processamento' && <ProcessingPanel items={liveData?.items} />}
-        {activeSection === 'Relatórios' && <ReportsPanel items={liveData?.items} snapshots={liveData?.snapshots} />}
-        {activeSection === 'Cadastros' && <RegistersPanel items={liveData?.items} drivers={motoristas} />}
-        {activeSection === 'Firebase' && <MigrationPanel onMigrated={snapshot => dashboardData?.items !== snapshot.items && window.dispatchEvent(new CustomEvent('jornada360:data-updated', { detail: snapshot }))} />}
-        {activeSection === 'Início' && <InicioDashboard snapshots={liveData?.snapshots || []} eventos={eventos} motoristas={motoristas} />}
-        {activeSection === 'Ocorrências' && <OcorrenciasPanel />}
+        {!showSystemHub && <>
+          {activeSection === 'Início' && <section className="status-grid"><article onClick={() => setActiveSection('Importação')}><span className="status-icon blue">↥</span><div><strong>Importação</strong><p>Planilhas do dia e fontes operacionais</p></div><span className="arrow">→</span></article><article onClick={() => setActiveSection('Checklist')}><span className="status-icon green">✓</span><div><strong>Checklist</strong><p>Validações e pendências da jornada</p></div><span className="arrow">→</span></article><article onClick={() => setActiveSection('Relatórios')}><span className="status-icon orange">▥</span><div><strong>Relatórios</strong><p>HE.1, HE.2, HE.3, inter e intra</p></div><span className="arrow">→</span></article></section>}
+          {activeSection === 'Férias' && canAccessSystem(user?.email, 'ferias', systemPermissions) && <FeriasPanel user={user} />}
+          {activeSection === 'Acessos' && user?.email?.toLowerCase() === 'operacional4@transpinho.com' && <AccessManager user={user} />}
+          {activeSection === 'Importação' && <ImportacaoPanel draft={importDraft} onDraftChange={setImportDraft} onProcess={handleImportComplete} />}
+          {activeSection === 'Checklist' && <ChecklistHistory liveData={liveData} />}
+          {activeSection === 'Processamento' && <ProcessingPanel items={liveData?.items} />}
+          {activeSection === 'Relatórios' && <ReportsPanel items={liveData?.items} snapshots={liveData?.snapshots} />}
+          {activeSection === 'Cadastros' && <RegistersPanel items={liveData?.items} drivers={motoristas} />}
+          {activeSection === 'Firebase' && <MigrationPanel onMigrated={snapshot => dashboardData?.items !== snapshot.items && window.dispatchEvent(new CustomEvent('jornada360:data-updated', { detail: snapshot }))} />}
+          {activeSection === 'Início' && <InicioDashboard snapshots={liveData?.snapshots || []} eventos={eventos} motoristas={motoristas} />}
+          {activeSection === 'Ocorrências' && <OcorrenciasPanel />}
+        </>}
       </main>
     </div>
   );
