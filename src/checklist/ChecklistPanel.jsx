@@ -32,6 +32,7 @@ export function ChecklistPanel({ snapshotItems, snapshots = [], dateKey = 'lates
   const [expanded, setExpanded] = useState({});
   const [loadedRemote, setLoadedRemote] = useState(false);
   useEffect(() => { setState(createChecklistState(items)); }, [dateKey, items]);
+  useEffect(() => { setDetails(current => { const next = { ...current }; items.forEach(item => { if (item.justificativaSugerida && !next[item.id]) next[item.id] = { justificativa: item.justificativaSugerida }; }); return next; }); }, [items]);
   useEffect(() => { let active = true; import('../lib/firestore-store.js').then(({ firestoreStore }) => firestoreStore.get(`checklist/${dateKey}`)).then(saved => { if (!active || !saved) return; setState(current => ({ ...current, validatedIds: saved.validatedIds || [] })); setDetails(saved.details || saved.caseState || {}); }).catch(() => {}).finally(() => { if (active) setLoadedRemote(true); }); return () => { active = false; }; }, [dateKey]);
   useEffect(() => {
     if (!items.length || !loadedRemote) return undefined;

@@ -163,6 +163,9 @@ export function crossSources({ pointRows = [], previousPointRows = [], scaleRows
       return (sameLine && !stop.foraDaEscala) || (scaleTime != null && trackerTime != null && Math.abs(scaleTime - trackerTime) <= 30);
     }));
     const extraValidatedBySources = Boolean(trackerExtraLine);
+    const justificativaSugerida = trackerExtraLine?.linha
+      ? `Escala e rastreador indicam que o motorista realizou o cliente/linha “${trackerExtraLine.linha}”${trackerExtraLine.horario ? ` às ${trackerExtraLine.horario}` : ''}; o horário diverge do padrão cadastrado.`
+      : '';
     const extraCandidate = Math.max(0, reportedHE, batidasExtra || 0);
     const extraAuditoriaStatus = standardExtra <= 0 && extraCandidate > 0
       ? trackerExtraLine ? 'linha-extra-com-rastreio' : extraScaleRows.length ? 'possivel-linha-extra' : trackerRow ? 'rastreio-sem-linha' : 'sem-escala-sem-rastreio'
@@ -205,6 +208,7 @@ export function crossSources({ pointRows = [], previousPointRows = [], scaleRows
       linhasEscala: scaleRows,
       linhaExtraCandidata: Boolean(trackerExtraLine),
       linhaExtraDetalhe: trackerExtraLine ? `Possível linha extra: ${trackerExtraLine.linha || 'linha da escala'} — consta na escala de ${point.dateKey || 'do relatório'} e há rastreio compatível, mas não consta no horário padrão.` : '',
+      ...(justificativaSugerida ? { justificativaSugerida } : {}),
       extraAuditoriaStatus,
       extraCandidataMin: standardExtra <= 0 ? extraCandidate : 0,
       extraAuditoriaDetalhe: extraAuditoriaStatus === 'possivel-linha-extra' ? 'Há uma linha na escala fora do horário padrão, mas falta confirmação do rastreador.' : extraAuditoriaStatus === 'rastreio-sem-linha' ? 'Há rastreio no período, mas não foi encontrada linha correspondente na escala.' : extraAuditoriaStatus === 'sem-escala-sem-rastreio' ? 'Há extra candidata no ponto, mas não foi encontrada escala nem rastreio para comprovação.' : '',

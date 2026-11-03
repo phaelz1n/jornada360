@@ -41,6 +41,7 @@ export function snapshotItemsToChecklist(items = []) {
       escala: item.escala || null,
       linhaExtraCandidata: Boolean(item.linhaExtraCandidata),
       linhaExtraDetalhe: item.linhaExtraDetalhe || '',
+      ...(item.justificativaSugerida ? { justificativaSugerida: item.justificativaSugerida } : {}),
       ...(item.extraAuditoriaStatus ? { extraAuditoriaStatus: item.extraAuditoriaStatus, extraAuditoriaDetalhe: item.extraAuditoriaDetalhe || '' } : {}),
       ...(item.extraCandidataMin > 0 ? { extraCandidataMin: item.extraCandidataMin } : {}),
       rastreiosForaDaEscala: Array.isArray(item.rastreiosForaDaEscala) ? item.rastreiosForaDaEscala : [],
