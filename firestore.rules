@@ -4,6 +4,7 @@ service cloud.firestore {
   match /databases/{database}/documents {
     function isAuthenticated() {
       return request.auth != null
+        && request.auth.token.email_verified == true
         && request.auth.token.email in [
           'operacional4@transpinho.com',
           'rh@transpinho.com',

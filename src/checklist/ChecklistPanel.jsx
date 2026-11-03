@@ -33,7 +33,20 @@ export function ChecklistPanel({ snapshotItems, snapshots = [], dateKey = 'lates
   const [loadedRemote, setLoadedRemote] = useState(false);
   useEffect(() => { setState(createChecklistState(items)); }, [dateKey, items]);
   useEffect(() => { let active = true; import('../lib/firestore-store.js').then(({ firestoreStore }) => firestoreStore.get(`checklist/${dateKey}`)).then(saved => { if (!active || !saved) return; setState(current => ({ ...current, validatedIds: saved.validatedIds || [] })); setDetails(saved.details || saved.caseState || {}); }).catch(() => {}).finally(() => { if (active) setLoadedRemote(true); }); return () => { active = false; }; }, [dateKey]);
-  useEffect(() => { if (!items.length || !loadedRemote) return undefined; const timer = setTimeout(() => { import('../lib/firestore-writes.js').then(({ saveChecklistSnapshot }) => saveChecklistSnapshot({ validatedIds: state.validatedIds, itemIds: state.itemIds, details }, dateKey)).catch(error => window.dispatchEvent(new CustomEvent('jornada360:sync-error', { detail: { message: error?.message || 'Não foi possível salvar o checklist.' } }))); }, 350); return () => clearTimeout(timer); }, [dateKey, state, items, details, loadedRemote]);
+  useEffect(() => {
+    if (!items.length || !loadedRemote) return undefined;
+    const timer = setTimeout(async () => {
+      window.dispatchEvent(new CustomEvent('jornada360:sync-start'));
+      try {
+        const { saveChecklistSnapshot } = await import('../lib/firestore-writes.js');
+        await saveChecklistSnapshot({ validatedIds: state.validatedIds, itemIds: state.itemIds, details }, dateKey);
+        window.dispatchEvent(new CustomEvent('jornada360:sync-success'));
+      } catch (error) {
+        window.dispatchEvent(new CustomEvent('jornada360:sync-error', { detail: { message: error?.message || 'Não foi possível salvar o checklist.' } }));
+      }
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [dateKey, state, items, details, loadedRemote]);
   const filtered = useMemo(() => items.filter(item => (category === 'Todos' || item.setor === category) && (statusFilter === 'Todos' || evidenceState(item) === statusFilter)), [category, items, statusFilter]);
   const allVisible = filtered.length > 0 && filtered.every(item => state.validatedIds.includes(item.id));
   function updateDetail(id, key, value) { setDetails(current => ({ ...current, [id]: { ...current[id], [key]: value } })); }
