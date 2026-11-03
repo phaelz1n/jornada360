@@ -1,6 +1,7 @@
 import { normalizeDriverName } from './processamento-model.js';
 import { analisarParadasRastreador } from './rastreador-analysis.js';
 import { getSectorPolicy } from './sector-rules.js';
+import { durationFromPairs, nextDateKey, parseTimeMinutes } from './time-utils.js';
 
 function indexByDriver(rows = []) {
   const map = new Map();
@@ -20,7 +21,7 @@ function findDriver(map, name) {
   return scored.length === 1 || (scored[0] && scored[0].score > scored[1]?.score) ? scored[0]?.row : undefined;
 }
 
-function timeOf(value) { const match = String(value || '').match(/\d{1,2}:\d{2}/); return match ? Number(match[0].split(':')[0]) * 60 + Number(match[0].split(':')[1]) : null; }
+const timeOf = parseTimeMinutes;
 function lineMatchesStandard(scaleRow, standardRow) {
   const scaleTime = timeOf(scaleRow?.horario || scaleRow?.inicio || scaleRow?.horarioInicio);
   return scaleTime != null && (standardRow?.horarios || []).some(value => {
@@ -29,16 +30,7 @@ function lineMatchesStandard(scaleRow, standardRow) {
   });
 }
 
-function minutes(value) {
-  const match = String(value || '').match(/(\d{1,2}):(\d{2})/);
-  return match ? Number(match[1]) * 60 + Number(match[2]) : null;
-}
-
-function nextDate(dateKey) {
-  const date = new Date(`${dateKey}T12:00:00`);
-  date.setDate(date.getDate() + 1);
-  return date.toISOString().slice(0, 10);
-}
+const minutes = parseTimeMinutes;
 
 function isOvernightJourney(point = {}, escala = []) {
   const punches = (point.batidas || []).map(minutes).filter(value => value != null);
@@ -67,16 +59,6 @@ function analyzeIntervals(batidas = [], point = {}) {
     intervaloObrigatorioAusente: intervalProblem,
     interjornadaProblema: Boolean(point.interjornada || point.interJornada || point.interjornadaStatus === 'inconsistente')
   };
-}
-
-function durationFromPairs(values = []) {
-  const times = values.map(minutes).filter(value => value != null);
-  let total = 0;
-  for (let index = 0; index + 1 < times.length; index += 2) {
-    const end = times[index + 1] < times[index] ? times[index + 1] + 1440 : times[index + 1];
-    total += Math.max(0, end - times[index]);
-  }
-  return total;
 }
 
 function interjornadaFromPrevious(point = {}, previousPoint = {}) {
@@ -125,13 +107,13 @@ export function crossSources({ pointRows = [], previousPointRows = [], scaleRows
     const trackerMatch = findDriver(tracker, key);
     const rawTrackerRow = Array.isArray(trackerMatch) ? trackerMatch[0] : trackerMatch;
     const overnight = isOvernightJourney(point, scaleRows);
-    const allowedDates = overnight && point.dateKey ? new Set([point.dateKey, nextDate(point.dateKey)]) : point.dateKey ? new Set([point.dateKey]) : null;
+    const allowedDates = overnight && point.dateKey ? new Set([point.dateKey, nextDateKey(point.dateKey)]) : point.dateKey ? new Set([point.dateKey]) : null;
     const punches = (point.batidas || []).map(minutes).filter(value => value != null);
     const overnightEnd = overnight && punches.length ? punches[punches.length - 1] : null;
     const trackerRow = rawTrackerRow && allowedDates && Array.isArray(rawTrackerRow.paradas)
       ? { ...rawTrackerRow, paradas: rawTrackerRow.paradas.filter(stop => {
         if (stop.dataKey && !allowedDates.has(stop.dataKey)) return false;
-        if (overnight && stop.dataKey === nextDate(point.dateKey) && overnightEnd != null) {
+        if (overnight && stop.dataKey === nextDateKey(point.dateKey) && overnightEnd != null) {
           const stopMinute = minutes(stop.horario);
           return stopMinute == null || stopMinute <= overnightEnd + 30;
         }
