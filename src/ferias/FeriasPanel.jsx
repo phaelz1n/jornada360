@@ -40,6 +40,7 @@ export function FeriasPanel({ user, motoristas = [] }) {
   const [programacoes, setProgramacoes] = useState([]);
   const [turnoDraft, setTurnoDraft] = useState(emptyTurno);
   const [notice, setNotice] = useState('');
+  const [syncError, setSyncError] = useState('');
   const [importedRecords, setImportedRecords] = useState([]);
   const [pendingImport, setPendingImport] = useState(null);
   const [importing, setImporting] = useState(false);
@@ -51,7 +52,7 @@ export function FeriasPanel({ user, motoristas = [] }) {
     onPersonShifts: records => setPersonShifts(records.reduce((map, item) => ({ ...map, [item.employeeCode || item.employeeName]: item.shiftId }), {})),
     onSuggestions: setSuggestions,
     onPrograms: setProgramacoes,
-    onError: error => setNotice(`Não foi possível sincronizar férias agora: ${error?.message || 'verifique a conexão.'}`)
+    onError: error => { setSyncError(error?.message || 'verifique a conexão e as permissões do Firebase.'); setNotice(`Não foi possível sincronizar férias agora: ${error?.message || 'verifique a conexão.'}`); }
   }), []);
 
   const metrics = useMemo(() => ({
@@ -187,6 +188,8 @@ export function FeriasPanel({ user, motoristas = [] }) {
         setNotice(`${conflicts.length} período(s) próximo(s) encontrado(s). Revise antes de salvar.`);
       } else {
         await persistVacationImport(records, user?.email, file.name);
+        setPeople(records);
+        setSyncError('');
         setNotice(`${records.length} pessoas importadas. O PDF original não foi armazenado.`);
       }
     } catch (error) {
@@ -198,6 +201,8 @@ export function FeriasPanel({ user, motoristas = [] }) {
     if (!pendingImport) return;
     try {
       await persistVacationImport(pendingImport.records, user?.email, pendingImport.fileName);
+      setPeople(pendingImport.records);
+      setSyncError('');
       setPendingImport(null);
       setNotice(`${pendingImport.records.length} pessoas importadas; os períodos conflitantes foram substituídos.`);
     } catch (error) { setNotice(`Não foi possível substituir a importação: ${error?.message || 'verifique a conexão.'}`); }
@@ -205,6 +210,7 @@ export function FeriasPanel({ user, motoristas = [] }) {
 
   return <div className="ferias-page">
     {notice && <div className="ferias-notice" role="status">{notice}<button type="button" onClick={() => setNotice('')}>×</button></div>}
+    {syncError && <div className="ferias-notice ferias-sync-error" role="alert"><strong>Sincronização com Firebase:</strong> {syncError}<small>Se o navegador estiver bloqueando firestore.googleapis.com, desative o bloqueio para este domínio e recarregue a página.</small></div>}
     <div className="ferias-toolbar">
       <div><span className="eyebrow">CONTROLE DE FÉRIAS</span><h2>Planejamento de férias</h2><p>Revise as sugestões, organize a cobertura e aceite somente o que estiver conferido.</p></div>
       <button className="primary-button ferias-action" type="button" onClick={generateExampleSuggestion}>Gerar sugestões <span>→</span></button>
