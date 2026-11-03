@@ -63,3 +63,36 @@ export async function saveImportAndProcessedDay(record, day) {
   createImportSyncPlan(record, day).forEach(write => batch.set(doc(db, write.collection, write.id), write.data, write.merge ? { merge: true } : undefined));
   await batch.commit();
 }
+
+function feriasId(entity) {
+  return encodeURIComponent(String(entity.id || entity.employeeCode || entity.name || `registro-${Date.now()}`).trim().toLowerCase());
+}
+
+export async function saveFeriasEntity(collectionName, entity, actorEmail) {
+  const id = feriasId(entity);
+  const updatedAt = new Date().toISOString();
+  const payload = { ...entity, updatedAt, updatedBy: actorEmail || auth.currentUser?.email || '' };
+  const batch = writeBatch(db);
+  batch.set(doc(db, collectionName, id), payload, { merge: true });
+  batch.set(doc(db, 'ferias_auditoria', `${collectionName}-${id}-${Date.now()}`), {
+    action: 'ferias_entidade_atualizada', collection: collectionName, entityId: id,
+    actorEmail: actorEmail || auth.currentUser?.email || '', createdAt: updatedAt
+  });
+  await batch.commit();
+  return id;
+}
+
+export async function saveFeriasProgramacao(suggestion, actorEmail) {
+  if (suggestion?.status !== 'pronta') throw new Error('A sugestão possui pendências e não pode ser aceita.');
+  const id = feriasId(suggestion);
+  const acceptedAt = new Date().toISOString();
+  const program = { ...suggestion, id, status: 'aprovada', acceptedAt, acceptedBy: actorEmail || auth.currentUser?.email || '' };
+  const batch = writeBatch(db);
+  batch.set(doc(db, 'ferias_programacoes', id), program);
+  batch.set(doc(db, 'ferias_sugestoes', id), { ...suggestion, status: 'aceita', acceptedAt, acceptedBy: program.acceptedBy }, { merge: true });
+  batch.set(doc(db, 'ferias_auditoria', `programacao-aceita-${id}-${Date.now()}`), {
+    action: 'ferias_programacao_aceita', programId: id, actorEmail: program.acceptedBy, createdAt: acceptedAt
+  });
+  await batch.commit();
+  return id;
+}

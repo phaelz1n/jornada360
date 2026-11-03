@@ -12,6 +12,14 @@ service cloud.firestore {
         ];
     }
 
+    function isFeriasManager() {
+      return isAuthenticated() && request.auth.token.email in [
+        'operacional4@transpinho.com',
+        'rh@transpinho.com',
+        'tielle@transpinho.com'
+      ];
+    }
+
     function validAuditEntry() {
       return request.resource.data.keys().hasOnly([
           'action', 'dateKey', 'actorEmail', 'createdAt', 'updatedAt',
@@ -65,6 +73,14 @@ service cloud.firestore {
       allow update, delete: if false;
     }
     match /ocorrencias/{id} { allow read, write: if isAuthenticated(); }
+    match /ferias_turnos/{id} { allow read: if isAuthenticated(); allow create, update: if isFeriasManager(); allow delete: if false; }
+    match /ferias_feristas/{id} { allow read: if isAuthenticated(); allow create, update: if isFeriasManager(); allow delete: if false; }
+    match /ferias_importacoes/{id} { allow read: if isFeriasManager(); allow create: if isFeriasManager(); allow update, delete: if false; }
+    match /ferias_pessoas/{id} { allow read: if isFeriasManager(); allow create, update: if isFeriasManager(); allow delete: if false; }
+    match /ferias_pessoa_turnos/{id} { allow read: if isFeriasManager(); allow create, update: if isFeriasManager(); allow delete: if false; }
+    match /ferias_sugestoes/{id} { allow read: if isFeriasManager(); allow create, update: if isFeriasManager(); allow delete: if false; }
+    match /ferias_programacoes/{id} { allow read: if isFeriasManager(); allow create, update: if isFeriasManager(); allow delete: if false; }
+    match /ferias_auditoria/{id} { allow read: if isFeriasManager(); allow create: if isFeriasManager(); allow update, delete: if false; }
   }
 }
 

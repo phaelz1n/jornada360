@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { suggestVacation } from './ferias-model.js';
+import { acceptSuggestion, persistSuggestion, persistTurno, subscribeFeriasData } from './ferias-store.js';
 
 const emptyTurno = { name: '', description: '', days: 'Segunda a sábado' };
 
@@ -21,6 +22,14 @@ export function FeriasPanel({ user }) {
   const [turnoDraft, setTurnoDraft] = useState(emptyTurno);
   const [notice, setNotice] = useState('');
 
+  useEffect(() => subscribeFeriasData({
+    onTurnos: setTurnos,
+    onFeristas: setFeristas,
+    onSuggestions: setSuggestions,
+    onPrograms: setProgramacoes,
+    onError: error => setNotice(`Não foi possível sincronizar férias agora: ${error?.message || 'verifique a conexão.'}`)
+  }), []);
+
   const metrics = useMemo(() => ({
     suggestions: suggestions.filter(item => item.status !== 'aceita').length,
     approved: programacoes.filter(item => item.status === 'aprovada').length,
@@ -31,16 +40,19 @@ export function FeriasPanel({ user }) {
   function addTurno(event) {
     event.preventDefault();
     if (!turnoDraft.name.trim()) return;
-    setTurnos(items => [...items, { ...turnoDraft, id: `turno-${Date.now()}` }]);
+    const turno = { ...turnoDraft, id: `turno-${Date.now()}`, status: 'ativo' };
+    setTurnos(items => [...items, turno]);
     setTurnoDraft(emptyTurno);
-    setNotice('Turno criado como rascunho local. A sincronização será ativada nesta etapa do módulo.');
+    persistTurno(turno, user?.email).then(() => setNotice('Turno salvo no Firebase.')).catch(error => setNotice(`Não foi possível salvar o turno: ${error?.message || 'verifique a conexão.'}`));
   }
 
   function generateExampleSuggestion() {
     const shift = turnos[0] || { id: 'turno-pendente', name: 'Turno ainda não cadastrado' };
     const employee = { employeeCode: 'exemplo', employeeName: 'Funcionário aguardando importação', balanceDays: 30, gozoLimit: '2027-12-31' };
     const result = suggestVacation({ today: new Date().toISOString().slice(0, 10), employee, shift, feristas });
-    setSuggestions(items => [{ ...result, id: `sugestao-${Date.now()}` }, ...items]);
+    const suggestion = { ...result, id: `sugestao-${Date.now()}` };
+    setSuggestions(items => [suggestion, ...items]);
+    persistSuggestion(suggestion, user?.email).catch(error => setNotice(`Sugestão criada, mas não sincronizada: ${error?.message || 'verifique a conexão.'}`));
     setTab('sugestoes');
   }
 
@@ -49,9 +61,11 @@ export function FeriasPanel({ user }) {
       setNotice('Esta sugestão possui pendências e não pode ser aceita ainda.');
       return;
     }
-    setProgramacoes(items => [{ ...item, status: 'aprovada', acceptedBy: user?.email, acceptedAt: new Date().toISOString() }, ...items]);
-    setSuggestions(items => items.map(current => current.id === item.id ? { ...current, status: 'aceita' } : current));
-    setNotice('Programação aceita. Ela está pronta para ser sincronizada com o Firebase.');
+    acceptSuggestion(item, user?.email).then(() => {
+      setProgramacoes(items => [{ ...item, status: 'aprovada', acceptedBy: user?.email, acceptedAt: new Date().toISOString() }, ...items]);
+      setSuggestions(items => items.map(current => current.id === item.id ? { ...current, status: 'aceita' } : current));
+      setNotice('Programação aceita e sincronizada com o Firebase.');
+    }).catch(error => setNotice(`Não foi possível aceitar a programação: ${error?.message || 'verifique a conexão.'}`));
   }
 
   return <div className="ferias-page">
