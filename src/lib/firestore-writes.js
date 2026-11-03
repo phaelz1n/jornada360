@@ -2,7 +2,7 @@ import { doc, setDoc, writeBatch } from 'firebase/firestore';
 import { firebaseApp, auth } from './firebase.js';
 import { getFirestore } from 'firebase/firestore';
 import { createSnapshotWritePlan } from '../dados/snapshot-write-plan.js';
-import { createImportSyncPlan } from '../dados/import-sync-plan.js';
+import { buildImportAudit, createImportSyncPlan } from '../dados/import-sync-plan.js';
 import { buildChecklistAudit } from '../dados/checklist-audit.js';
 import { validateOccurrence } from '../dados/occurrence-validation.js';
 import { buildOccurrenceAudit } from '../dados/occurrence-audit.js';
@@ -13,7 +13,10 @@ export async function saveImportRecord(record) {
   // A nova exportação do mesmo dia é uma correção/atualização, não um novo lançamento.
   // Usar a data como chave evita duplicidade e permite substituir o pacote inteiro.
   const ref = doc(db, 'importacoes', String(record.dateKey));
-  await setDoc(ref, record);
+  const batch = writeBatch(db);
+  batch.set(ref, record);
+  batch.set(doc(db, 'historico_auditoria', `import-${encodeURIComponent(String(record.dateKey))}-${encodeURIComponent(String(record.createdAt || 'unknown'))}`), buildImportAudit(record));
+  await batch.commit();
   return ref.id;
 }
 
