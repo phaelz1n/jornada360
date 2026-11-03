@@ -29,9 +29,12 @@ function ChecklistHistory({ liveData }) {
 }
 
 export function AppShell({ user, dashboardData, onLogout }) {
-  const initialAccessPage = window.location.pathname === '/acessos';
-  const [activeSection, setActiveSection] = useState(initialAccessPage ? 'Acessos' : 'Início');
-  const [showSystemHub, setShowSystemHub] = useState(!initialAccessPage);
+  const initialPath = window.location.pathname;
+  const initialAdminPage = initialPath === '/administracao/acessos';
+  const initialJourneyPage = initialPath === '/jornada';
+  const initialVacationPage = initialPath === '/ferias';
+  const [activeSection, setActiveSection] = useState(initialAdminPage ? 'Acessos' : initialVacationPage ? 'Férias' : 'Início');
+  const [showSystemHub, setShowSystemHub] = useState(!initialAdminPage && !initialJourneyPage && !initialVacationPage);
   const [systemPermissions, setSystemPermissions] = useState({});
   const [liveData, setLiveData] = useState(dashboardData || { items: [], snapshots: [] });
   const [motoristas, setMotoristas] = useState([]);
@@ -48,6 +51,11 @@ export function AppShell({ user, dashboardData, onLogout }) {
     loadSystemPermission(user?.email).then(permissions => { if (active && permissions) setSystemPermissions(permissions); }).catch(() => {});
     return () => { active = false; };
   }, [user?.email]);
+
+  useEffect(() => {
+    if (!user || initialAdminPage || initialJourneyPage || initialVacationPage) return;
+    window.history.replaceState({}, '', '/acessos');
+  }, [user]);
 
   useEffect(() => {
     localStorage.setItem('jornada360:dark-mode', String(darkMode));
@@ -148,7 +156,7 @@ export function AppShell({ user, dashboardData, onLogout }) {
       </aside>
       <main className="shell-content">
         <header className="topbar"><div><span className="eyebrow">PAINEL DE OPERAÇÃO</span><h1>Bom trabalho, equipe.</h1></div><div className="topbar-actions"><span className={`sync-indicator sync-${syncTone(syncStatus)}`} role="status">● {syncLabel(syncStatus)}</span><div className="profile-menu"><button type="button" className="user-chip" onClick={() => setProfileOpen(value => !value)} aria-expanded={profileOpen}><span className="avatar">{user?.email?.[0]?.toUpperCase() || 'U'}</span><span>{user?.email}</span><span className="profile-caret">▾</span></button>{profileOpen && <div className="profile-dropdown"><span className="profile-email">{user?.email}</span><button type="button" onClick={() => setDarkMode(value => !value)}><span>{darkMode ? '☀' : '◐'}</span>{darkMode ? 'Modo claro' : 'Modo escuro'}</button></div>}</div></div></header>
-        {showSystemHub ? <><section className="welcome-card"><div><span className="eyebrow">TRANSPINHO / PORTAL</span><h2>Seus sistemas</h2><p>Escolha o ambiente que deseja acessar. As permissões são vinculadas à sua conta.</p></div></section><SystemHub user={user} permissions={systemPermissions} onOpen={system => { setShowSystemHub(false); setActiveSection(system === 'ferias' ? 'Férias' : 'Início'); }} /></> : activeSection === 'Acessos' ? <section className="welcome-card"><div><span className="eyebrow">TRANSPINHO / ADMINISTRAÇÃO</span><h2>Gerenciamento de acessos</h2><p>Administre os sistemas liberados para cada conta.</p></div></section> : <section className="welcome-card"><div><span className="eyebrow">JORNADA360 / {activeSection.toUpperCase()}</span><h2>{section.title}</h2><p>{section.description} A lógica atual de processamento continua preservada durante a migração.</p></div></section>}
+        {showSystemHub ? <><section className="welcome-card"><div><span className="eyebrow">TRANSPINHO / PORTAL</span><h2>Seus sistemas</h2><p>Escolha o ambiente que deseja acessar. As permissões são vinculadas à sua conta.</p></div></section><SystemHub user={user} permissions={systemPermissions} onOpen={system => { setShowSystemHub(false); setActiveSection(system === 'ferias' ? 'Férias' : 'Início'); window.history.pushState({}, '', system === 'ferias' ? '/ferias' : '/jornada'); }} /></> : activeSection === 'Acessos' ? <section className="welcome-card"><div><span className="eyebrow">TRANSPINHO / ADMINISTRAÇÃO</span><h2>Gerenciamento de acessos</h2><p>Administre os sistemas liberados para cada conta.</p></div></section> : <section className="welcome-card"><div><span className="eyebrow">JORNADA360 / {activeSection.toUpperCase()}</span><h2>{section.title}</h2><p>{section.description} A lógica atual de processamento continua preservada durante a migração.</p></div></section>}
         {activeSection === 'Início' && <section className="status-grid"><article onClick={() => setActiveSection('Importação')}><span className="status-icon blue">↥</span><div><strong>Importação</strong><p>Planilhas do dia e fontes operacionais</p></div><span className="arrow">→</span></article><article onClick={() => setActiveSection('Checklist')}><span className="status-icon green">✓</span><div><strong>Checklist</strong><p>Validações e pendências da jornada</p></div><span className="arrow">→</span></article><article onClick={() => setActiveSection('Relatórios')}><span className="status-icon orange">▥</span><div><strong>Relatórios</strong><p>HE.1, HE.2, HE.3, inter e intra</p></div><span className="arrow">→</span></article></section>}
         {!showSystemHub && activeSection === 'Férias' && canAccessSystem(user?.email, 'ferias', systemPermissions) && <FeriasPanel user={user} />}
         {!showSystemHub && activeSection === 'Acessos' && user?.email?.toLowerCase() === 'operacional4@transpinho.com' && <AccessManager user={user} />}
