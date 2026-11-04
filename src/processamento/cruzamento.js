@@ -199,7 +199,7 @@ export function crossSources({ pointRows = [], previousPointRows = [], scaleRows
       : 'sem-extra';
     const totalHE = rastreioDispensado && admExtra != null
       ? admExtra
-      : hasReportedExtra && standardExtra >= 0
+      : hasReportedExtra && (standardExtra >= 0 || extraValidatedBySources)
       ? reportedHE
       : batidasExtra != null ? batidasExtra : reportedHE;
     const trackerEvidence = rastreioDispensado ? { evidence: [], outside: 0 } : buildEvidence({ batidas: point.batidas || [], paradaAnalysis, totalHE, metaDiaMin });
