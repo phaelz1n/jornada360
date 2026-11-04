@@ -134,7 +134,10 @@ export function AppShell({ user, dashboardData, onLogout }) {
     let unsubscribeDrivers = () => {};
     import('../lib/firestore-store.js').then(({ firestoreStore }) => {
       unsubscribe = firestoreStore.subscribe('snapshots_dias', snapshots => {
-        const ordered = dedupeSnapshots(snapshots);
+        const ordered = dedupeSnapshots(snapshots).map(snapshot => ({
+          ...snapshot,
+          items: asList(snapshot?.items)
+        }));
         const latest = ordered.at(-1);
         if (latest) setLiveData(current => ({ ...current, items: asList(latest.items), dateKey: latest.dateKey, snapshots: asList(ordered), source: 'firebase' }));
       }, error => window.dispatchEvent(new CustomEvent('jornada360:sync-read-error', { detail: { message: error?.message || 'Não foi possível ler os snapshots do Firebase.' } })));
