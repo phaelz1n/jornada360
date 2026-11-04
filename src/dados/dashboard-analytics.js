@@ -9,6 +9,22 @@ const normalizeName = value => String(value || '').trim().replace(/\s+/g, ' ').t
 const previousDate = dateKey => { const date = new Date(`${dateKey}T12:00:00`); date.setDate(date.getDate() - 1); return date.toISOString().slice(0, 10); };
 const asArray = value => Array.isArray(value) ? value : value && typeof value === 'object' ? Object.values(value) : [];
 
+export function groupPeopleBySector(items = []) {
+  const groups = new Map();
+  asArray(items).forEach(item => {
+    const setor = item.setorAtual || item.setor || 'Sem setor';
+    const people = groups.get(setor) || new Map();
+    const name = item.motorista || 'Sem motorista';
+    const person = people.get(name) || { motorista: name, totalHEmin: 0, he1min: 0 };
+    person.he1min += Math.max(0, finite(item.he1min));
+    person.totalHEmin += totalHE(item);
+    people.set(name, person);
+    groups.set(setor, people);
+  });
+  return new Map([...groups].map(([sector, people]) => [sector, [...people.values()].sort((a, b) => b.totalHEmin - a.totalHEmin || a.motorista.localeCompare(b.motorista))]));
+}
+
+
 function dailySeries(items) {
   const days = new Map();
   items.forEach(item => {

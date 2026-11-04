@@ -3,7 +3,7 @@ import { competenciaAnterior, competenciaParaData } from '../relatorios/competen
 import { consultarDia, consultarPeriodo } from '../relatorios/relatorio-query.js';
 import { ExecutiveCards, ExecutiveEvents } from './ExecutiveCards.jsx';
 import { DashboardCharts } from './DashboardCharts.jsx';
-import { buildDashboardAnalytics } from '../dados/dashboard-analytics.js';
+import { buildDashboardAnalytics, groupPeopleBySector } from '../dados/dashboard-analytics.js';
 import { normalizeDriverName } from '../processamento/processamento-model.js';
 
 const fmt = min => `${Math.floor((min || 0) / 60)}h${String((min || 0) % 60).padStart(2, '0')}`;
@@ -55,20 +55,7 @@ export function InicioDashboard({ snapshots = [], eventos = [], motoristas = [] 
   const semPadraoMin = report.summary.semPadraoMin || 0;
   const analytics = useMemo(() => buildDashboardAnalytics({ report, snapshots: snapshotsWithCadastro, motoristas: driverList }), [report, snapshotsWithCadastro, driverList]);
   const bucketDetails = useMemo(() => (report.items || []).filter(item => Number(item[selectedBucket]) > 0).map(item => ({ motorista: item.motorista || 'Sem motorista', dateKey: item.dateKey, minutos: Number(item[selectedBucket]) || 0 })).sort((a, b) => b.minutos - a.minutos || String(a.motorista).localeCompare(String(b.motorista))), [report.items, selectedBucket]);
-  const peopleBySector = useMemo(() => {
-    const groups = new Map();
-    (report.items || []).forEach(item => {
-      const setor = item.setorAtual || item.setor || 'Sem setor';
-      const current = groups.get(setor) || new Map();
-      const name = item.motorista || 'Sem motorista';
-      const person = current.get(name) || { motorista: name, totalHEmin: 0, he1min: 0 };
-      person.he1min += Number(item.he1min) || 0;
-      person.totalHEmin += Number(item.he1min) || 0;
-      current.set(name, person);
-      groups.set(setor, current);
-    });
-    return new Map([...groups].map(([sector, people]) => [sector, [...people.values()].sort((a, b) => b.totalHEmin - a.totalHEmin || a.motorista.localeCompare(b.motorista))]));
-  }, [report.items]);
+  const peopleBySector = useMemo(() => groupPeopleBySector(report.items || []), [report.items]);
   const selectedSectorPeople = peopleBySector.get(selectedSector) || [];
   return <section className="executive-dashboard">
     <div className="executive-heading"><span className="eyebrow">PAINEL EXECUTIVO</span><h2>Resumo da operação</h2><p>{mode === 'dia' ? `Dia selecionado: ${selectedDate ? selectedDate.split('-').reverse().join('/') : '—'}` : `Período: ${period?.rotulo || '—'}`}</p></div>

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildDashboardAnalytics } from './dashboard-analytics.js';
+import { buildDashboardAnalytics, groupPeopleBySector } from './dashboard-analytics.js';
 
 const snapshots = [
   { dateKey: '2026-10-27', items: [
@@ -61,6 +61,14 @@ test('guarda evidência de interjornada com o dia anterior', () => {
 test('retorna coleções vazias e números finitos sem registros', () => {
   const result = buildDashboardAnalytics({ report: { items: [], summary: {} }, snapshots: [] });
   assert.deepEqual(result, { dailySeries: [], bucketComposition: { he1min: 0, he2min: 0, he3min: 0, extraCandidataMin: 0, semPadraoMin: 0, totalHEmin: 0 }, driverDistribution: [], sectorComparison: [], riskMatrix: { interjornada: 0, intrajornada: 0, foraDaEscala: 0, semPadrao: 0, rastreioDivergente: 0 }, riskDetails: { interjornada: [], intrajornada: [], foraDaEscala: [], semPadrao: [], rastreioDivergente: [] }, riskEvidence: { interjornada: [], intrajornada: [], foraDaEscala: [], semPadrao: [], rastreioDivergente: [] } });
+});
+
+test('detalhamento por setor soma HE.1, HE.2 e HE.3', () => {
+  const groups = groupPeopleBySector([
+    { motorista: 'Ana', setor: 'Operação', he1min: 60, he2min: 30, he3min: 10 },
+    { motorista: 'Ana', setor: 'Operação', he1min: 5, he2min: 0, he3min: 0 }
+  ]);
+  assert.deepEqual(groups.get('Operação'), [{ motorista: 'Ana', totalHEmin: 105, he1min: 65 }]);
 });
 
 test('aceita snapshots e motoristas em mapa sem quebrar o dashboard', () => {
