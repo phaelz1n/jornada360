@@ -129,6 +129,16 @@ test('não inclui motorista sem HE no relatório de horas fora do padrão', () =
   assert.deepEqual(result.items.map(item => item.motorista), ['Marcos Viegas']);
 });
 
+test('não reaplica resumo antigo quando os itens do snapshot foram corrigidos', () => {
+  const result = consultarDia([{
+    dateKey: '2026-10-27',
+    items: [{ motorista: 'Marcos Viegas', heBucketsExplicit: true, he1min: 11, he2min: 0, he3min: 0, padraoCadastradoMin: 0 }],
+    summary: { totalHEmin: 96, he1min: 96, he2min: 0, he3min: 0 }
+  }], '2026-10-27');
+  assert.equal(result.summary.totalHEmin, 11);
+  assert.equal(result.summary.he1min, 11);
+});
+
 test('reaplica o padrão cadastrado ao consultar snapshots antigos', () => {
   const result = consultarPeriodo([
     { dateKey: '2026-10-27', items: [{ motorista: 'Ana Silva', batidas: ['08:00', '12:00', '13:00', '18:00'], he1min: 999 }] }

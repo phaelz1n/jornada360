@@ -111,8 +111,6 @@ export function consultarDia(snapshots = [], dateKey, filters = {}, cadastro = {
   const snapshot = snapshotList.find(item => item?.dateKey === dateKey);
   const items = applyFilters(asArray(snapshot?.items).map(item => ({ ...item, dateKey })), filters);
   const result = buildResult(items, snapshot ? 1 : 0, filters.metaDiaMin, cadastro);
-  const hasFilters = Object.values(filters).some(value => value && value !== 'Todos');
-  if (snapshot?.summary && !hasFilters) result.summary = { ...result.summary, ...snapshot.summary };
   return result;
 }
 
