@@ -1,3 +1,5 @@
+import { durationFromPairs } from './time-utils.js';
+
 export function normalizeDriverName(name) {
   return String(name || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().replace(/\s+/g, ' ').toLocaleUpperCase('pt-BR');
 }
@@ -8,6 +10,16 @@ export function driverToStandardRow(driver = {}) {
     extraNormalPadrao: Number(driver.extraNormalPadrao ?? driver.extraPrevistaMin ?? 0) || 0,
     horarios: Array.isArray(driver.horarios) ? driver.horarios.filter(Boolean).map(value => String(value).trim()).filter(Boolean) : []
   };
+}
+
+export function applyDriverStandard(item = {}, driver = {}) {
+  const standard = driverToStandardRow(driver);
+  if (!standard.horarios.length) return { ...item, padraoStatus: 'sem_cadastro', semHorarioPadrao: true };
+  const actual = durationFromPairs(item.batidas || []);
+  const expected = durationFromPairs(standard.horarios);
+  const extra = actual != null && expected != null ? Math.max(0, actual - expected) : Number(item.totalHE || 0);
+  const buckets = splitExtraHours(extra);
+  return { ...item, padraoStatus: 'encontrado', semHorarioPadrao: false, padraoCadastradoMin: standard.extraNormalPadrao, metaDiaMin: standard.extraNormalPadrao, padraoHorarios: standard.horarios, batidasExtraMin: extra, extraCalculadaPelasBatidas: actual != null && expected != null, totalHE: extra, excedenteMin: extra, ...buckets, heBucketsExplicit: true, heDentroPadraoMin: Math.min(extra, Math.max(0, standard.extraNormalPadrao)), heAcimaPadraoMin: Math.max(0, extra - Math.max(0, standard.extraNormalPadrao)) };
 }
 
 export function classifyDriverSector(item = {}, cadastro = {}) {

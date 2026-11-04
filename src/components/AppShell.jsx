@@ -8,7 +8,7 @@ import { buildImportRecord } from '../dados/import-record.js';
 import { MigrationPanel } from '../dados/MigrationPanel.jsx';
 import { ProcessingPanel, ReportsPanel, RegistersPanel } from '../modules/OperationalModules.jsx';
 import { extractPointRows, extractReportDate, extractScaleRows } from '../processamento/planilha-normalizer.js';
-import { driverToStandardRow, normalizeDriverName, prepareProcessedDay } from '../processamento/processamento-model.js';
+import { applyDriverStandard, driverToStandardRow, normalizeDriverName, prepareProcessedDay } from '../processamento/processamento-model.js';
 import { crossSources } from '../processamento/cruzamento.js';
 import { normalizeTrackerRows } from '../importacao/rastreador-normalizer.js';
 import { InicioDashboard } from '../modules/InicioDashboard.jsx';
@@ -68,17 +68,21 @@ export function AppShell({ user, dashboardData, onLogout }) {
 
   useEffect(() => {
     if (!motoristas.length) return;
-    const cadastro = Object.fromEntries(motoristas.map(driver => [normalizeDriverName(driver.nome), driver.setor || driver.categoria || 'Sem setor']));
+    const cadastro = Object.fromEntries(motoristas.map(driver => [normalizeDriverName(driver.nome), driver]));
     const applySectors = items => items.map(item => {
-      const setor = cadastro[normalizeDriverName(item.motorista || item.nome)];
-      return setor ? { ...item, setorAtual: setor, setor: setor } : item;
+      const driver = cadastro[normalizeDriverName(item.motorista || item.nome)];
+      if (!driver) return item;
+      const next = driver.horarios?.length ? applyDriverStandard(item, driver) : item;
+      const setor = driver.setor || driver.categoria || 'Sem setor';
+      return { ...next, setorAtual: setor, setor };
     });
+    const refreshSnapshot = snapshot => prepareProcessedDay({ ...snapshot, items: applySectors(snapshot.items || []), cadastro });
     setLiveData(current => ({
       ...current,
       items: applySectors(current.items || []),
-      snapshots: (current.snapshots || []).map(snapshot => ({ ...snapshot, items: applySectors(snapshot.items || []) })),
+      snapshots: (current.snapshots || []).map(refreshSnapshot),
     }));
-    import('../lib/firestore-writes.js').then(({ saveProcessedDay }) => Promise.all((liveData.snapshots || []).map(snapshot => saveProcessedDay({ ...snapshot, items: applySectors(snapshot.items || []) })))).catch(() => {});
+    import('../lib/firestore-writes.js').then(({ saveProcessedDay }) => Promise.all((liveData.snapshots || []).map(snapshot => saveProcessedDay(refreshSnapshot(snapshot))))).catch(() => {});
   }, [motoristas, liveData.snapshots?.length]);
 
   useEffect(() => {

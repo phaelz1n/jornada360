@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { driverToStandardRow, normalizeDriverName, prepareProcessedDay, summarizeDay, splitExtraHours } from './processamento-model.js';
+import { applyDriverStandard, driverToStandardRow, normalizeDriverName, prepareProcessedDay, summarizeDay, splitExtraHours } from './processamento-model.js';
 
 test('normaliza nome para cruzamento', () => assert.equal(normalizeDriverName('  Ana   Silva '), 'ANA SILVA'));
 test('normaliza acentos para cruzar nomes entre planilhas', () => assert.equal(normalizeDriverName('JOSÉ WEBER'), 'JOSE WEBER'));
@@ -61,4 +61,12 @@ test('mantém motorista cadastrado sem padrão como registro pendente', () => {
     extraNormalPadrao: 0,
     horarios: []
   });
+});
+
+test('recalcula o padrão de um snapshot quando o cadastro é atualizado', () => {
+  const item = applyDriverStandard({ motorista: 'Ana', batidas: ['08:00', '12:00', '13:00', '18:00'] }, { nome: 'Ana', horarios: ['08:00', '12:00', '13:00', '17:00'], extraNormalPadrao: 30 });
+  assert.equal(item.totalHE, 60);
+  assert.equal(item.heDentroPadraoMin, 30);
+  assert.equal(item.heAcimaPadraoMin, 30);
+  assert.equal(item.padraoStatus, 'encontrado');
 });
