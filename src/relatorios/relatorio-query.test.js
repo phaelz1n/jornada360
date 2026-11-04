@@ -22,6 +22,12 @@ test('consulta um dia e soma HE e ocorrências daquele dia', () => {
   assert.equal(result.summary.colaboradores, 2);
 });
 
+test('consulta snapshots antigos com itens em mapa sem quebrar o dashboard', () => {
+  const result = consultarDia({ dia: { dateKey: '2026-10-27', items: { ana: { motorista: 'Ana', he1min: 30 } } } }, '2026-10-27');
+  assert.equal(result.summary.totalHEmin, 30);
+  assert.equal(result.items[0].motorista, 'Ana');
+});
+
 test('trabalho em feriado ou DSR entra como HE.3 mesmo sem excedente', () => {
   const result = consultarDia([{ dateKey: '2026-10-10', items: [{ motorista: 'Bia', he1min: 30, feriado: true }] }], '2026-10-10');
   assert.equal(result.items[0].he3min, 30);

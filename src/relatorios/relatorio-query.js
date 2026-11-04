@@ -1,5 +1,7 @@
 import { summarizeDay, splitExtraHours, classifyDriverSector, normalizeDriverName } from '../processamento/processamento-model.js';
 
+const asArray = value => Array.isArray(value) ? value : value && typeof value === 'object' ? Object.values(value) : [];
+
 function isFeriadoOuDsr(item) {
   return Boolean(item.feriado || item.dsr || item.isFeriado || item.isDsr || item.tipoDia === 'FERIADO' || item.tipoDia === 'DSR' || item.classificacao === 'FERIADO' || item.classificacao === 'DSR');
 }
@@ -31,7 +33,7 @@ function applyFilters(items, filters = {}) {
 }
 
 function buildResult(items, days, forcedMetaDiaMin = null, cadastro = {}) {
-  const normalized = items.map(item => normalizeItem(item, cadastro));
+  const normalized = asArray(items).map(item => normalizeItem(item, cadastro));
   const summary = summarizeDay(normalized);
   const totalHEmin = normalized.reduce((total, item) => total + item.he1min + item.he2min + item.he3min, 0);
   const extraCandidataMin = normalized.reduce((total, item) => total + Math.max(0, minutes(item.extraCandidataMin) || 0), 0);
@@ -94,8 +96,9 @@ function buildResult(items, days, forcedMetaDiaMin = null, cadastro = {}) {
 }
 
 export function consultarDia(snapshots = [], dateKey, filters = {}, cadastro = {}) {
-  const snapshot = snapshots.find(item => item?.dateKey === dateKey);
-  const items = applyFilters((snapshot?.items || []).map(item => ({ ...item, dateKey })), filters);
+  const snapshotList = asArray(snapshots);
+  const snapshot = snapshotList.find(item => item?.dateKey === dateKey);
+  const items = applyFilters(asArray(snapshot?.items).map(item => ({ ...item, dateKey })), filters);
   const result = buildResult(items, snapshot ? 1 : 0, filters.metaDiaMin, cadastro);
   const hasFilters = Object.values(filters).some(value => value && value !== 'Todos');
   if (snapshot?.summary && !hasFilters) result.summary = { ...result.summary, ...snapshot.summary };
@@ -103,7 +106,7 @@ export function consultarDia(snapshots = [], dateKey, filters = {}, cadastro = {
 }
 
 export function consultarPeriodo(snapshots = [], competencia, filters = {}, cadastro = {}) {
-  const selected = snapshots.filter(item => item?.dateKey >= competencia.inicio && item?.dateKey <= competencia.fim);
-  const items = applyFilters(selected.flatMap(snapshot => (snapshot.items || []).map(item => ({ ...item, dateKey: snapshot.dateKey }))), filters);
+  const selected = asArray(snapshots).filter(item => item?.dateKey >= competencia.inicio && item?.dateKey <= competencia.fim);
+  const items = applyFilters(selected.flatMap(snapshot => asArray(snapshot.items).map(item => ({ ...item, dateKey: snapshot.dateKey }))), filters);
   return buildResult(items, selected.length, filters.metaDiaMin, cadastro);
 }

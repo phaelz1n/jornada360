@@ -2,6 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { snapshotItemsToChecklist } from './checklist-adapter.js';
 
+test('adapta itens antigos salvos como mapa no checklist', () => {
+  const [item] = snapshotItemsToChecklist({ ana: { motorista: 'Ana', he1min: 10 } });
+  assert.equal(item.motorista, 'Ana');
+});
+
 test('converte item de snapshot no formato do checklist', () => {
   const items = snapshotItemsToChecklist([{ motorista: 'Cristiano Francisco Barreto', setor: 'Motoristas', totalHE: 120, padraoMin: 120, status: 'ok' }]);
   assert.deepEqual(items, [{

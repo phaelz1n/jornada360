@@ -15,7 +15,8 @@ function toMinutes(value) {
 }
 
 export function snapshotItemsToChecklist(items = []) {
-  return items.filter(item => String(item?.motorista || item?.nome || '').trim()).map(item => {
+  const sourceItems = Array.isArray(items) ? items : items && typeof items === 'object' ? Object.values(items) : [];
+  return sourceItems.filter(item => String(item?.motorista || item?.nome || '').trim()).map(item => {
     const motorista = String(item.motorista || item.nome).trim();
     const categoria = String(item.categoria || item.tipo || '').trim();
     const setor = categoria || String(item.setor || item.setorResponsavel || 'Sem setor').trim();
