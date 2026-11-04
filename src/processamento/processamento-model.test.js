@@ -69,4 +69,5 @@ test('recalcula o padrão de um snapshot quando o cadastro é atualizado', () =>
   assert.equal(item.heDentroPadraoMin, 30);
   assert.equal(item.heAcimaPadraoMin, 30);
   assert.equal(item.padraoStatus, 'encontrado');
+  assert.equal(item.jornadaPrevistaMin, 480);
 });

@@ -2,11 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { IMPORT_SOURCES, createImportState, setSourceFile } from './importacao-model.js';
 
-test('mantém as cinco fontes de importação na ordem operacional', () => {
+test('mantém as cinco fontes de importação e deixa o Excel de padrão opcional', () => {
   assert.deepEqual(IMPORT_SOURCES.map(source => source.id), [
     'espelhoHoje', 'escala', 'rastreador', 'horarioPadrao', 'espelhoOntem'
   ]);
-  assert.equal(IMPORT_SOURCES.filter(source => source.required).length, 4);
+  assert.equal(IMPORT_SOURCES.filter(source => source.required).length, 3);
+  assert.equal(IMPORT_SOURCES.find(source => source.id === 'horarioPadrao').required, false);
 });
 
 test('atualiza uma fonte sem perder as demais', () => {

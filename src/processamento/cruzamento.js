@@ -216,6 +216,7 @@ export function crossSources({ pointRows = [], previousPointRows = [], scaleRows
       semHorarioPadrao: !standardRow && !rastreioDispensado,
       padraoStatus: standardRow ? 'encontrado' : rastreioDispensado ? `dispensado_${setorNormalizado.toLocaleLowerCase('pt-BR')}` : 'sem_cadastro',
       ...(rastreioDispensado ? { jornadaBaseMin } : {}),
+      ...(standardRow && standardDuration != null ? { jornadaPrevistaMin: standardDuration } : {}),
       ...(standardRow ? { padraoCadastradoMin: standardRow.extraNormalPadrao, metaDiaMin: standardRow.extraNormalPadrao } : {}),
       ...(standardRow ? { padraoHorarios: standardRow.horarios || [] } : {}),
       ...(effectiveExtra != null ? { batidasExtraMin: effectiveExtra, extraCalculadaPelasBatidas: true } : {}),

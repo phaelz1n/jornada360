@@ -19,6 +19,8 @@ Tornar o cadastro do motorista a fonte oficial do horário padrão e das regras 
 - [x] Criação automática de motoristas novos como pendentes.
 - [x] Editor moderno de padrões no cadastro.
 - [x] Justificativa de rota extra e sinalização de extra indevida para ADM.
-- [ ] Recalcular snapshots já importados imediatamente após alteração do cadastro.
-- [ ] Auditar todos os consumidores para garantir que não dependem mais da planilha.
-- [ ] Executar suíte completa e registrar commit final.
+- [x] Recalcular snapshots já importados imediatamente após alteração do cadastro.
+- [x] Tornar a planilha de horário padrão opcional na importação diária.
+- [x] Sincronizar jornada prevista, extras e buckets HE com o padrão cadastrado.
+- [x] Auditar consumidores do snapshot: dashboard, relatórios, checklist e justificativas usam os campos processados.
+- [x] Executar suíte completa e registrar commits.

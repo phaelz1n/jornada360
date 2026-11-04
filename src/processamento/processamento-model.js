@@ -19,7 +19,7 @@ export function applyDriverStandard(item = {}, driver = {}) {
   const expected = durationFromPairs(standard.horarios);
   const extra = actual != null && expected != null ? Math.max(0, actual - expected) : Number(item.totalHE || 0);
   const buckets = splitExtraHours(extra);
-  return { ...item, padraoStatus: 'encontrado', semHorarioPadrao: false, padraoCadastradoMin: standard.extraNormalPadrao, metaDiaMin: standard.extraNormalPadrao, padraoHorarios: standard.horarios, batidasExtraMin: extra, extraCalculadaPelasBatidas: actual != null && expected != null, totalHE: extra, excedenteMin: extra, ...buckets, heBucketsExplicit: true, heDentroPadraoMin: Math.min(extra, Math.max(0, standard.extraNormalPadrao)), heAcimaPadraoMin: Math.max(0, extra - Math.max(0, standard.extraNormalPadrao)) };
+  return { ...item, padraoStatus: 'encontrado', semHorarioPadrao: false, jornadaPrevistaMin: expected, padraoCadastradoMin: standard.extraNormalPadrao, metaDiaMin: standard.extraNormalPadrao, padraoHorarios: standard.horarios, batidasExtraMin: extra, extraCalculadaPelasBatidas: actual != null && expected != null, totalHE: extra, excedenteMin: extra, ...buckets, heBucketsExplicit: true, heDentroPadraoMin: Math.min(extra, Math.max(0, standard.extraNormalPadrao)), heAcimaPadraoMin: Math.max(0, extra - Math.max(0, standard.extraNormalPadrao)) };
 }
 
 export function classifyDriverSector(item = {}, cadastro = {}) {

@@ -2,7 +2,7 @@ export const IMPORT_SOURCES = Object.freeze([
   { id: 'espelhoHoje', label: 'Espelho de ponto', description: 'Registros do dia selecionado', required: true, icon: '▤' },
   { id: 'escala', label: 'Escala', description: 'Linhas e horários programados', required: true, icon: '▦' },
   { id: 'rastreador', label: 'Rastreador', description: 'Trajetos e paradas', required: true, icon: '⌖' },
-  { id: 'horarioPadrao', label: 'Horário padrão', description: 'Limites de horas extras', required: true, icon: '◷' },
+  { id: 'horarioPadrao', label: 'Horário padrão (migração)', description: 'Opcional: use apenas para conferir ou migrar cadastros', required: false, icon: '◷' },
   { id: 'espelhoOntem', label: 'Espelho de ontem', description: 'Opcional para interjornada', required: false, icon: '↶' }
 ]);
 

@@ -42,7 +42,7 @@ export function ImportacaoPanel({ onProcess, draft, onDraftChange }) {
 
   function process() {
     if (!state.ready) {
-      setMessage('Selecione as quatro fontes obrigatórias para processar o dia.');
+      setMessage('Selecione espelho de ponto, escala e rastreador para processar o dia.');
       return;
     }
     setMessage('Arquivos prontos. O processamento atual será utilizado nesta etapa.');
@@ -50,7 +50,7 @@ export function ImportacaoPanel({ onProcess, draft, onDraftChange }) {
   }
 
   return <section className="import-panel">
-    <div className="import-panel-heading"><div><span className="eyebrow">ENTRADA DE DADOS</span><h2>Importar arquivos do dia</h2><p>Selecione as planilhas usadas pela operação. O novo fluxo mantém o mesmo cruzamento do sistema atual.</p></div><span className="import-counter">{selectedCount}/5 arquivos</span></div>
+    <div className="import-panel-heading"><div><span className="eyebrow">ENTRADA DE DADOS</span><h2>Importar arquivos do dia</h2><p>O horário padrão vem do cadastro de motoristas. A planilha de padrão fica disponível apenas para migração ou conferência.</p></div><span className="import-counter">{selectedCount}/5 arquivos</span></div>
     <label className="import-date">Data do relatório <input type="date" value={dateKey} onChange={event => setDateKey(event.target.value)} /></label>
     <div className="source-grid">{IMPORT_SOURCES.map(source => { const file = state.files[source.id]; return <label className={`source-card ${file ? 'selected' : ''}`} key={source.id}>
       <input type="file" accept=".xlsx,.xls,.csv" onChange={event => chooseFile(source.id, event)} />
