@@ -23,15 +23,19 @@ export function snapshotItemsToChecklist(items = []) {
     const he1 = toMinutes(item.he1min ?? item.he1Min ?? item.he1 ?? item.he1str ?? item.horaExtra1);
     const he2 = toMinutes(item.he2min ?? item.he2Min ?? item.he2 ?? item.he2str ?? item.horaExtra2);
     const he3 = toMinutes(item.he3min ?? item.he3Min ?? item.he3 ?? item.he3str ?? item.horaExtra3);
-    const totalHE = toMinutes(item.totalHE ?? item.totalHEstr ?? item.excedenteMin) || he1 + he2 + he3;
+    const savedTotalHE = toMinutes(item.totalHE ?? item.totalHEstr ?? item.excedenteMin);
+    const totalHE = item.heBucketsExplicit === true ? he1 + he2 + he3 : (savedTotalHE || he1 + he2 + he3);
+    const savedCandidate = toMinutes(item.extraCandidataMin);
+    const extraCandidataMin = item.heBucketsExplicit === true && savedCandidate === savedTotalHE ? totalHE : savedCandidate;
+    const justificativaSugerida = item.justificativaSugerida || (item.linhaExtraCandidata && item.linhaExtraDetalhe ? item.linhaExtraDetalhe : '');
     const semPadrao = item.padraoStatus === 'sem_cadastro' || item.padraoStatus === 'invalido' || item.semHorarioPadrao === true || (item.padraoMin == null && item.padraoCadastradoMin == null && item.extraNormalPadrao == null);
     return {
       id: slug(motorista),
       motorista,
       setor,
-      status: semPadrao ? 'Sem horário padrão' : (item.extraCandidataMin > 0 || (item.extraAuditoriaStatus && item.extraAuditoriaStatus !== 'sem-extra') ? 'Pendente de comprovação' : (item.status === 'ok' || totalHE === 0 ? 'Confirmado' : 'Pendente')),
+      status: semPadrao ? 'Sem horário padrão' : (extraCandidataMin > 0 || (item.extraAuditoriaStatus && item.extraAuditoriaStatus !== 'sem-extra') ? 'Pendente de comprovação' : (item.status === 'ok' || totalHE === 0 ? 'Confirmado' : 'Pendente')),
       semPadrao,
-      resumo: [semPadrao ? `${totalHE > 0 ? `HE total ${formatMinutes(totalHE)} · ` : ''}horário padrão não encontrado` : (totalHE > 0 ? `HE total ${formatMinutes(totalHE)}` : 'Sem excesso registrado'), item.extraCandidataMin > 0 ? `extra candidata ${formatMinutes(item.extraCandidataMin)}` : '', item.interjornadaProblema ? 'interjornada' : '', item.intervaloMenorUmaHora ? 'intervalo < 1h' : ''].filter(Boolean).join(' · '),
+      resumo: [semPadrao ? `${totalHE > 0 ? `HE total ${formatMinutes(totalHE)} · ` : ''}horário padrão não encontrado` : (totalHE > 0 ? `HE total ${formatMinutes(totalHE)}` : 'Sem excesso registrado'), extraCandidataMin > 0 ? `extra candidata ${formatMinutes(extraCandidataMin)}` : '', item.interjornadaProblema ? 'interjornada' : '', item.intervaloMenorUmaHora ? 'intervalo < 1h' : ''].filter(Boolean).join(' · '),
       totalHE,
       padraoCadastradoMin: item.padraoCadastradoMin ?? item.padraoMin ?? item.extraNormalPadrao ?? null,
       heDentroPadraoMin: item.heDentroPadraoMin ?? null,
@@ -43,9 +47,9 @@ export function snapshotItemsToChecklist(items = []) {
       escala: item.escala || null,
       linhaExtraCandidata: Boolean(item.linhaExtraCandidata),
       linhaExtraDetalhe: item.linhaExtraDetalhe || '',
-      ...(item.justificativaSugerida ? { justificativaSugerida: item.justificativaSugerida } : {}),
+      ...(justificativaSugerida ? { justificativaSugerida } : {}),
       ...(item.extraAuditoriaStatus ? { extraAuditoriaStatus: item.extraAuditoriaStatus, extraAuditoriaDetalhe: item.extraAuditoriaDetalhe || '' } : {}),
-      ...(item.extraCandidataMin > 0 ? { extraCandidataMin: item.extraCandidataMin } : {}),
+      ...(extraCandidataMin > 0 ? { extraCandidataMin } : {}),
       rastreiosForaDaEscala: Array.isArray(item.rastreiosForaDaEscala) ? item.rastreiosForaDaEscala : [],
       foraDaEscalaProblema: Boolean(item.foraDaEscalaProblema),
       foraDaEscalaDetalhe: item.foraDaEscalaDetalhe || '',

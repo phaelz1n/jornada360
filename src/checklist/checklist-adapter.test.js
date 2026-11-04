@@ -76,3 +76,14 @@ test('preserva HE calculada para exibição no cartão do checklist', () => {
   const [item] = snapshotItemsToChecklist([{ motorista: 'Anderson', totalHE: 40, padraoCadastradoMin: 45 }]);
   assert.equal(item.totalHE, 40);
 });
+
+test('usa os buckets oficiais quando totalHE salvo está desatualizado', () => {
+  const [item] = snapshotItemsToChecklist([{ motorista: 'Marcos Viegas', totalHE: 96, he1min: 11, he2min: 0, he3min: 0, heBucketsExplicit: true, padraoCadastradoMin: 0 }]);
+  assert.equal(item.totalHE, 11);
+  assert.equal(item.resumo, 'HE total 00:11');
+});
+
+test('mantém a linha extra na justificativa quando a sugestão não foi salva', () => {
+  const [item] = snapshotItemsToChecklist([{ motorista: 'Marcos Viegas', totalHE: 11, linhaExtraCandidata: true, linhaExtraDetalhe: 'Possível linha extra: UTILIZADO — consta na escala e há batida compatível.' }]);
+  assert.match(item.justificativaSugerida, /UTILIZADO/);
+});
