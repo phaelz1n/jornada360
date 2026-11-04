@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { summarizeDay } from '../processamento/processamento-model.js';
+import { normalizeDriverName, summarizeDay } from '../processamento/processamento-model.js';
 import { competenciaParaData } from '../relatorios/competencia.js';
 import { consultarDia, consultarPeriodo } from '../relatorios/relatorio-query.js';
 import { asArray } from '../utils/collections.js';
@@ -51,7 +51,7 @@ export function DateCalendar({ snapshots = [], selected, onSelect, allowAny = fa
 
 const AvailableReportDays = DateCalendar;
 
-function ReportsPanelBody({ items = [], snapshots = [], initialDate }) {
+function ReportsPanelBody({ items = [], snapshots = [], initialDate, motoristas = [] }) {
   items = asArray(items);
   snapshots = asArray(snapshots);
   const [mode, setMode] = useState('dia');
@@ -61,6 +61,15 @@ function ReportsPanelBody({ items = [], snapshots = [], initialDate }) {
   const [sector, setSector] = useState('Todos');
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('Todos');
+  const cadastro = useMemo(() => asArray(motoristas).reduce((result, driver) => {
+    const key = normalizeDriverName(driver.nome);
+    if (!key) return result;
+    const current = result[key];
+    const currentHasPattern = Array.isArray(current?.horarios) && current.horarios.length >= 2;
+    const nextHasPattern = Array.isArray(driver?.horarios) && driver.horarios.length >= 2;
+    if (!current || nextHasPattern || !currentHasPattern) result[key] = driver;
+    return result;
+  }, {}), [motoristas]);
   const sourceSnapshots = (snapshots.length ? snapshots : (items.length ? [{ dateKey, items }] : [])).map(snapshot => ({
     ...snapshot,
     items: asArray(snapshot?.items)
@@ -82,7 +91,7 @@ function ReportsPanelBody({ items = [], snapshots = [], initialDate }) {
   const periods = useMemo(() => [...new Map(sourceSnapshots.map(snapshot => { const period = competenciaParaData(snapshot.dateKey); return [period.chave, period]; })).values()], [sourceSnapshots]);
   const selectedPeriod = periods.find(period => period.chave === periodKey) || (dateKey ? competenciaParaData(dateKey) : periods[0]);
   const sectors = useMemo(() => ['Todos', ...new Set(sourceSnapshots.flatMap(snapshot => asArray(snapshot.items).map(item => item.setorAtual || item.setor || 'Sem setor')))], [sourceSnapshots]);
-  const report = useMemo(() => mode === 'dia' ? consultarDia(sourceSnapshots, dateKey, { setor: sector, motorista: search, categoria: category }) : consultarPeriodo(sourceSnapshots, selectedPeriod || { inicio: dateKey, fim: dateKey }, { setor: sector, motorista: search, categoria: category }), [mode, sourceSnapshots, dateKey, selectedPeriod, sector, search, category]);
+  const report = useMemo(() => mode === 'dia' ? consultarDia(sourceSnapshots, dateKey, { setor: sector, motorista: search, categoria: category }, cadastro) : consultarPeriodo(sourceSnapshots, selectedPeriod || { inicio: dateKey, fim: dateKey }, { setor: sector, motorista: search, categoria: category }, cadastro), [mode, sourceSnapshots, dateKey, selectedPeriod, sector, search, category, cadastro]);
   const filtered = report.items;
   const summary = report.summary;
   const format = value => `${Math.floor(value / 60)}h${String(value % 60).padStart(2, '0')}`;

@@ -195,7 +195,7 @@ export function AppShell({ user, dashboardData, onLogout }) {
           {activeSection === 'Importação' && <ImportacaoPanel draft={importDraft} onDraftChange={setImportDraft} onProcess={handleImportComplete} />}
           {activeSection === 'Checklist' && <ChecklistHistory liveData={liveData} />}
           {activeSection === 'Processamento' && <ProcessingPanel items={liveData?.items} />}
-          {activeSection === 'Relatórios' && <ReportsPanel items={liveData?.items} snapshots={liveData?.snapshots} />}
+          {activeSection === 'Relatórios' && <ReportsPanel items={liveData?.items} snapshots={liveData?.snapshots} motoristas={motoristas} />}
           {activeSection === 'Cadastros' && <RegistersPanel items={liveData?.items} drivers={motoristas} />}
           {activeSection === 'Firebase' && <MigrationPanel onMigrated={snapshot => dashboardData?.items !== snapshot.items && window.dispatchEvent(new CustomEvent('jornada360:data-updated', { detail: snapshot }))} />}
           {activeSection === 'Início' && <InicioDashboard snapshots={liveData?.snapshots || []} eventos={eventos} motoristas={motoristas} />}
