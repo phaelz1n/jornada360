@@ -3,13 +3,17 @@ import { summarizeDay } from '../processamento/processamento-model.js';
 import { competenciaParaData } from '../relatorios/competencia.js';
 import { consultarDia, consultarPeriodo } from '../relatorios/relatorio-query.js';
 
+const asArray = value => Array.isArray(value) ? value : value && typeof value === 'object' ? Object.values(value) : [];
+
 export function ProcessingPanel({ items = [] }) {
+  items = asArray(items);
   const summary = summarizeDay(items);
   const pending = items.filter(item => item.precisaVerificar || item.status === 'pendente').length;
   return <section className="module-panel"><span className="eyebrow">PROCESSAMENTO</span><h2>Comparação automática</h2><p>O cruzamento entre ponto, escala e rastreador usa o mesmo snapshot que alimenta o checklist e os relatórios.</p><div className="module-stats"><strong>{summary.registros}<small> registros carregados</small></strong><strong>{pending}<small> pendências para revisar</small></strong><strong>{summary.he1min}<small> min HE.1</small></strong><strong>{summary.he2min}<small> min HE.2</small></strong><strong>{summary.he3min}<small> min HE.3</small></strong><strong>{summary.interjornada}<small> interjornadas</small></strong><strong>{summary.intrajornada}<small> intrajornadas</small></strong></div><div className="comparison-list">{items.slice(0, 50).map(item => <article className="comparison-row" key={item.motorista}><div><strong>{item.motorista}</strong><small>{item.statusCruzamento || 'sem comparação'}{item.escala?.linha ? ` · ${item.escala.linha}` : ''}</small></div><div className="comparison-stops">{(item.paradasRastreador || []).map(stop => <span className={`stop-badge ${stop.status}`} key={`${stop.horario}-${stop.local}`}>{stop.horario} · {stop.status === 'possivel-transito' ? 'possível trânsito' : stop.status === 'nova' ? 'parada nova' : stop.status === 'confirmada' ? 'confirmada' : 'normal'}{stop.diferencaMin != null ? ` (${stop.diferencaMin} min)` : ''}</span>)}{!item.paradasRastreador?.length && <small>Sem paradas detalhadas no rastreador</small>}</div></article>)}</div>{!items.length && <p className="empty-state">Importe as planilhas do dia para iniciar a comparação.</p>}</section>;
 }
 
 export function DateCalendar({ snapshots = [], selected, onSelect, allowAny = false }) {
+  snapshots = asArray(snapshots);
   const dates = [...new Set(snapshots.map(snapshot => snapshot.dateKey).filter(Boolean))].sort();
   if (!dates.length && !allowAny) return null;
   const selectedDate = new Date(`${selected || dates.at(-1)}T12:00:00`);
@@ -28,6 +32,8 @@ export function DateCalendar({ snapshots = [], selected, onSelect, allowAny = fa
 const AvailableReportDays = DateCalendar;
 
 function ReportsPanelBody({ items = [], snapshots = [], initialDate }) {
+  items = asArray(items);
+  snapshots = asArray(snapshots);
   const [mode, setMode] = useState('dia');
   const latestDate = snapshots.map(snapshot => snapshot.dateKey).filter(Boolean).sort().at(-1) || new Date().toISOString().slice(0, 10);
   const [dateKey, setDateKey] = useState(initialDate || latestDate);
@@ -59,11 +65,14 @@ function ReportsPanelBody({ items = [], snapshots = [], initialDate }) {
 }
 
 export function ReportsPanel(props) {
-  const [selected, setSelected] = useState(() => props.snapshots?.map(item => item.dateKey).filter(Boolean).sort().at(-1) || new Date().toISOString().slice(0, 10));
-  return <><AvailableReportDays snapshots={props.snapshots || []} selected={selected} onSelect={setSelected} /><ReportsPanelBody {...props} initialDate={selected} /></>;
+  const snapshots = asArray(props.snapshots);
+  const [selected, setSelected] = useState(() => snapshots.map(item => item.dateKey).filter(Boolean).sort().at(-1) || new Date().toISOString().slice(0, 10));
+  return <><AvailableReportDays snapshots={snapshots} selected={selected} onSelect={setSelected} /><ReportsPanelBody {...props} snapshots={snapshots} initialDate={selected} /></>;
 }
 
 export function RegistersPanel({ items = [], drivers = [] }) {
+  items = asArray(items);
+  drivers = asArray(drivers);
   const [filter, setFilter] = useState('');
   const [editing, setEditing] = useState(null);
   const [draft, setDraft] = useState(null);

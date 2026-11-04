@@ -9,13 +9,16 @@ import { normalizeDriverName } from '../processamento/processamento-model.js';
 const fmt = min => `${Math.floor((min || 0) / 60)}h${String((min || 0) % 60).padStart(2, '0')}`;
 
 export function InicioDashboard({ snapshots = [], eventos = [], motoristas = [] }) {
+  const snapshotList = Array.isArray(snapshots) ? snapshots : Object.values(snapshots || {});
+  const driverList = Array.isArray(motoristas) ? motoristas : Object.values(motoristas || {});
+  const eventList = Array.isArray(eventos) ? eventos : Object.values(eventos || {});
   const snapshotsWithCadastro = useMemo(() => {
-    const cadastro = new Map(motoristas.map(driver => [normalizeDriverName(driver.nome), driver.setor || driver.categoria]).filter(([, setor]) => setor));
-    return snapshots.map(snapshot => ({ ...snapshot, items: (snapshot.items || []).map(item => {
+    const cadastro = new Map(driverList.map(driver => [normalizeDriverName(driver.nome), driver.setor || driver.categoria]).filter(([, setor]) => setor));
+    return snapshotList.map(snapshot => ({ ...snapshot, items: (Array.isArray(snapshot.items) ? snapshot.items : Object.values(snapshot.items || {})).map(item => {
       const setor = cadastro.get(normalizeDriverName(item.motorista || item.nome));
       return setor ? { ...item, setorAtual: setor, setor } : item;
     }) }));
-  }, [snapshots, motoristas]);
+  }, [snapshotList, driverList]);
   const latest = snapshotsWithCadastro.at(-1);
   const [mode, setMode] = useState('periodo');
   const [selectedDate, setSelectedDate] = useState(latest?.dateKey || '');
@@ -24,7 +27,7 @@ export function InicioDashboard({ snapshots = [], eventos = [], motoristas = [] 
   const dates = useMemo(() => snapshotsWithCadastro.map(snapshot => snapshot.dateKey).filter(Boolean).sort(), [snapshotsWithCadastro]);
   const periods = useMemo(() => [...new Map(dates.map(date => { const period = competenciaParaData(date); return [period.chave, period]; })).values()], [dates]);
   const period = periods.find(item => item.chave === selectedPeriod) || (selectedDate ? competenciaParaData(selectedDate) : null);
-  const cadastro = useMemo(() => Object.fromEntries(motoristas.map(driver => [normalizeDriverName(driver.nome), driver])), [motoristas]);
+  const cadastro = useMemo(() => Object.fromEntries(driverList.map(driver => [normalizeDriverName(driver.nome), driver])), [driverList]);
   const report = useMemo(() => mode === 'dia' ? consultarDia(snapshotsWithCadastro, selectedDate, {}, cadastro) : period ? consultarPeriodo(snapshotsWithCadastro, period, {}, cadastro) : { items: [], summary: {} }, [mode, snapshotsWithCadastro, selectedDate, period, cadastro]);
   const previous = useMemo(() => {
     if (!period) return null;
@@ -33,7 +36,7 @@ export function InicioDashboard({ snapshots = [], eventos = [], motoristas = [] 
   const hasPrevious = (previous?.diasProcessados || 0) > 0;
   const delta = hasPrevious ? (report.summary.totalHEmin || 0) - (previous?.summary.totalHEmin || 0) : null;
   const visibleDates = mode === 'dia' ? new Set(selectedDate ? [selectedDate] : []) : new Set((report.items || []).map(item => item.dateKey));
-  const faltas = useMemo(() => eventos.filter(event => visibleDates.has(event.dataKey) && ['Falta', 'Atestado', 'Horas faltantes'].includes(event.tipo)), [eventos, visibleDates]);
+  const faltas = useMemo(() => eventList.filter(event => visibleDates.has(event.dataKey) && ['Falta', 'Atestado', 'Horas faltantes'].includes(event.tipo)), [eventList, visibleDates]);
   const setores = Object.entries(report.summary.porSetorDetalhado || {}).sort((a, b) => b[1].totalHEmin - a[1].totalHEmin);
   const allRanking = [...(report.porMotorista || [])].sort((a, b) => (b.he1min + b.he2min + b.he3min) - (a.he1min + a.he2min + a.he3min));
   const ranking = allRanking.slice(0, 15);
@@ -41,7 +44,7 @@ export function InicioDashboard({ snapshots = [], eventos = [], motoristas = [] 
   const top20Min = allRanking.slice(0, 20).reduce((sum, row) => sum + row.he1min, 0);
   const top20Share = report.summary.he1min ? Math.round(top20Min / report.summary.he1min * 100) : 0;
   const semPadraoMin = report.summary.semPadraoMin || 0;
-  const analytics = useMemo(() => buildDashboardAnalytics({ report, snapshots: snapshotsWithCadastro, motoristas }), [report, snapshotsWithCadastro, motoristas]);
+  const analytics = useMemo(() => buildDashboardAnalytics({ report, snapshots: snapshotsWithCadastro, motoristas: driverList }), [report, snapshotsWithCadastro, driverList]);
   const peopleBySector = useMemo(() => {
     const groups = new Map();
     (report.items || []).forEach(item => {
