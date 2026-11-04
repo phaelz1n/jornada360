@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { applyDriverStandard, driverToStandardRow, normalizeDriverName, prepareProcessedDay, summarizeDay, splitExtraHours } from './processamento-model.js';
+import { applyDriverStandard, driverToStandardRow, mergeDriverStandardRows, normalizeDriverName, prepareProcessedDay, summarizeDay, splitExtraHours } from './processamento-model.js';
 
 test('normaliza nome para cruzamento', () => assert.equal(normalizeDriverName('  Ana   Silva '), 'ANA SILVA'));
 test('normaliza acentos para cruzar nomes entre planilhas', () => assert.equal(normalizeDriverName('JOSÉ WEBER'), 'JOSE WEBER'));
@@ -70,4 +70,12 @@ test('recalcula o padrão de um snapshot quando o cadastro é atualizado', () =>
   assert.equal(item.heAcimaPadraoMin, 30);
   assert.equal(item.padraoStatus, 'encontrado');
   assert.equal(item.jornadaPrevistaMin, 480);
+});
+
+test('mescla a planilha de migração no cadastro sem apagar o setor existente', () => {
+  const drivers = mergeDriverStandardRows([{ nome: 'Ana Silva', setor: 'ADM', horarios: [] }], [{ motorista: 'Ana Silva', horarios: ['08:00', '17:00'], extraNormalPadrao: 30 }, { motorista: 'Bia', horarios: ['07:00', '16:00'], extraNormalPadrao: 0 }]);
+  assert.deepEqual(drivers, [
+    { nome: 'Ana Silva', setor: 'ADM', horarios: ['08:00', '17:00'], extraNormalPadrao: 30, padraoStatus: 'completo' },
+    { nome: 'Bia', setor: 'Sem setor', horarios: ['07:00', '16:00'], extraNormalPadrao: 0, padraoStatus: 'completo' }
+  ]);
 });

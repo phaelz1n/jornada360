@@ -7,8 +7,8 @@ import { ChecklistPanel } from '../checklist/ChecklistPanel.jsx';
 import { buildImportRecord } from '../dados/import-record.js';
 import { MigrationPanel } from '../dados/MigrationPanel.jsx';
 import { ProcessingPanel, ReportsPanel, RegistersPanel } from '../modules/OperationalModules.jsx';
-import { extractPointRows, extractReportDate, extractScaleRows } from '../processamento/planilha-normalizer.js';
-import { applyDriverStandard, driverToStandardRow, normalizeDriverName, prepareProcessedDay } from '../processamento/processamento-model.js';
+import { extractPointRows, extractReportDate, extractScaleRows, extractStandardRows } from '../processamento/planilha-normalizer.js';
+import { applyDriverStandard, driverToStandardRow, mergeDriverStandardRows, normalizeDriverName, prepareProcessedDay } from '../processamento/processamento-model.js';
 import { crossSources } from '../processamento/cruzamento.js';
 import { normalizeTrackerRows } from '../importacao/rastreador-normalizer.js';
 import { InicioDashboard } from '../modules/InicioDashboard.jsx';
@@ -131,9 +131,11 @@ export function AppShell({ user, dashboardData, onLogout }) {
     const pointRows = extractPointRows(payload.rowData?.espelhoHoje || []);
     const dateKey = extractReportDate(payload.rowData?.espelhoHoje || []) || payload.dateKey || new Date().toISOString().slice(0, 10);
     const previousPointRows = extractPointRows(payload.rowData?.espelhoOntem || []);
-    const knownDrivers = new Map(motoristas.map(driver => [normalizeDriverName(driver.nome), driver]));
+    const importedStandardRows = extractStandardRows(payload.rowData?.horarioPadrao || []);
+    const driversWithImportedStandard = mergeDriverStandardRows(motoristas, importedStandardRows);
+    const knownDrivers = new Map(driversWithImportedStandard.map(driver => [normalizeDriverName(driver.nome), driver]));
     const newDrivers = [...new Map(pointRows.map(row => [normalizeDriverName(row.motorista), row.motorista]).filter(([key]) => key && !knownDrivers.has(key))).values()].map(nome => ({ nome, setor: 'Sem setor', padraoStatus: 'pendente', horarios: [], extraNormalPadrao: 0 }));
-    const driversForImport = [...motoristas, ...newDrivers];
+    const driversForImport = [...driversWithImportedStandard, ...newDrivers];
     const cadastro = Object.fromEntries(driversForImport.map(driver => [normalizeDriverName(driver.nome), driver]));
     const items = crossSources({ pointRows: pointRows.map(row => ({ ...row, dateKey })), previousPointRows, scaleRows: extractScaleRows(payload.rowData?.escala || [], dateKey), trackerRows: normalizeTrackerRows(payload.rowData?.rastreador || []), standardRows: driversForImport.map(driverToStandardRow), cadastro });
     const processedDay = prepareProcessedDay({ dateKey, items, cadastro });
@@ -141,7 +143,8 @@ export function AppShell({ user, dashboardData, onLogout }) {
     window.dispatchEvent(new CustomEvent('jornada360:sync-start'));
     try {
       const { saveDriver, saveImportRecord, saveProcessedDay, saveImportAndProcessedDay } = await import('../lib/firestore-writes.js');
-      if (newDrivers.length) { await Promise.all(newDrivers.map(saveDriver)); setMotoristas(current => [...current, ...newDrivers]); }
+      const importedDrivers = driversWithImportedStandard.filter(driver => importedStandardRows.some(row => normalizeDriverName(row.motorista) === normalizeDriverName(driver.nome)));
+      if (importedDrivers.length || newDrivers.length) { await Promise.all([...importedDrivers, ...newDrivers].map(saveDriver)); setMotoristas(driversForImport); }
       if (pointRows.length) await saveImportAndProcessedDay(record, processedDay);
       else await saveImportRecord(record);
       window.dispatchEvent(new CustomEvent('jornada360:data-updated', { detail: processedDay }));

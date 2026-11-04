@@ -12,6 +12,16 @@ export function driverToStandardRow(driver = {}) {
   };
 }
 
+export function mergeDriverStandardRows(drivers = [], standardRows = []) {
+  const merged = new Map(drivers.filter(driver => driver?.nome).map(driver => [normalizeDriverName(driver.nome), { ...driver }]));
+  standardRows.filter(row => row?.motorista).forEach(row => {
+    const key = normalizeDriverName(row.motorista);
+    const current = merged.get(key) || { nome: String(row.motorista).trim(), setor: 'Sem setor' };
+    merged.set(key, { ...current, horarios: Array.isArray(row.horarios) ? row.horarios.filter(Boolean) : [], extraNormalPadrao: Number(row.extraNormalPadrao) || 0, padraoStatus: row.horarios?.length >= 2 ? 'completo' : 'pendente' });
+  });
+  return [...merged.values()];
+}
+
 export function applyDriverStandard(item = {}, driver = {}) {
   const standard = driverToStandardRow(driver);
   if (!standard.horarios.length) return { ...item, padraoStatus: 'sem_cadastro', semHorarioPadrao: true };
