@@ -73,7 +73,7 @@ test('recalcula o padrão de um snapshot quando o cadastro é atualizado', () =>
 });
 
 test('preserva HE oficial ao reaplicar padrão em snapshot noturno', () => {
-  const item = applyDriverStandard({ motorista: 'Marcos Viegas da Cruz', batidas: ['17:00', '20:04', '20:51', '22:23', '00:30', '02:25', '03:00', '04:00'], he1min: 11, he2min: 0, he3min: 0 }, { nome: 'Marcos Viegas da Cruz', horarios: ['17:10', '20:00', '23:20', '00:45', '00:50', '02:30'], extraNormalPadrao: 0 });
+  const item = applyDriverStandard({ motorista: 'Marcos Viegas da Cruz', batidas: ['17:00', '20:04', '20:51', '22:23', '00:30', '02:25', '03:00', '04:00'], he1min: 11, he2min: 0, he3min: 0, heBucketsExplicit: true }, { nome: 'Marcos Viegas da Cruz', horarios: ['17:10', '20:00', '23:20', '00:45', '00:50', '02:30'], extraNormalPadrao: 0 });
   assert.equal(item.totalHE, 11);
   assert.equal(item.heAcimaPadraoMin, 11);
 });

@@ -29,7 +29,7 @@ export function applyDriverStandard(item = {}, driver = {}) {
   if (!standard.horarios.length) return { ...item, padraoStatus: 'sem_cadastro', semHorarioPadrao: true };
   const actual = durationFromPairs(item.batidas || []);
   const expected = durationFromPairs(standard.horarios);
-  const hasReportedExtra = ['totalHE', 'he1min', 'he2min', 'he3min', 'excedenteMin'].some(field => item[field] != null);
+  const hasReportedExtra = item.heBucketsExplicit === true && ['totalHE', 'he1min', 'he2min', 'he3min', 'excedenteMin'].some(field => item[field] != null);
   const reportedExtra = Number(item.totalHE ?? item.he1min ?? item.excedenteMin ?? 0) || 0;
   const extra = hasReportedExtra && standard.extraNormalPadrao >= 0
     ? Math.max(0, reportedExtra)
