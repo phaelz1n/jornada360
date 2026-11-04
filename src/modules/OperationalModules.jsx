@@ -31,11 +31,14 @@ export function ProcessingPanel({ items = [] }) {
 
 export function DateCalendar({ snapshots = [], selected, onSelect, allowAny = false }) {
   snapshots = asArray(snapshots);
-  const dates = [...new Set(snapshots.map(snapshot => snapshot.dateKey).filter(Boolean))].sort();
+  const dates = [...new Set(snapshots.map(snapshot => typeof snapshot === 'string' ? snapshot : snapshot?.dateKey).filter(value => /^\d{4}-\d{2}-\d{2}$/.test(String(value || ''))))].sort();
   if (!dates.length && !allowAny) return null;
-  const selectedDate = new Date(`${selected || dates.at(-1)}T12:00:00`);
-  const [month, setMonth] = useState(selectedDate.getMonth());
-  const [year, setYear] = useState(selectedDate.getFullYear());
+  const fallbackDate = dates.at(-1) || new Date().toISOString().slice(0, 10);
+  const selectedKey = /^\d{4}-\d{2}-\d{2}$/.test(String(selected || '')) ? selected : fallbackDate;
+  const selectedDate = new Date(`${selectedKey}T12:00:00`);
+  const safeDate = Number.isNaN(selectedDate.getTime()) ? new Date() : selectedDate;
+  const [month, setMonth] = useState(safeDate.getMonth());
+  const [year, setYear] = useState(safeDate.getFullYear());
   const [open, setOpen] = useState(false);
   const available = new Set(dates);
   const firstDay = new Date(year, month, 1).getDay();
@@ -43,7 +46,7 @@ export function DateCalendar({ snapshots = [], selected, onSelect, allowAny = fa
   const cells = [...Array(firstDay).fill(null), ...Array.from({ length: daysInMonth }, (_, index) => index + 1)];
   function moveMonth(amount) { const next = new Date(year, month + amount, 1); setMonth(next.getMonth()); setYear(next.getFullYear()); }
   const label = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' }).format(new Date(year, month, 1));
-  return <div className="report-date-picker"><button type="button" className="report-date-field" onClick={() => setOpen(value => !value)} aria-expanded={open}>{selected.split('-').reverse().join('/')}<span>▾</span></button>{open && <div className="report-calendar" role="dialog"><div className="report-calendar-head"><strong>{label}</strong><div><button type="button" onClick={() => moveMonth(-1)}>‹</button><button type="button" onClick={() => moveMonth(1)}>›</button></div></div><div className="report-calendar-week">{['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((day, index) => <span key={`${day}-${index}`}>{day}</span>)}</div><div className="report-calendar-grid">{cells.map((day, index) => { if (!day) return <span className="empty" key={`empty-${index}`} />; const date = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`; const weekday = new Date(year, month, day).getDay(); const weekend = weekday === 0 || weekday === 6; const hasReport = allowAny || available.has(date); return <button key={date} type="button" disabled={!hasReport} className={`${date === selected ? 'selected' : ''} ${hasReport ? 'available' : 'unavailable'} ${weekend ? 'weekend' : ''}`} onClick={() => { onSelect(date); setOpen(false); }}>{day}</button>; })}</div>{!allowAny && <small><i className="calendar-dot available-dot" /> com relatório <i className="calendar-dot unavailable-dot" /> sem relatório</small>}</div>}</div>;
+  return <div className="report-date-picker"><button type="button" className="report-date-field" onClick={() => setOpen(value => !value)} aria-expanded={open}>{selectedKey.split('-').reverse().join('/')}<span>▾</span></button>{open && <div className="report-calendar" role="dialog"><div className="report-calendar-head"><strong>{label}</strong><div><button type="button" onClick={() => moveMonth(-1)}>‹</button><button type="button" onClick={() => moveMonth(1)}>›</button></div></div><div className="report-calendar-week">{['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((day, index) => <span key={`${day}-${index}`}>{day}</span>)}</div><div className="report-calendar-grid">{cells.map((day, index) => { if (!day) return <span className="empty" key={`empty-${index}`} />; const date = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`; const weekday = new Date(year, month, day).getDay(); const weekend = weekday === 0 || weekday === 6; const hasReport = allowAny || available.has(date); return <button key={date} type="button" disabled={!hasReport} className={`${date === selectedKey ? 'selected' : ''} ${hasReport ? 'available' : 'unavailable'} ${weekend ? 'weekend' : ''}`} onClick={() => { onSelect(date); setOpen(false); }}>{day}</button>; })}</div>{!allowAny && <small><i className="calendar-dot available-dot" /> com relatório <i className="calendar-dot unavailable-dot" /> sem relatório</small>}</div>}</div>;
 }
 
 const AvailableReportDays = DateCalendar;
