@@ -37,6 +37,12 @@ test('inclui extras sem padrão na composição e nos riscos', () => {
   assert.equal(result.riskMatrix.semPadrao, 1);
 });
 
+test('não marca como sem padrão quem tem horários cadastrados e extra prevista zero', () => {
+  const result = buildDashboardAnalytics({ report: { items: [{ motorista: 'Ademar', he1min: 60, padraoStatus: 'encontrado', padraoHorarios: ['08:00', '17:00'], padraoCadastradoMin: 0 }], summary: {} }, snapshots: [] });
+  assert.equal(result.bucketComposition.semPadraoMin, 0);
+  assert.equal(result.riskMatrix.semPadrao, 0);
+});
+
 test('resume riscos operacionais sem duplicar o mesmo item', () => {
   const result = buildDashboardAnalytics({ report: { items: snapshots.flatMap(snapshot => snapshot.items), summary: {} }, snapshots });
   assert.deepEqual(result.riskMatrix, { interjornada: 1, intrajornada: 1, foraDaEscala: 1, semPadrao: 0, rastreioDivergente: 0 });
