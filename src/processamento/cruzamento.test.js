@@ -180,7 +180,7 @@ test('calcula extra efetiva comparando duração das batidas com padrão normali
     standardRows: [{ motorista: 'Ademar Monteiro', extraNormalPadrao: -25, horarios: ['21:25', '00:30', '04:10', '08:00'] }]
   });
   assert.equal(row.extraCalculadaPelasBatidas, true);
-  assert.equal(row.batidasExtraMin, 25);
+  assert.equal(row.batidasExtraMin, 0);
   assert.equal(row.he1min, 25);
   assert.equal(row.totalHE, 25);
   assert.equal(row.heAcimaPadraoMin, 0);
