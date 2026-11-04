@@ -133,6 +133,15 @@ test('reaplica o padrão cadastrado ao consultar snapshots antigos', () => {
   assert.equal(result.summary.motoristasSemPadrao, 0);
 });
 
+test('usa cadastro completo quando existem registros duplicados do motorista', () => {
+  const cadastro = {
+    'ANA SILVA': { nome: 'Ana Silva', horarios: ['08:00', '12:00', '13:00', '17:00'], extraNormalPadrao: 0 }
+  };
+  const result = consultarDia([{ dateKey: '2026-10-27', items: [{ motorista: 'Ana Silva', batidas: ['08:00', '12:00', '13:00', '18:00'] }] }], '2026-10-27', {}, cadastro);
+  assert.equal(result.summary.motoristasSemPadrao, 0);
+  assert.equal(result.summary.totalHEmin, 60);
+});
+
 test('considera cadastrado o motorista com horários e extra prevista zero', () => {
   const result = consultarDia([
     { dateKey: '2026-10-27', items: [{ motorista: 'Bia', batidas: ['08:00', '12:00', '13:00', '17:00'] }] }

@@ -28,7 +28,15 @@ export function InicioDashboard({ snapshots = [], eventos = [], motoristas = [] 
   const dates = useMemo(() => snapshotsWithCadastro.map(snapshot => snapshot.dateKey).filter(Boolean).sort(), [snapshotsWithCadastro]);
   const periods = useMemo(() => [...new Map(dates.map(date => { const period = competenciaParaData(date); return [period.chave, period]; })).values()], [dates]);
   const period = periods.find(item => item.chave === selectedPeriod) || (selectedDate ? competenciaParaData(selectedDate) : null);
-  const cadastro = useMemo(() => Object.fromEntries(driverList.map(driver => [normalizeDriverName(driver.nome), driver])), [driverList]);
+  const cadastro = useMemo(() => driverList.reduce((result, driver) => {
+    const key = normalizeDriverName(driver.nome);
+    if (!key) return result;
+    const current = result[key];
+    const currentHasPattern = Array.isArray(current?.horarios) && current.horarios.length >= 2;
+    const nextHasPattern = Array.isArray(driver?.horarios) && driver.horarios.length >= 2;
+    if (!current || nextHasPattern || !currentHasPattern) result[key] = driver;
+    return result;
+  }, {}), [driverList]);
   const report = useMemo(() => mode === 'dia' ? consultarDia(snapshotsWithCadastro, selectedDate, {}, cadastro) : period ? consultarPeriodo(snapshotsWithCadastro, period, {}, cadastro) : { items: [], summary: {} }, [mode, snapshotsWithCadastro, selectedDate, period, cadastro]);
   const previous = useMemo(() => {
     if (!period) return null;
