@@ -31,6 +31,7 @@ export function snapshotItemsToChecklist(items = []) {
       status: semPadrao ? 'Sem horário padrão' : (item.extraCandidataMin > 0 || (item.extraAuditoriaStatus && item.extraAuditoriaStatus !== 'sem-extra') ? 'Pendente de comprovação' : (item.status === 'ok' || totalHE === 0 ? 'Confirmado' : 'Pendente')),
       semPadrao,
       resumo: [semPadrao ? `${totalHE > 0 ? `HE total ${formatMinutes(totalHE)} · ` : ''}horário padrão não encontrado` : (totalHE > 0 ? `HE total ${formatMinutes(totalHE)}` : 'Sem excesso registrado'), item.extraCandidataMin > 0 ? `extra candidata ${formatMinutes(item.extraCandidataMin)}` : '', item.interjornadaProblema ? 'interjornada' : '', item.intervaloMenorUmaHora ? 'intervalo < 1h' : ''].filter(Boolean).join(' · '),
+      totalHE,
       padraoCadastradoMin: item.padraoCadastradoMin ?? item.padraoMin ?? item.extraNormalPadrao ?? null,
       heDentroPadraoMin: item.heDentroPadraoMin ?? null,
       heAcimaPadraoMin: item.heAcimaPadraoMin ?? null,

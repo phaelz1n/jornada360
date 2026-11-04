@@ -199,3 +199,51 @@ test('aceita extra de padrão negativo somente quando escala e rastreador compro
   assert.equal(row.heAcimaPadraoMin, 25);
   assert.equal(row.linhaExtraCandidata, true);
 });
+
+test('identifica linha extra pela proximidade da batida mesmo sem HE informada no ponto', () => {
+  const [row] = crossSources({
+    pointRows: [{ motorista: 'Anderson Altair Furquim Moitoso', dateKey: '2026-11-03', batidas: ['05:38', '08:41', '12:38', '18:20'] }],
+    scaleRows: [
+      { motorista: 'Anderson Altair Furquim Moitoso', horario: '05:35', linha: 'Linha padrão' },
+      { motorista: 'Anderson Altair Furquim Moitoso', horario: '08:30', linha: 'Linha extra Anderson' }
+    ],
+    standardRows: [{ motorista: 'Anderson Altair Furquim Moitoso', extraNormalPadrao: 45, horarios: ['05:35', '07:50', '12:40', '18:30'] }]
+  });
+  assert.equal(row.linhaExtraCandidata, true);
+  assert.equal(row.extraAuditoriaStatus, 'possivel-linha-extra');
+  assert.match(row.linhaExtraDetalhe, /Linha extra Anderson/);
+  assert.match(row.justificativaSugerida, /08:30/);
+});
+
+test('não chama linha normal de extra quando não existe horário padrão comparável', () => {
+  const [row] = crossSources({
+    pointRows: [{ motorista: 'Bia', batidas: ['08:00', '17:00'] }],
+    scaleRows: [{ motorista: 'Bia', horario: '08:00', linha: 'Linha normal' }]
+  });
+  assert.equal(row.linhaExtraCandidata, false);
+});
+
+test('calcula proximidade da linha extra atravessando a meia-noite', () => {
+  const [row] = crossSources({
+    pointRows: [{ motorista: 'Neto', batidas: ['23:50', '01:00'] }],
+    scaleRows: [{ motorista: 'Neto', horario: '00:10', linha: 'Linha noturna extra' }],
+    standardRows: [{ motorista: 'Neto', extraNormalPadrao: 0, horarios: ['22:00', '23:00'] }]
+  });
+  assert.equal(row.linhaExtraCandidata, true);
+  assert.match(row.linhaExtraDetalhe, /Linha noturna extra/);
+});
+
+test('inclui a rota da escala na justificativa quando falta confirmação do rastreador', () => {
+  const [row] = crossSources({
+    pointRows: [{ motorista: 'Cassio Francisco dos Santos', totalHE: 67, batidas: ['12:34', '17:00', '17:30', '20:11'] }],
+    scaleRows: [
+      { motorista: 'Cassio Francisco dos Santos', horario: '12:50', linha: 'Rota padrão' },
+      { motorista: 'Cassio Francisco dos Santos', horario: '19:00', linha: 'Rota extra Cassio' }
+    ],
+    standardRows: [{ motorista: 'Cassio Francisco dos Santos', extraNormalPadrao: 0, horarios: ['12:50', '16:20', '17:30', '20:00'] }],
+    trackerRows: [{ motorista: 'Cassio Francisco dos Santos', paradas: [{ horario: '17:00' }, { horario: '17:30' }] }]
+  });
+  assert.equal(row.extraAuditoriaStatus, 'possivel-linha-extra');
+  assert.match(row.extraAuditoriaDetalhe, /Rota extra Cassio/);
+  assert.match(row.justificativaSugerida, /Rota extra Cassio/);
+});
