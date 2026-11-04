@@ -84,3 +84,8 @@ test('aceita cadastro vindo como mapa sem quebrar a tela', () => {
   const drivers = mergeDriverStandardRows({ ana: { nome: 'Ana', setor: 'ADM' } }, { ana: { motorista: 'Ana', horarios: ['08:00', '17:00'], extraNormalPadrao: 0 } });
   assert.equal(drivers[0].padraoStatus, 'completo');
 });
+
+test('prepara itens antigos em mapa sem falhar no processamento', () => {
+  const result = prepareProcessedDay({ dateKey: '2026-10-27', items: { ana: { motorista: 'Ana', he1min: 10 } } });
+  assert.equal(result.items[0].motorista, 'Ana');
+});

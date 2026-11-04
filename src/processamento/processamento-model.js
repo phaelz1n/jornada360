@@ -55,8 +55,10 @@ function normalizeExtraBuckets(item = {}) {
   return item;
 }
 
+const asArray = value => Array.isArray(value) ? value : value && typeof value === 'object' ? Object.values(value) : [];
+
 export function summarizeDay(items = [], cadastro = {}) {
-  return items.reduce((summary, item) => {
+  return asArray(items).reduce((summary, item) => {
     summary.registros += 1;
     summary.he1min += Number(item.he1min || 0);
     summary.he2min += Number(item.he2min || 0);
@@ -70,7 +72,7 @@ export function summarizeDay(items = [], cadastro = {}) {
 }
 
 export function prepareProcessedDay({ dateKey, items = [], source = 'importacao', cadastro = {} }) {
-  const normalizedItems = items.map(normalizeExtraBuckets);
+  const normalizedItems = asArray(items).map(normalizeExtraBuckets);
   const summary = summarizeDay(normalizedItems, cadastro);
   const totalHEmin = normalizedItems.reduce((sum, item) => sum + Number(item.he1min || 0) + Number(item.he2min || 0) + Number(item.he3min || 0), 0);
   const standardFor = item => Number(item.padraoCadastradoMin ?? item.padraoMin ?? item.metaDiaMin ?? item.extraNormalPadrao ?? 0) || 0;
