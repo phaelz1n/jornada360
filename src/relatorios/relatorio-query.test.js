@@ -104,6 +104,17 @@ test('usa o setor atual do cadastro ao montar o resumo por setor', () => {
   assert.deepEqual(Object.keys(result.summary.porSetorDetalhado), ['ADM']);
 });
 
+test('filtra relatório por rastreio divergente e por HE fora do padrão', () => {
+  const snapshots = [{ dateKey: '2026-10-27', items: [
+    { motorista: 'Ana', he1min: 60, padraoCadastradoMin: 30, heAcimaPadraoMin: 30, rastreadorStatus: 'divergente' },
+    { motorista: 'Bia', he1min: 60, padraoCadastradoMin: 60, rastreadorStatus: 'confirmado' }
+  ] }];
+  const rastreio = consultarDia(snapshots, '2026-10-27', { categoria: 'Rastreio divergente' });
+  assert.deepEqual(rastreio.items.map(item => item.motorista), ['Ana']);
+  const fora = consultarDia(snapshots, '2026-10-27', { categoria: 'Fora do padrão' });
+  assert.deepEqual(fora.items.map(item => item.motorista), ['Ana']);
+});
+
 test('reaplica o padrão cadastrado ao consultar snapshots antigos', () => {
   const result = consultarPeriodo([
     { dateKey: '2026-10-27', items: [{ motorista: 'Ana Silva', batidas: ['08:00', '12:00', '13:00', '18:00'], he1min: 999 }] }
