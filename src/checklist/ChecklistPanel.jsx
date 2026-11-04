@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { createChecklistState, toggleOne } from './checklist-model.js';
+import { createChecklistState, mergeChecklistDetails, toggleOne } from './checklist-model.js';
 import { snapshotItemsToChecklist } from './checklist-adapter.js';
 
 function evidenceState(item) {
@@ -33,7 +33,7 @@ export function ChecklistPanel({ snapshotItems, snapshots = [], dateKey = 'lates
   const [loadedRemote, setLoadedRemote] = useState(false);
   useEffect(() => { setState(createChecklistState(items)); }, [dateKey, items]);
   useEffect(() => { setDetails(current => { const next = { ...current }; items.forEach(item => { if (item.justificativaSugerida && !next[item.id]) next[item.id] = { justificativa: item.justificativaSugerida }; }); return next; }); }, [items]);
-  useEffect(() => { let active = true; import('../lib/firestore-store.js').then(({ firestoreStore }) => firestoreStore.get(`checklist/${dateKey}`)).then(saved => { if (!active || !saved) return; setState(current => ({ ...current, validatedIds: saved.validatedIds || [] })); setDetails(saved.details || saved.caseState || {}); }).catch(() => {}).finally(() => { if (active) setLoadedRemote(true); }); return () => { active = false; }; }, [dateKey]);
+  useEffect(() => { let active = true; import('../lib/firestore-store.js').then(({ firestoreStore }) => firestoreStore.get(`checklist/${dateKey}`)).then(saved => { if (!active || !saved) return; setState(current => ({ ...current, validatedIds: saved.validatedIds || [] })); setDetails(mergeChecklistDetails(saved.details || saved.caseState || {}, items)); }).catch(() => {}).finally(() => { if (active) setLoadedRemote(true); }); return () => { active = false; }; }, [dateKey, items]);
   useEffect(() => {
     if (!items.length || !loadedRemote) return undefined;
     const timer = setTimeout(async () => {
