@@ -160,7 +160,7 @@ export function AppShell({ user, dashboardData, onLogout }) {
     const record = buildImportRecord({ ...payload, actorEmail: user?.email });
     window.dispatchEvent(new CustomEvent('jornada360:sync-start'));
     try {
-      const { saveDriver, saveImportRecord, saveProcessedDay, saveImportAndProcessedDay } = await import('../lib/firestore-writes.js');
+      const { saveDriver, saveImportRecord, saveImportAndProcessedDay } = await import('../lib/firestore-writes.js');
       const importedDrivers = driversWithImportedStandard.filter(driver => importedStandardRows.some(row => normalizeDriverName(row.motorista) === normalizeDriverName(driver.nome)));
       if (importedDrivers.length || newDrivers.length) { await Promise.all([...importedDrivers, ...newDrivers].map(saveDriver)); setMotoristas(driversForImport); }
       if (pointRows.length) await saveImportAndProcessedDay(record, processedDay);
