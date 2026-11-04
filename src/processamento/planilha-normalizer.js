@@ -83,7 +83,7 @@ export function extractStandardRows(rows = []) {
   const extraColumn = header.findIndex(value => isExtraHeader(value));
   const scheduleStarts = header.map((value, index) => /^(horario|hora|entrada|saida|batida|jornada|turno)/.test(value) ? index : -1).filter(index => index >= 0 && index !== extraColumn);
   const scheduleColumns = [...new Set(scheduleStarts.flatMap(index => [index, index + 1]))].filter(index => index < header.length && index !== extraColumn);
-  return rows.slice(headerIndex + 1).map(row => ({ motorista: String(row[nameColumn] || '').trim(), extraNormalPadrao: parseDurationMinutes(row[extraColumn]), horarios: scheduleColumns.map(index => formatTimeValue(row[index])).filter(value => /\d{1,2}:\d{2}/.test(value)) })).filter(row => row.motorista);
+  return rows.slice(headerIndex + 1).map(row => ({ motorista: String(row[nameColumn] || '').trim(), extraNormalPadrao: Math.max(0, parseDurationMinutes(row[extraColumn])), horarios: scheduleColumns.map(index => formatTimeValue(row[index])).filter(value => /\d{1,2}:\d{2}/.test(value)) })).filter(row => row.motorista);
 }
 
 function dateKeyFromValue(value) {

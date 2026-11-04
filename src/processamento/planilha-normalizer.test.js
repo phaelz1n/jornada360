@@ -18,11 +18,11 @@ test('reconhece padrão quando a coluna se chama Motorista', () => assert.deepEq
 test('lê entrada e saída de cada bloco de horário padrão', () => assert.deepEqual(extractStandardRows([['Nome', 'Horário 1', '', 'Horário 2', '', 'Horário 3', '', 'EXTRA'], ['Ademar Monteiro', '21:25', '00:30', '04:10', '08:00', '', '', '00:10']]), [{ motorista: 'Ademar Monteiro', extraNormalPadrao: 10, horarios: ['21:25', '00:30', '04:10', '08:00'] }]));
 test('aceita nome completo e cruza planilha de padrão com cabeçalho descritivo', () => assert.deepEqual(extractStandardRows([['Nome completo do motorista', 'Entrada', 'Saída', 'Hora extra padrão'], ['José Weber', '08:00', '17:00', '00:25']]), [{ motorista: 'José Weber', extraNormalPadrao: 25, horarios: ['08:00', '17:00'] }]));
 test('aceita cabeçalho HE e diferentes colunas de jornada', () => assert.deepEqual(extractStandardRows([['Colaborador', 'Entrada', 'Saída', 'HE'], ['Ademar Monteiro', '21:25', '08:00', '00:10']]), [{ motorista: 'Ademar Monteiro', extraNormalPadrao: 10, horarios: ['21:25', '08:00'] }]));
-test('lê extra negativa do padrão sem descartar a extra positiva', () => assert.deepEqual(extractStandardRows([['HORÁRIOS PADRÕES'], ['Nome', 'Horário 1', 'EXTRA'], ['Ana', '08:00:00', '-00:10:00'], ['Bia', '08:00:00', '00:20:00']]), [{ motorista: 'Ana', extraNormalPadrao: -10, horarios: ['08:00:00'] }, { motorista: 'Bia', extraNormalPadrao: 20, horarios: ['08:00:00'] }]));
+test('normaliza extra negativa do padrão para zero sem descartar a positiva', () => assert.deepEqual(extractStandardRows([['HORÁRIOS PADRÕES'], ['Nome', 'Horário 1', 'EXTRA'], ['Ana', '08:00:00', '-00:10:00'], ['Bia', '08:00:00', '00:20:00']]), [{ motorista: 'Ana', extraNormalPadrao: 0, horarios: ['08:00:00'] }, { motorista: 'Bia', extraNormalPadrao: 20, horarios: ['08:00:00'] }]));
 test('converte extra Excel negativa armazenada como Date em duração negativa', () => {
   const epoch = Date.UTC(1899, 11, 30);
   const negative = new Date(epoch - 10 * 60000);
-  assert.equal(extractStandardRows([['Nome', 'Horário 1', 'EXTRA'], ['Ana', new Date(epoch + 8 * 3600000), negative]])[0].extraNormalPadrao, -10);
+  assert.equal(extractStandardRows([['Nome', 'Horário 1', 'EXTRA'], ['Ana', new Date(epoch + 8 * 3600000), negative]])[0].extraNormalPadrao, 0);
 });
 test('filtra a escala pelo dia do relatório principal', () => {
   const rows = [['Motorista', 'Data', 'Horário', 'Linha'], ['Ana', '27/10/2026', '16:30', 'Droga Raia'], ['Ana', '28/10/2026', '08:00', 'Outra']];

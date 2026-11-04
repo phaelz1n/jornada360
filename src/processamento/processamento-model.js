@@ -7,7 +7,7 @@ export function normalizeDriverName(name) {
 export function driverToStandardRow(driver = {}) {
   return {
     motorista: String(driver.nome || driver.motorista || '').trim(),
-    extraNormalPadrao: Number(driver.extraNormalPadrao ?? driver.extraPrevistaMin ?? 0) || 0,
+    extraNormalPadrao: Math.max(0, Number(driver.extraNormalPadrao ?? driver.extraPrevistaMin ?? 0) || 0),
     horarios: Array.isArray(driver.horarios) ? driver.horarios.filter(Boolean).map(value => String(value).trim()).filter(Boolean) : []
   };
 }
@@ -19,7 +19,7 @@ export function mergeDriverStandardRows(drivers = [], standardRows = []) {
   standardList.filter(row => row?.motorista).forEach(row => {
     const key = normalizeDriverName(row.motorista);
     const current = merged.get(key) || { nome: String(row.motorista).trim(), setor: 'Sem setor' };
-    merged.set(key, { ...current, horarios: Array.isArray(row.horarios) ? row.horarios.filter(Boolean) : [], extraNormalPadrao: Number(row.extraNormalPadrao) || 0, padraoStatus: row.horarios?.length >= 2 ? 'completo' : 'pendente' });
+    merged.set(key, { ...current, horarios: Array.isArray(row.horarios) ? row.horarios.filter(Boolean) : [], extraNormalPadrao: Math.max(0, Number(row.extraNormalPadrao) || 0), padraoStatus: row.horarios?.length >= 2 ? 'completo' : 'pendente' });
   });
   return [...merged.values()];
 }

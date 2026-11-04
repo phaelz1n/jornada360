@@ -63,6 +63,10 @@ test('mantém motorista cadastrado sem padrão como registro pendente', () => {
   });
 });
 
+test('normaliza extra padrão negativa para zero', () => {
+  assert.equal(driverToStandardRow({ nome: 'Marcos', extraNormalPadrao: -85 }).extraNormalPadrao, 0);
+});
+
 test('recalcula o padrão de um snapshot quando o cadastro é atualizado', () => {
   const item = applyDriverStandard({ motorista: 'Ana', batidas: ['08:00', '12:00', '13:00', '18:00'] }, { nome: 'Ana', horarios: ['08:00', '12:00', '13:00', '17:00'], extraNormalPadrao: 30 });
   assert.equal(item.totalHE, 60);

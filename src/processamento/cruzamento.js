@@ -157,7 +157,7 @@ export function crossSources({ pointRows = [], previousPointRows = [], scaleRows
     const standardDuration = durationFromPairs(standardRow?.horarios || []);
     const batidasExtra = actualDuration && standardDuration ? Math.max(0, actualDuration - standardDuration) : null;
     const hasReportedExtra = ['totalHE', 'he1min', 'he2min', 'he3min', 'excedenteMin'].some(field => point[field] != null);
-    const standardExtra = Number(standardRow?.extraNormalPadrao);
+    const standardExtra = Math.max(0, Number(standardRow?.extraNormalPadrao) || 0);
     const jornadaBaseMin = rastreioDispensado ? sectorPolicy.baseMinutes : null;
     const admExtra = rastreioDispensado && actualDuration > 0 ? Math.max(0, actualDuration - jornadaBaseMin) : null;
     const effectiveExtra = admExtra ?? batidasExtra;
@@ -222,7 +222,7 @@ export function crossSources({ pointRows = [], previousPointRows = [], scaleRows
       padraoStatus: standardRow ? 'encontrado' : rastreioDispensado ? `dispensado_${setorNormalizado.toLocaleLowerCase('pt-BR')}` : 'sem_cadastro',
       ...(rastreioDispensado ? { jornadaBaseMin } : {}),
       ...(standardRow && standardDuration != null ? { jornadaPrevistaMin: standardDuration } : {}),
-      ...(standardRow ? { padraoCadastradoMin: standardRow.extraNormalPadrao, metaDiaMin: standardRow.extraNormalPadrao } : {}),
+      ...(standardRow ? { padraoCadastradoMin: standardExtra, metaDiaMin: standardExtra } : {}),
       ...(standardRow ? { padraoHorarios: standardRow.horarios || [] } : {}),
       ...(effectiveExtra != null ? { batidasExtraMin: effectiveExtra, extraCalculadaPelasBatidas: true } : {}),
       ...(standardRow ? { heDentroPadraoMin: Math.min(totalHE, metaDiaMin), heAcimaPadraoMin: Math.max(0, totalHE - metaDiaMin) } : {}),
