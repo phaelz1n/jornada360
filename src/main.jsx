@@ -34,7 +34,10 @@ function App() {
       subscribe: onAuthStateChanged
     });
     const unsubscribe = authServiceRef.current.subscribe(async nextUser => {
-      try { ensureVerifiedUser(nextUser); } catch (verificationError) {
+      try {
+        if (nextUser?.reload) await nextUser.reload();
+        ensureVerifiedUser(nextUser);
+      } catch (verificationError) {
         setUser(null);
         setDashboardData(null);
         setError('Verifique o e-mail da conta antes de acessar o Jornada360.');
