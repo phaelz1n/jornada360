@@ -58,10 +58,10 @@ function analyzeIntervals(batidas = [], point = {}) {
   const workedSpan = punches.length >= 2 ? Math.max(0, (punches.at(-1) < punches[0] ? punches.at(-1) + 1440 : punches.at(-1)) - punches[0]) : 0;
   const shortBreaks = breaks.filter(value => value < 60);
   const hasOneHourBreak = breaks.some(value => value >= 60);
-  const intervalProblem = workedSpan >= 360 && breaks.length > 0 && !hasOneHourBreak;
+  const intervalProblem = workedSpan >= 360 && (breaks.length === 0 || (breaks.length === 1 && !hasOneHourBreak));
   return {
     intervalosMin: breaks,
-    intervaloMenorUmaHora: workedSpan >= 360 && shortBreaks.length > 0 && !hasOneHourBreak,
+    intervaloMenorUmaHora: workedSpan >= 360 && breaks.length === 1 && shortBreaks.length > 0,
     intervaloObrigatorioAusente: intervalProblem,
     interjornadaProblema: Boolean(point.interjornada || point.interJornada || point.interjornadaStatus === 'inconsistente')
   };
