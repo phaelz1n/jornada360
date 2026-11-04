@@ -103,7 +103,7 @@ function buildResult(items, days, forcedMetaDiaMin = null, cadastro = {}) {
     current.itens.push(item);
     names.set(key, current);
   });
-  return { items: normalized, summary: { ...summary, registros: normalized.length, colaboradores: names.size, totalHEmin, extraCandidataMin, foraPadraoAuditoriaMin: heAcimaPadraoMin + extraCandidataMin, metaDiaMin, metaMediaDiariaMin, metaPeriodoMin, diasComMeta: dailyMeta.size, excedenteVsMetaMin: totalHEmin - metaPeriodoMin, heDentroPadraoMin, heAcimaPadraoMin, semPadraoMin, motoristasComHE: driversWithHE.size, motoristasSemPadrao: driversWithoutStandard.size, mediaPorOcorrenciaMin, maxPorOcorrenciaMin: occurrences.at(-1) || 0, porSetorDetalhado: bySector }, porMotorista: [...names.values()], porSetor: summary.porSetor, diasProcessados: days };
+  return { items: normalized, summary: { ...summary, registros: normalized.length, colaboradores: names.size, totalHEmin, extraCandidataMin, foraPadraoAuditoriaMin: heAcimaPadraoMin, metaDiaMin, metaMediaDiariaMin, metaPeriodoMin, diasComMeta: dailyMeta.size, excedenteVsMetaMin: totalHEmin - metaPeriodoMin, heDentroPadraoMin, heAcimaPadraoMin, semPadraoMin, motoristasComHE: driversWithHE.size, motoristasSemPadrao: driversWithoutStandard.size, mediaPorOcorrenciaMin, maxPorOcorrenciaMin: occurrences.at(-1) || 0, porSetorDetalhado: bySector }, porMotorista: [...names.values()], porSetor: summary.porSetor, diasProcessados: days };
 }
 
 export function consultarDia(snapshots = [], dateKey, filters = {}, cadastro = {}) {

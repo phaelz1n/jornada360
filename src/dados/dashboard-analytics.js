@@ -63,7 +63,7 @@ function buildDashboardAnalytics({ report = {}, snapshots = [], motoristas = [] 
     const meta = positiveMeta(item);
     sector.totalHEmin += total;
     sector.dentroPadraoMin += Math.min(total, meta);
-    sector.acimaPadraoMin += Math.max(total - meta, 0) + Math.max(0, finite(item.extraCandidataMin));
+    sector.acimaPadraoMin += Math.max(total - meta, 0);
     sectors.set(setor, sector);
   });
 

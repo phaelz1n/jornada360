@@ -99,6 +99,12 @@ test('preserva e soma extras candidatas sem misturar com HE validada', () => {
   assert.equal(result.items[0].extraCandidataMin, 25);
 });
 
+test('não duplica HE candidata no total fora do padrão', () => {
+  const result = consultarDia([{ dateKey: '2026-10-27', items: [{ motorista: 'Ana', he1min: 60, heAcimaPadraoMin: 60, extraCandidataMin: 60 }] }], '2026-10-27');
+  assert.equal(result.summary.extraCandidataMin, 60);
+  assert.equal(result.summary.foraPadraoAuditoriaMin, 60);
+});
+
 test('usa o setor atual do cadastro ao montar o resumo por setor', () => {
   const result = consultarPeriodo([{ dateKey: '2026-10-27', items: [{ motorista: 'Ana Silva', setorAtual: 'Operações', he1min: 60 }] }], { inicio: '2026-10-27', fim: '2026-10-27' }, {}, { 'ANA SILVA': { nome: 'Ana Silva', setor: 'ADM' } });
   assert.deepEqual(Object.keys(result.summary.porSetorDetalhado), ['ADM']);
