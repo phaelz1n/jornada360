@@ -30,7 +30,9 @@ export function applyDriverStandard(item = {}, driver = {}) {
   const actual = durationFromPairs(item.batidas || []);
   const expected = durationFromPairs(standard.horarios);
   const hasReportedExtra = item.heBucketsExplicit === true && ['totalHE', 'he1min', 'he2min', 'he3min', 'excedenteMin'].some(field => item[field] != null);
-  const reportedExtra = Number(item.totalHE ?? item.he1min ?? item.excedenteMin ?? 0) || 0;
+  const reportedExtra = hasReportedExtra && item.heBucketsExplicit === true
+    ? Number(item.he1min || 0) + Number(item.he2min || 0) + Number(item.he3min || 0)
+    : Number(item.totalHE ?? item.he1min ?? item.excedenteMin ?? 0) || 0;
   const extra = hasReportedExtra && standard.extraNormalPadrao >= 0
     ? Math.max(0, reportedExtra)
     : actual != null && expected != null ? Math.max(0, actual - expected) : reportedExtra;
