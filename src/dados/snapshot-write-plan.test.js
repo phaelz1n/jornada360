@@ -7,7 +7,7 @@ test('monta escrita atômica para dia processado, snapshot e latest', () => {
   assert.deepEqual(plan.map(item => [item.collection, item.id, item.merge]), [
     ['dias_processados', '2026-11-03', false],
     ['snapshots_dias', '2026-11-03', false],
-    ['snapshots_dias', 'latest', true]
+    ['snapshots_dias', 'latest', false]
   ]);
   assert.equal(plan[0].data.schemaVersion, 2);
 });

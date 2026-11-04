@@ -11,7 +11,7 @@ test('combina importação e snapshot no mesmo lote', () => {
     ['snapshots_dias', 'latest'],
     ['historico_auditoria', 'import-2026-11-03-2026-11-03T10%3A00%3A00.000Z']
   ]);
-  assert.equal(plan.find(item => item.collection === 'snapshots_dias' && item.id === 'latest').merge, true);
+  assert.equal(plan.find(item => item.collection === 'snapshots_dias' && item.id === 'latest').merge, false);
 });
 
 test('auditoria guarda apenas metadados da importação', () => {

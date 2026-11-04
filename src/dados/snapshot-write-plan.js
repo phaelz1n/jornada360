@@ -6,6 +6,6 @@ export function createSnapshotWritePlan(day = {}) {
   return [
     { collection: 'dias_processados', id: day.dateKey, data: envelope, merge: false },
     { collection: 'snapshots_dias', id: day.dateKey, data, merge: false },
-    { collection: 'snapshots_dias', id: 'latest', data, merge: true }
+    { collection: 'snapshots_dias', id: 'latest', data, merge: false }
   ];
 }
