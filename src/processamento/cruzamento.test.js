@@ -174,15 +174,15 @@ test('calcula interjornada do noturno usando o fim do dia anterior', () => {
   assert.equal(row.descansoInterjornadaMin, 157);
   assert.equal(row.interjornadaProblema, true);
 });
-test('calcula extra efetiva comparando duração das batidas com o padrão', () => {
+test('calcula extra efetiva comparando duração das batidas com padrão normalizado em zero', () => {
   const [row] = crossSources({
     pointRows: [{ motorista: 'Ademar Monteiro', he1min: 25, batidas: ['21:37', '00:28', '03:42', '07:46'] }],
     standardRows: [{ motorista: 'Ademar Monteiro', extraNormalPadrao: -25, horarios: ['21:25', '00:30', '04:10', '08:00'] }]
   });
   assert.equal(row.extraCalculadaPelasBatidas, true);
   assert.equal(row.batidasExtraMin, 0);
-  assert.equal(row.he1min, 0);
-  assert.equal(row.totalHE, 0);
+  assert.equal(row.he1min, 25);
+  assert.equal(row.totalHE, 25);
   assert.equal(row.heAcimaPadraoMin, 0);
 });
 
@@ -220,7 +220,7 @@ test('aceita extra de padrão negativo somente quando escala e rastreador compro
 
 test('não transforma diferença bruta em HE quando padrão negativo não foi comprovado', () => {
   const [row] = crossSources({
-    pointRows: [{ motorista: 'Marcos Viegas', batidas: ['17:00', '20:04', '20:51', '22:23', '00:30', '02:25', '03:00', '04:00'] }],
+    pointRows: [{ motorista: 'Marcos Viegas', he1min: 0, he2min: 0, he3min: 0, heBucketsExplicit: true, batidas: ['17:00', '20:04', '20:51', '22:23', '00:30', '02:25', '03:00', '04:00'] }],
     standardRows: [{ motorista: 'Marcos Viegas', extraNormalPadrao: -85, horarios: ['17:10', '20:00', '23:20', '00:45', '00:50', '02:30'] }],
     scaleRows: [{ motorista: 'Marcos Viegas', horario: '20:51', linha: 'UTILIZADO' }],
     trackerRows: [{ motorista: 'Marcos Viegas', paradas: [{ horario: '17:00', local: 'garagem' }] }]
