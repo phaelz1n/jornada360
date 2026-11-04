@@ -34,7 +34,7 @@ function applyFilters(items, filters = {}) {
   const total = item => Number(item.he1min || 0) + Number(item.he2min || 0) + Number(item.he3min || 0);
   const meta = item => Number(item.padraoCadastradoMin ?? item.metaDiaMin ?? item.padraoMin ?? item.extraNormalPadrao ?? 0) || 0;
   const rastreioDivergente = item => item.rastreadorStatus === 'divergente' || item.statusCruzamento === 'divergente' || (Array.isArray(item.rastreiosForaDaEscala) && item.rastreiosForaDaEscala.length > 0);
-  const foraDoPadrao = item => Number(item.heAcimaPadraoMin) > 0 || Number(item.extraCandidataMin) > 0 || (meta(item) >= 0 && total(item) > meta(item));
+  const foraDoPadrao = item => total(item) > 0 && (Number(item.heAcimaPadraoMin) > 0 || (meta(item) >= 0 && total(item) > meta(item)));
   return items.filter(item => {
     const category = filters.categoria;
     const categoryMatch = !category || category === 'Todos' || (category === 'HE.1' && item.he1min > 0) || (category === 'HE.2' && item.he2min > 0) || (category === 'HE.3' && item.he3min > 0) || (category === 'Interjornada' && item.interjornada) || (category === 'Intrajornada' && (item.intrajornada || item.intraJornada || item.temLacuna)) || (category === 'Rastreio divergente' && rastreioDivergente(item)) || (category === 'Fora do padrão' && foraDoPadrao(item));

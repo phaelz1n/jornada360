@@ -121,6 +121,14 @@ test('filtra relatório por rastreio divergente e por HE fora do padrão', () =>
   assert.deepEqual(fora.items.map(item => item.motorista), ['Ana']);
 });
 
+test('não inclui motorista sem HE no relatório de horas fora do padrão', () => {
+  const result = consultarDia([{ dateKey: '2026-10-27', items: [
+    { motorista: 'Jonas', he1min: 0, extraCandidataMin: 30, padraoStatus: 'encontrado', padraoCadastradoMin: 20, padraoHorarios: ['08:00', '17:00'] },
+    { motorista: 'Marcos Viegas', he1min: 20, padraoStatus: 'encontrado', padraoCadastradoMin: 10, padraoHorarios: ['08:00', '17:00'] }
+  ] }], '2026-10-27', { categoria: 'Fora do padrão' });
+  assert.deepEqual(result.items.map(item => item.motorista), ['Marcos Viegas']);
+});
+
 test('reaplica o padrão cadastrado ao consultar snapshots antigos', () => {
   const result = consultarPeriodo([
     { dateKey: '2026-10-27', items: [{ motorista: 'Ana Silva', batidas: ['08:00', '12:00', '13:00', '18:00'], he1min: 999 }] }
