@@ -186,6 +186,15 @@ test('calcula extra efetiva comparando duração das batidas com o padrão', () 
   assert.equal(row.heAcimaPadraoMin, 0);
 });
 
+test('prioriza HE informada pelo espelho quando as batidas geram diferença maior', () => {
+  const [row] = crossSources({
+    pointRows: [{ motorista: 'Marcos Viegas da Cruz', batidas: ['17:00', '20:04', '20:51', '22:23', '00:30', '02:25', '03:00', '04:00'], he1min: 11, he2min: 0, he3min: 0, heBucketsExplicit: true }],
+    standardRows: [{ motorista: 'Marcos Viegas da Cruz', extraNormalPadrao: 0, horarios: ['17:10', '20:00', '23:20', '00:45', '00:50', '02:30'] }]
+  });
+  assert.equal(row.totalHE, 11);
+  assert.equal(row.heAcimaPadraoMin, 11);
+});
+
 test('usa a quantidade de extra do ponto dentro do padrão mesmo com horários diferentes', () => {
   const [row] = crossSources({
     pointRows: [{ motorista: 'Ana', totalHE: 25, he1min: 25, batidas: ['08:00', '17:10'] }],

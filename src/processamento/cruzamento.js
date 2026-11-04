@@ -199,11 +199,9 @@ export function crossSources({ pointRows = [], previousPointRows = [], scaleRows
       : 'sem-extra';
     const totalHE = rastreioDispensado && admExtra != null
       ? admExtra
-      : standardExtra > 0 && hasReportedExtra
+      : hasReportedExtra
       ? reportedHE
-      : standardExtra <= 0 && hasReportedExtra && extraValidatedBySources
-        ? reportedHE
-        : batidasExtra != null ? batidasExtra : reportedHE;
+      : batidasExtra != null ? batidasExtra : reportedHE;
     const trackerEvidence = rastreioDispensado ? { evidence: [], outside: 0 } : buildEvidence({ batidas: point.batidas || [], paradaAnalysis, totalHE, metaDiaMin });
     const history = patternHistory?.[key] || [];
     const repeatedRealized = history.length >= 5 && history.slice(-5).every(value => Math.abs(Number(value) - totalHE) <= 5);
