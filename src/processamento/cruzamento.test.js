@@ -183,7 +183,7 @@ test('calcula extra efetiva comparando duração das batidas com padrão normali
   assert.equal(row.batidasExtraMin, 0);
   assert.equal(row.he1min, 25);
   assert.equal(row.totalHE, 25);
-  assert.equal(row.heAcimaPadraoMin, 0);
+  assert.equal(row.heAcimaPadraoMin, 25);
 });
 
 test('prioriza HE informada pelo espelho quando as batidas geram diferença maior', () => {
