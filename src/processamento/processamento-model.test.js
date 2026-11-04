@@ -72,6 +72,12 @@ test('recalcula o padrão de um snapshot quando o cadastro é atualizado', () =>
   assert.equal(item.jornadaPrevistaMin, 480);
 });
 
+test('preserva HE oficial ao reaplicar padrão em snapshot noturno', () => {
+  const item = applyDriverStandard({ motorista: 'Marcos Viegas da Cruz', batidas: ['17:00', '20:04', '20:51', '22:23', '00:30', '02:25', '03:00', '04:00'], he1min: 11, he2min: 0, he3min: 0 }, { nome: 'Marcos Viegas da Cruz', horarios: ['17:10', '20:00', '23:20', '00:45', '00:50', '02:30'], extraNormalPadrao: 0 });
+  assert.equal(item.totalHE, 11);
+  assert.equal(item.heAcimaPadraoMin, 11);
+});
+
 test('mescla a planilha de migração no cadastro sem apagar o setor existente', () => {
   const drivers = mergeDriverStandardRows([{ nome: 'Ana Silva', setor: 'ADM', horarios: [] }], [{ motorista: 'Ana Silva', horarios: ['08:00', '17:00'], extraNormalPadrao: 30 }, { motorista: 'Bia', horarios: ['07:00', '16:00'], extraNormalPadrao: 0 }]);
   assert.deepEqual(drivers, [
