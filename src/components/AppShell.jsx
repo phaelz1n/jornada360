@@ -100,7 +100,6 @@ export function AppShell({ user, dashboardData, onLogout }) {
       items: applySectors(current.items || []),
       snapshots: asList(current.snapshots).map(refreshSnapshot),
     }));
-    import('../lib/firestore-writes.js').then(({ saveProcessedDay }) => Promise.all(asList(liveData.snapshots).map(snapshot => saveProcessedDay(refreshSnapshot(snapshot))))).catch(() => {});
   }, [motoristas, liveData.snapshots?.length]);
 
   useEffect(() => {
