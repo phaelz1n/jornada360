@@ -199,6 +199,8 @@ export function crossSources({ pointRows = [], previousPointRows = [], scaleRows
       : 'sem-extra';
     const totalHE = rastreioDispensado && admExtra != null
       ? admExtra
+      : standardExtra < 0
+      ? (extraValidatedBySources ? (hasReportedExtra ? reportedHE : batidasExtra || 0) : 0)
       : hasReportedExtra && (standardExtra >= 0 || extraValidatedBySources)
       ? reportedHE
       : batidasExtra != null ? batidasExtra : reportedHE;

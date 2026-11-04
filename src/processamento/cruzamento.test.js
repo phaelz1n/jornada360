@@ -218,6 +218,17 @@ test('aceita extra de padrão negativo somente quando escala e rastreador compro
   assert.equal(row.linhaExtraCandidata, true);
 });
 
+test('não transforma diferença bruta em HE quando padrão negativo não foi comprovado', () => {
+  const [row] = crossSources({
+    pointRows: [{ motorista: 'Marcos Viegas', batidas: ['17:00', '20:04', '20:51', '22:23', '00:30', '02:25', '03:00', '04:00'] }],
+    standardRows: [{ motorista: 'Marcos Viegas', extraNormalPadrao: -85, horarios: ['17:10', '20:00', '23:20', '00:45', '00:50', '02:30'] }],
+    scaleRows: [{ motorista: 'Marcos Viegas', horario: '20:51', linha: 'UTILIZADO' }],
+    trackerRows: [{ motorista: 'Marcos Viegas', paradas: [{ horario: '17:00', local: 'garagem' }] }]
+  });
+  assert.equal(row.totalHE, 0);
+  assert.equal(row.he1min, 0);
+});
+
 test('identifica linha extra pela proximidade da batida mesmo sem HE informada no ponto', () => {
   const [row] = crossSources({
     pointRows: [{ motorista: 'Anderson Altair Furquim Moitoso', dateKey: '2026-11-03', batidas: ['05:38', '08:41', '12:38', '18:20'] }],
