@@ -97,7 +97,7 @@ export function AppShell({ user, dashboardData, onLogout }) {
       if (!detail.dateKey) return;
       setLiveData(current => {
         const nextSnapshot = { dateKey: detail.dateKey, items: detail.items || [], summary: detail.summary || {}, updatedAt: detail.updatedAt || new Date().toISOString() };
-        const snapshots = [...(current.snapshots || []).filter(snapshot => snapshot.dateKey !== detail.dateKey), nextSnapshot].sort((a, b) => String(a.dateKey).localeCompare(String(b.dateKey)));
+        const snapshots = [...asList(current.snapshots).filter(snapshot => snapshot.dateKey !== detail.dateKey), nextSnapshot].sort((a, b) => String(a.dateKey).localeCompare(String(b.dateKey)));
         return { ...current, items: detail.items || current.items, dateKey: detail.dateKey, snapshots, source: 'firebase' };
       });
     };
@@ -127,7 +127,7 @@ export function AppShell({ user, dashboardData, onLogout }) {
         const latest = ordered.at(-1);
         if (latest) setLiveData(current => ({ ...current, items: asList(latest.items), dateKey: latest.dateKey, snapshots: asList(ordered), source: 'firebase' }));
       }, error => window.dispatchEvent(new CustomEvent('jornada360:sync-read-error', { detail: { message: error?.message || 'Não foi possível ler os snapshots do Firebase.' } })));
-      unsubscribeEvents = firestoreStore.subscribe('ocorrencias', setEventos, error => { setEventos([]); window.dispatchEvent(new CustomEvent('jornada360:sync-read-error', { detail: { message: error?.message || 'Não foi possível ler as ocorrências do Firebase.' } })); });
+      unsubscribeEvents = firestoreStore.subscribe('ocorrencias', events => setEventos(asList(events)), error => { setEventos([]); window.dispatchEvent(new CustomEvent('jornada360:sync-read-error', { detail: { message: error?.message || 'Não foi possível ler as ocorrências do Firebase.' } })); });
       unsubscribeDrivers = firestoreStore.subscribe('motoristas', drivers => setMotoristas(asList(drivers)), error => { setMotoristas([]); window.dispatchEvent(new CustomEvent('jornada360:sync-read-error', { detail: { message: error?.message || 'Não foi possível ler o cadastro do Firebase.' } })); });
     }).catch(error => window.dispatchEvent(new CustomEvent('jornada360:sync-read-error', { detail: { message: error?.message || 'Não foi possível conectar ao Firebase.' } })));
     return () => { unsubscribe(); unsubscribeEvents(); unsubscribeDrivers(); };
