@@ -11,7 +11,8 @@ export function nextDateKey(dateKey) {
 }
 
 export function durationFromPairs(values = []) {
-  const times = values.map(parseTimeMinutes).filter(value => value != null);
+  const source = Array.isArray(values) ? values : values && typeof values === 'object' ? Object.values(values) : [];
+  const times = source.map(parseTimeMinutes).filter(value => value != null);
   let total = 0;
   for (let index = 0; index + 1 < times.length; index += 2) {
     const end = times[index + 1] < times[index] ? times[index + 1] + 1440 : times[index + 1];
