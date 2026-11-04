@@ -32,6 +32,18 @@ function asList(value) {
   return Array.isArray(value) ? value : value && typeof value === 'object' ? Object.values(value) : [];
 }
 
+function normalizeDashboardData(value) {
+  const source = value && typeof value === 'object' ? value : {};
+  return {
+    ...source,
+    items: asList(source.items),
+    snapshots: asList(source.snapshots).map(snapshot => ({
+      ...snapshot,
+      items: asList(snapshot?.items)
+    }))
+  };
+}
+
 export function AppShell({ user, dashboardData, onLogout }) {
   const initialPath = window.location.pathname;
   const initialAdminPage = initialPath === '/administracao/acessos';
@@ -40,7 +52,7 @@ export function AppShell({ user, dashboardData, onLogout }) {
   const [activeSection, setActiveSection] = useState(initialAdminPage ? 'Acessos' : initialVacationPage ? 'Férias' : 'Início');
   const [showSystemHub, setShowSystemHub] = useState(!initialAdminPage && !initialJourneyPage && !initialVacationPage);
   const [systemPermissions, setSystemPermissions] = useState({});
-  const [liveData, setLiveData] = useState(dashboardData || { items: [], snapshots: [] });
+  const [liveData, setLiveData] = useState(() => normalizeDashboardData(dashboardData));
   const [motoristas, setMotoristas] = useState([]);
   const [eventos, setEventos] = useState([]);
   const [importDraft, setImportDraft] = useState(null);
@@ -67,8 +79,7 @@ export function AppShell({ user, dashboardData, onLogout }) {
   }, [darkMode]);
 
   useEffect(() => {
-    const next = dashboardData || { items: [], snapshots: [] };
-    setLiveData({ ...next, items: asList(next.items), snapshots: asList(next.snapshots) });
+    setLiveData(normalizeDashboardData(dashboardData));
   }, [dashboardData]);
 
   useEffect(() => {
@@ -96,9 +107,9 @@ export function AppShell({ user, dashboardData, onLogout }) {
       const detail = event.detail || {};
       if (!detail.dateKey) return;
       setLiveData(current => {
-        const nextSnapshot = { dateKey: detail.dateKey, items: detail.items || [], summary: detail.summary || {}, updatedAt: detail.updatedAt || new Date().toISOString() };
+        const nextSnapshot = { dateKey: detail.dateKey, items: asList(detail.items), summary: detail.summary || {}, updatedAt: detail.updatedAt || new Date().toISOString() };
         const snapshots = [...asList(current.snapshots).filter(snapshot => snapshot.dateKey !== detail.dateKey), nextSnapshot].sort((a, b) => String(a.dateKey).localeCompare(String(b.dateKey)));
-        return { ...current, items: detail.items || current.items, dateKey: detail.dateKey, snapshots, source: 'firebase' };
+        return { ...current, items: asList(detail.items).length ? asList(detail.items) : asList(current.items), dateKey: detail.dateKey, snapshots, source: 'firebase' };
       });
     };
     window.addEventListener('jornada360:data-updated', refreshSnapshot);
