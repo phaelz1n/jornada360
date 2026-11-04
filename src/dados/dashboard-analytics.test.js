@@ -57,6 +57,12 @@ test('retorna coleções vazias e números finitos sem registros', () => {
   assert.deepEqual(result, { dailySeries: [], bucketComposition: { he1min: 0, he2min: 0, he3min: 0, extraCandidataMin: 0, semPadraoMin: 0, totalHEmin: 0 }, driverDistribution: [], sectorComparison: [], riskMatrix: { interjornada: 0, intrajornada: 0, foraDaEscala: 0, semPadrao: 0, rastreioDivergente: 0 }, riskDetails: { interjornada: [], intrajornada: [], foraDaEscala: [], semPadrao: [], rastreioDivergente: [] }, riskEvidence: { interjornada: [], intrajornada: [], foraDaEscala: [], semPadrao: [], rastreioDivergente: [] } });
 });
 
+test('aceita snapshots e motoristas em mapa sem quebrar o dashboard', () => {
+  const result = buildDashboardAnalytics({ report: { items: [] }, snapshots: { dia: { dateKey: '2026-10-27', items: { ana: { motorista: 'Ana', he1min: 10 } } } }, motoristas: { ana: { nome: 'Ana', setor: 'ADM' } } });
+  assert.equal(result.bucketComposition.totalHEmin, 10);
+  assert.equal(result.sectorComparison[0].setor, 'ADM');
+});
+
 test('prioriza o setor atual do cadastro sobre o setor antigo do snapshot', () => {
   const result = buildDashboardAnalytics({
     report: { items: [{ motorista: 'Ana Silva', setorAtual: 'Operações', he1min: 60 }], summary: {} },

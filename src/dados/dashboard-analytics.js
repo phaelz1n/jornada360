@@ -6,6 +6,7 @@ const totalHE = item => BUCKETS.reduce((sum, bucket) => sum + Math.max(0, finite
 const positiveMeta = item => Math.max(0, finite(item?.metaDiaMin ?? item?.padraoCadastradoMin ?? item?.padraoMin));
 const normalizeName = value => String(value || '').trim().replace(/\s+/g, ' ').toLocaleUpperCase('pt-BR');
 const previousDate = dateKey => { const date = new Date(`${dateKey}T12:00:00`); date.setDate(date.getDate() - 1); return date.toISOString().slice(0, 10); };
+const asArray = value => Array.isArray(value) ? value : value && typeof value === 'object' ? Object.values(value) : [];
 
 function dailySeries(items) {
   const days = new Map();
@@ -28,9 +29,11 @@ function dailySeries(items) {
 }
 
 function buildDashboardAnalytics({ report = {}, snapshots = [], motoristas = [] } = {}) {
-  const snapshotItems = snapshots.flatMap(snapshot => (snapshot.items || []).map(item => ({ ...item, dateKey: item.dateKey || snapshot.dateKey })));
-  const cadastro = new Map(motoristas.map(driver => [normalizeName(driver.nome), driver.setor || driver.categoria]).filter(([, setor]) => setor));
-  const reportItems = report.items || [];
+  const snapshotList = asArray(snapshots);
+  const driverList = asArray(motoristas);
+  const snapshotItems = snapshotList.flatMap(snapshot => asArray(snapshot.items).map(item => ({ ...item, dateKey: item.dateKey || snapshot.dateKey })));
+  const cadastro = new Map(driverList.map(driver => [normalizeName(driver.nome), driver.setor || driver.categoria]).filter(([, setor]) => setor));
+  const reportItems = asArray(report.items);
   const sourceItems = reportItems.length && (reportItems.every(item => item.dateKey) || !snapshotItems.length) ? reportItems : snapshotItems;
   const items = sourceItems.map(item => ({
     ...item,
@@ -66,7 +69,7 @@ function buildDashboardAnalytics({ report = {}, snapshots = [], motoristas = [] 
 
   const riskMatrix = RISK_KEYS.reduce((result, key) => { result[key] = 0; return result; }, {});
   const riskDetails = RISK_KEYS.reduce((result, key) => { result[key] = new Set(); return result; }, {});
-  const snapshotByDate = new Map(snapshots.map(snapshot => [snapshot.dateKey, snapshot]));
+  const snapshotByDate = new Map(snapshotList.map(snapshot => [snapshot.dateKey, snapshot]));
   const riskEvidence = RISK_KEYS.reduce((result, key) => { result[key] = []; return result; }, {});
   items.forEach(item => {
     const name = item.motorista || 'Sem motorista';
@@ -81,7 +84,7 @@ function buildDashboardAnalytics({ report = {}, snapshots = [], motoristas = [] 
     Object.entries(risks).forEach(([key, active]) => {
       if (!active) return;
       const previous = key === 'interjornada' && item.dateKey ? snapshotByDate.get(previousDate(item.dateKey)) : null;
-      const previousItem = previous?.items?.find(candidate => normalizeName(candidate.motorista || candidate.nome) === normalizeName(name));
+      const previousItem = asArray(previous?.items).find(candidate => normalizeName(candidate.motorista || candidate.nome) === normalizeName(name));
       riskEvidence[key].push({ motorista: name, dateKey: item.dateKey || null, batidas: item.batidas || [], ...(key === 'interjornada' ? { previousDateKey: previous?.dateKey || previousDate(item.dateKey), previousBatidas: previousItem?.batidas || [] } : {}) });
     });
   });
