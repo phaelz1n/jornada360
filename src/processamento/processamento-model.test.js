@@ -79,3 +79,8 @@ test('mescla a planilha de migração no cadastro sem apagar o setor existente',
     { nome: 'Bia', setor: 'Sem setor', horarios: ['07:00', '16:00'], extraNormalPadrao: 0, padraoStatus: 'completo' }
   ]);
 });
+
+test('aceita cadastro vindo como mapa sem quebrar a tela', () => {
+  const drivers = mergeDriverStandardRows({ ana: { nome: 'Ana', setor: 'ADM' } }, { ana: { motorista: 'Ana', horarios: ['08:00', '17:00'], extraNormalPadrao: 0 } });
+  assert.equal(drivers[0].padraoStatus, 'completo');
+});

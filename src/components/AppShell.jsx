@@ -28,6 +28,10 @@ function ChecklistHistory({ liveData }) {
   return <><div className="history-picker"><b>Dia do checklist</b>{dates.length ? <DateCalendar snapshots={dates} selected={dateKey} onSelect={setDateKey} /> : <span className="history-empty">Nenhuma data disponível</span>}</div><ChecklistPanel key={dateKey} snapshotItems={liveData?.items} snapshots={dates} dateKey={dateKey} /></>;
 }
 
+function asList(value) {
+  return Array.isArray(value) ? value : value && typeof value === 'object' ? Object.values(value) : [];
+}
+
 export function AppShell({ user, dashboardData, onLogout }) {
   const initialPath = window.location.pathname;
   const initialAdminPage = initialPath === '/administracao/acessos';
@@ -63,13 +67,15 @@ export function AppShell({ user, dashboardData, onLogout }) {
   }, [darkMode]);
 
   useEffect(() => {
-    setLiveData(dashboardData || { items: [], snapshots: [] });
+    const next = dashboardData || { items: [], snapshots: [] };
+    setLiveData({ ...next, items: asList(next.items), snapshots: asList(next.snapshots) });
   }, [dashboardData]);
 
   useEffect(() => {
-    if (!motoristas.length) return;
-    const cadastro = Object.fromEntries(motoristas.map(driver => [normalizeDriverName(driver.nome), driver]));
-    const applySectors = items => items.map(item => {
+    const driverList = asList(motoristas);
+    if (!driverList.length) return;
+    const cadastro = Object.fromEntries(driverList.map(driver => [normalizeDriverName(driver.nome), driver]));
+    const applySectors = items => asList(items).map(item => {
       const driver = cadastro[normalizeDriverName(item.motorista || item.nome)];
       if (!driver) return item;
       const next = driver.horarios?.length ? applyDriverStandard(item, driver) : item;
@@ -80,9 +86,9 @@ export function AppShell({ user, dashboardData, onLogout }) {
     setLiveData(current => ({
       ...current,
       items: applySectors(current.items || []),
-      snapshots: (current.snapshots || []).map(refreshSnapshot),
+      snapshots: asList(current.snapshots).map(refreshSnapshot),
     }));
-    import('../lib/firestore-writes.js').then(({ saveProcessedDay }) => Promise.all((liveData.snapshots || []).map(snapshot => saveProcessedDay(refreshSnapshot(snapshot))))).catch(() => {});
+    import('../lib/firestore-writes.js').then(({ saveProcessedDay }) => Promise.all(asList(liveData.snapshots).map(snapshot => saveProcessedDay(refreshSnapshot(snapshot))))).catch(() => {});
   }, [motoristas, liveData.snapshots?.length]);
 
   useEffect(() => {
@@ -119,10 +125,10 @@ export function AppShell({ user, dashboardData, onLogout }) {
       unsubscribe = firestoreStore.subscribe('snapshots_dias', snapshots => {
         const ordered = dedupeSnapshots(snapshots);
         const latest = ordered.at(-1);
-        if (latest) setLiveData(current => ({ ...current, items: latest.items || [], dateKey: latest.dateKey, snapshots: ordered, source: 'firebase' }));
+        if (latest) setLiveData(current => ({ ...current, items: asList(latest.items), dateKey: latest.dateKey, snapshots: asList(ordered), source: 'firebase' }));
       }, error => window.dispatchEvent(new CustomEvent('jornada360:sync-read-error', { detail: { message: error?.message || 'Não foi possível ler os snapshots do Firebase.' } })));
       unsubscribeEvents = firestoreStore.subscribe('ocorrencias', setEventos, error => { setEventos([]); window.dispatchEvent(new CustomEvent('jornada360:sync-read-error', { detail: { message: error?.message || 'Não foi possível ler as ocorrências do Firebase.' } })); });
-      unsubscribeDrivers = firestoreStore.subscribe('motoristas', setMotoristas, error => { setMotoristas([]); window.dispatchEvent(new CustomEvent('jornada360:sync-read-error', { detail: { message: error?.message || 'Não foi possível ler o cadastro do Firebase.' } })); });
+      unsubscribeDrivers = firestoreStore.subscribe('motoristas', drivers => setMotoristas(asList(drivers)), error => { setMotoristas([]); window.dispatchEvent(new CustomEvent('jornada360:sync-read-error', { detail: { message: error?.message || 'Não foi possível ler o cadastro do Firebase.' } })); });
     }).catch(error => window.dispatchEvent(new CustomEvent('jornada360:sync-read-error', { detail: { message: error?.message || 'Não foi possível conectar ao Firebase.' } })));
     return () => { unsubscribe(); unsubscribeEvents(); unsubscribeDrivers(); };
   }, []);
