@@ -21,6 +21,7 @@ import { SystemHub } from './SystemHub.jsx';
 import { AccessManager } from './AccessManager.jsx';
 import { canAccessSystem } from '../auth/system-access.js';
 import { loadSystemPermission, subscribeSystemPermissions } from '../auth/permissions-store.js';
+import { firestoreStore } from '../lib/firestore-store.js';
 
 function ChecklistHistory({ liveData }) {
   const dates = dedupeSnapshots(liveData?.snapshots || []);
@@ -132,8 +133,7 @@ export function AppShell({ user, dashboardData, onLogout }) {
     let unsubscribe = () => {};
     let unsubscribeEvents = () => {};
     let unsubscribeDrivers = () => {};
-    import('../lib/firestore-store.js').then(({ firestoreStore }) => {
-      unsubscribe = firestoreStore.subscribe('snapshots_dias', snapshots => {
+    unsubscribe = firestoreStore.subscribe('snapshots_dias', snapshots => {
         const ordered = dedupeSnapshots(snapshots).map(snapshot => ({
           ...snapshot,
           items: asList(snapshot?.items)
@@ -143,7 +143,6 @@ export function AppShell({ user, dashboardData, onLogout }) {
       }, error => window.dispatchEvent(new CustomEvent('jornada360:sync-read-error', { detail: { message: error?.message || 'Não foi possível ler os snapshots do Firebase.' } })));
       unsubscribeEvents = firestoreStore.subscribe('ocorrencias', events => setEventos(asList(events)), error => { setEventos([]); window.dispatchEvent(new CustomEvent('jornada360:sync-read-error', { detail: { message: error?.message || 'Não foi possível ler as ocorrências do Firebase.' } })); });
       unsubscribeDrivers = firestoreStore.subscribe('motoristas', drivers => setMotoristas(asList(drivers)), error => { setMotoristas([]); window.dispatchEvent(new CustomEvent('jornada360:sync-read-error', { detail: { message: error?.message || 'Não foi possível ler o cadastro do Firebase.' } })); });
-    }).catch(error => window.dispatchEvent(new CustomEvent('jornada360:sync-read-error', { detail: { message: error?.message || 'Não foi possível conectar ao Firebase.' } })));
     return () => { unsubscribe(); unsubscribeEvents(); unsubscribeDrivers(); };
   }, []);
 
