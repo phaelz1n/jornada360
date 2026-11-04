@@ -4,8 +4,7 @@ import './styles.css';
 import { LoginScreen } from './components/LoginScreen.jsx';
 import { buildDashboardData } from './dados/dashboard-data.js';
 import { createAuthService, ensureVerifiedUser } from './auth/auth-service.js';
-
-const AppShell = React.lazy(() => import('./components/AppShell.jsx').then(module => ({ default: module.AppShell })));
+import { AppShell } from './components/AppShell.jsx';
 
 function authErrorMessage(error) {
   if (error?.message === 'E-mail não autorizado') return error.message;
@@ -78,7 +77,7 @@ function App() {
   }
 
   if (!user) return <LoginScreen onLogin={handleLogin} onResetPassword={handleResetPassword} loading={loading} error={error} notice={notice} />;
-  return <React.Suspense fallback={<div className="boot-screen min-h-screen"><span className="loader"></span>Carregando Jornada360…</div>}><AppShell user={user} dashboardData={dashboardData} onLogout={() => authServiceRef.current.logout()} /></React.Suspense>;
+  return <AppShell user={user} dashboardData={dashboardData} onLogout={() => authServiceRef.current.logout()} />;
 }
 
 createRoot(document.getElementById('root')).render(<App />);
