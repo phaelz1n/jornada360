@@ -11,6 +11,7 @@ test('converte item de snapshot no formato do checklist', () => {
     status: 'Confirmado',
     semPadrao: false,
     resumo: 'HE total 02:00',
+    totalHE: 120,
     padraoCadastradoMin: 120,
     heDentroPadraoMin: null,
     heAcimaPadraoMin: null,
@@ -64,4 +65,9 @@ test('ignora itens sem motorista e preserva categorias especiais', () => {
   const items = snapshotItemsToChecklist([{ motorista: '', setor: 'Motoristas' }, { motorista: 'Olívio Rodrigues', categoria: 'Folguista', totalHE: 0 }]);
   assert.equal(items.length, 1);
   assert.equal(items[0].setor, 'Folguista');
+});
+
+test('preserva HE calculada para exibição no cartão do checklist', () => {
+  const [item] = snapshotItemsToChecklist([{ motorista: 'Anderson', totalHE: 40, padraoCadastradoMin: 45 }]);
+  assert.equal(item.totalHE, 40);
 });

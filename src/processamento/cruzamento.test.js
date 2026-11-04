@@ -199,3 +199,36 @@ test('aceita extra de padrão negativo somente quando escala e rastreador compro
   assert.equal(row.heAcimaPadraoMin, 25);
   assert.equal(row.linhaExtraCandidata, true);
 });
+
+test('identifica linha extra pela proximidade da batida mesmo sem HE informada no ponto', () => {
+  const [row] = crossSources({
+    pointRows: [{ motorista: 'Anderson Altair Furquim Moitoso', dateKey: '2026-11-03', batidas: ['05:38', '08:41', '12:38', '18:20'] }],
+    scaleRows: [
+      { motorista: 'Anderson Altair Furquim Moitoso', horario: '05:35', linha: 'Linha padrão' },
+      { motorista: 'Anderson Altair Furquim Moitoso', horario: '08:30', linha: 'Linha extra Anderson' }
+    ],
+    standardRows: [{ motorista: 'Anderson Altair Furquim Moitoso', extraNormalPadrao: 45, horarios: ['05:35', '07:50', '12:40', '18:30'] }]
+  });
+  assert.equal(row.linhaExtraCandidata, true);
+  assert.equal(row.extraAuditoriaStatus, 'possivel-linha-extra');
+  assert.match(row.linhaExtraDetalhe, /Linha extra Anderson/);
+  assert.match(row.justificativaSugerida, /08:30/);
+});
+
+test('não chama linha normal de extra quando não existe horário padrão comparável', () => {
+  const [row] = crossSources({
+    pointRows: [{ motorista: 'Bia', batidas: ['08:00', '17:00'] }],
+    scaleRows: [{ motorista: 'Bia', horario: '08:00', linha: 'Linha normal' }]
+  });
+  assert.equal(row.linhaExtraCandidata, false);
+});
+
+test('calcula proximidade da linha extra atravessando a meia-noite', () => {
+  const [row] = crossSources({
+    pointRows: [{ motorista: 'Neto', batidas: ['23:50', '01:00'] }],
+    scaleRows: [{ motorista: 'Neto', horario: '00:10', linha: 'Linha noturna extra' }],
+    standardRows: [{ motorista: 'Neto', extraNormalPadrao: 0, horarios: ['22:00', '23:00'] }]
+  });
+  assert.equal(row.linhaExtraCandidata, true);
+  assert.match(row.linhaExtraDetalhe, /Linha noturna extra/);
+});
