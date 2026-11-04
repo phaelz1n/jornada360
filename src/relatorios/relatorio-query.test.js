@@ -103,3 +103,26 @@ test('usa o setor atual do cadastro ao montar o resumo por setor', () => {
   const result = consultarPeriodo([{ dateKey: '2026-10-27', items: [{ motorista: 'Ana Silva', setorAtual: 'Operações', he1min: 60 }] }], { inicio: '2026-10-27', fim: '2026-10-27' }, {}, { 'ANA SILVA': { nome: 'Ana Silva', setor: 'ADM' } });
   assert.deepEqual(Object.keys(result.summary.porSetorDetalhado), ['ADM']);
 });
+
+test('reaplica o padrão cadastrado ao consultar snapshots antigos', () => {
+  const result = consultarPeriodo([
+    { dateKey: '2026-10-27', items: [{ motorista: 'Ana Silva', batidas: ['08:00', '12:00', '13:00', '18:00'], he1min: 999 }] }
+  ], { inicio: '2026-10-27', fim: '2026-10-27' }, {}, {
+    'ANA SILVA': { nome: 'Ana Silva', horarios: ['08:00', '12:00', '13:00', '17:00'], extraNormalPadrao: 30, setor: 'Motoristas' }
+  });
+  assert.equal(result.summary.totalHEmin, 60);
+  assert.equal(result.summary.heDentroPadraoMin, 30);
+  assert.equal(result.summary.heAcimaPadraoMin, 30);
+  assert.equal(result.summary.motoristasSemPadrao, 0);
+});
+
+test('considera cadastrado o motorista com horários e extra prevista zero', () => {
+  const result = consultarDia([
+    { dateKey: '2026-10-27', items: [{ motorista: 'Bia', batidas: ['08:00', '12:00', '13:00', '17:00'] }] }
+  ], '2026-10-27', {}, {
+    'BIA': { nome: 'Bia', horarios: ['08:00', '12:00', '13:00', '17:00'], extraNormalPadrao: 0 }
+  });
+  assert.equal(result.summary.totalHEmin, 0);
+  assert.equal(result.summary.semPadraoMin, 0);
+  assert.equal(result.summary.motoristasSemPadrao, 0);
+});

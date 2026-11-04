@@ -1,4 +1,4 @@
-import { summarizeDay, splitExtraHours, classifyDriverSector, normalizeDriverName } from '../processamento/processamento-model.js';
+import { applyDriverStandard, summarizeDay, splitExtraHours, classifyDriverSector, normalizeDriverName } from '../processamento/processamento-model.js';
 
 const asArray = value => Array.isArray(value) ? value : value && typeof value === 'object' ? Object.values(value) : [];
 
@@ -19,12 +19,14 @@ function minutes(value) {
 }
 
 function normalizeItem(item = {}, cadastro = {}) {
-  const total = minutes(item.totalHE ?? item.excedenteMin ?? item.he1min) || 0;
-  const buckets = item.heBucketsExplicit || item.he2min || item.he3min
-    ? { he1min: Number(item.he1min || 0), he2min: Number(item.he2min || 0), he3min: Number(item.he3min || 0) }
+  const driver = cadastro[normalizeDriverName(item.motorista || item.nome)];
+  const withStandard = driver?.horarios?.length >= 2 ? applyDriverStandard(item, driver) : item;
+  const total = minutes(withStandard.totalHE ?? withStandard.excedenteMin ?? withStandard.he1min) || 0;
+  const buckets = withStandard.heBucketsExplicit || withStandard.he2min || withStandard.he3min
+    ? { he1min: Number(withStandard.he1min || 0), he2min: Number(withStandard.he2min || 0), he3min: Number(withStandard.he3min || 0) }
     : splitExtraHours(total);
-  const he3min = isFeriadoOuDsr(item) ? Math.max(buckets.he3min, total) : buckets.he3min;
-  return { ...item, ...buckets, he3min, setorAtual: classifyDriverSector(item, cadastro), feriadoOuDsr: isFeriadoOuDsr(item) };
+  const he3min = isFeriadoOuDsr(withStandard) ? Math.max(buckets.he3min, total) : buckets.he3min;
+  return { ...withStandard, ...buckets, he3min, setorAtual: classifyDriverSector(withStandard, cadastro), feriadoOuDsr: isFeriadoOuDsr(withStandard) };
 }
 
 function applyFilters(items, filters = {}) {
@@ -49,7 +51,8 @@ function buildResult(items, days, forcedMetaDiaMin = null, cadastro = {}) {
   const metaDiaMin = metaPeriodoMin;
   const metaIndividual = item => {
     const value = minutes(item.padraoCadastradoMin ?? item.padraoMin ?? item.padraoMetaMin ?? item.metaPadraoMin ?? item.padraoCadastrado ?? item.extraNormalPadrao);
-    return value != null && value > 0 ? value : null;
+    const hasRegisteredSchedule = item.padraoStatus === 'encontrado' || (Array.isArray(item.padraoHorarios) && item.padraoHorarios.length >= 2);
+    return value != null && (value > 0 || hasRegisteredSchedule) ? Math.max(0, value) : null;
   };
   const standardItems = normalized.filter(item => metaIndividual(item) != null);
   const heDentroPadraoMin = standardItems.reduce((total, item) => {
