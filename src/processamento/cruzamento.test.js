@@ -255,4 +255,5 @@ test('inclui a rota da escala na justificativa quando falta confirmação do ras
   assert.equal(row.extraAuditoriaStatus, 'possivel-linha-extra');
   assert.match(row.extraAuditoriaDetalhe, /Rota extra Cassio/);
   assert.match(row.justificativaSugerida, /Rota extra Cassio/);
+  assert.match(row.justificativaSugerida, /19:00/);
 });

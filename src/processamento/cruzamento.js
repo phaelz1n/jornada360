@@ -163,6 +163,11 @@ export function crossSources({ pointRows = [], previousPointRows = [], scaleRows
     const effectiveExtra = admExtra ?? batidasExtra;
     const extraScaleRows = scaleRows.filter(row => !lineMatchesStandard(row, standardRow));
     const extraRouteNames = [...new Set(extraScaleRows.map(row => String(row.linha || row.nome || '').trim()).filter(Boolean))];
+    const extraRouteDetails = extraScaleRows.map(row => {
+      const route = String(row.linha || row.nome || '').trim();
+      const horario = row.horario || row.inicio || row.horarioInicio;
+      return route ? `${route}${horario ? ` às ${horario}` : ''}` : horario || '';
+    }).filter(Boolean);
     const trackerExtraLine = standardRow && paradaAnalysis.paradas.find(stop => extraScaleRows.some(row => {
       const scaleTime = timeOf(row.horario || row.inicio || row.horarioInicio);
       const trackerTime = timeOf(stop.horario);
@@ -182,7 +187,7 @@ export function crossSources({ pointRows = [], previousPointRows = [], scaleRows
       : extraLineEvidence?.linha || extraRouteNames.length
       ? extraLineEvidence?.linha
         ? `${trackerExtraLine ? 'Escala e rastreador indicam' : 'Escala e batida próxima indicam'} que o motorista realizou o cliente/linha “${extraLineEvidence.linha}”${extraLineEvidence.horario ? ` às ${extraLineEvidence.horario}` : ''}; o horário diverge do padrão cadastrado.`
-        : `A escala indica a rota “${extraRouteNames.join('”, “')}” fora do horário padrão; falta confirmação do rastreador para comprovar a realização.`
+        : `A escala indica a rota/cliente “${extraRouteDetails.join('”, “')}” fora do horário padrão; falta confirmação do rastreador para comprovar a realização.`
       : '';
     const extraCandidate = Math.max(0, reportedHE, batidasExtra || 0);
     const extraAuditoriaStatus = admExtra > 0
