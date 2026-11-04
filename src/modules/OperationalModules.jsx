@@ -40,7 +40,10 @@ function ReportsPanelBody({ items = [], snapshots = [], initialDate }) {
   const [sector, setSector] = useState('Todos');
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('Todos');
-  const sourceSnapshots = snapshots.length ? snapshots : (items.length ? [{ dateKey, items }] : []);
+  const sourceSnapshots = (snapshots.length ? snapshots : (items.length ? [{ dateKey, items }] : [])).map(snapshot => ({
+    ...snapshot,
+    items: asArray(snapshot?.items)
+  }));
   useEffect(() => {
     const available = snapshots.map(snapshot => snapshot.dateKey).filter(Boolean).sort();
     if (available.length && !available.includes(dateKey)) setDateKey(available.at(-1));
@@ -50,7 +53,7 @@ function ReportsPanelBody({ items = [], snapshots = [], initialDate }) {
   }, [initialDate]);
   const periods = useMemo(() => [...new Map(sourceSnapshots.map(snapshot => { const period = competenciaParaData(snapshot.dateKey); return [period.chave, period]; })).values()], [sourceSnapshots]);
   const selectedPeriod = periods.find(period => period.chave === periodKey) || (dateKey ? competenciaParaData(dateKey) : periods[0]);
-  const sectors = useMemo(() => ['Todos', ...new Set(sourceSnapshots.flatMap(snapshot => (snapshot.items || []).map(item => item.setorAtual || item.setor || 'Sem setor')))], [sourceSnapshots]);
+  const sectors = useMemo(() => ['Todos', ...new Set(sourceSnapshots.flatMap(snapshot => asArray(snapshot.items).map(item => item.setorAtual || item.setor || 'Sem setor')))], [sourceSnapshots]);
   const report = useMemo(() => mode === 'dia' ? consultarDia(sourceSnapshots, dateKey, { setor: sector, motorista: search, categoria: category }) : consultarPeriodo(sourceSnapshots, selectedPeriod || { inicio: dateKey, fim: dateKey }, { setor: sector, motorista: search, categoria: category }), [mode, sourceSnapshots, dateKey, selectedPeriod, sector, search, category]);
   const filtered = report.items;
   const summary = report.summary;

@@ -1,9 +1,10 @@
 import { firestoreStore } from '../lib/firestore-store.js';
 import { saveSystemPermission } from '../lib/firestore-writes.js';
+import { asArray } from '../utils/collections.js';
 
 export function subscribeSystemPermissions(onChange, onError) {
   return firestoreStore.subscribe('permissoes_sistemas', records => {
-    onChange(records.reduce((map, item) => ({ ...map, [item.email]: item }), {}));
+    onChange(asArray(records).reduce((map, item) => ({ ...map, [item.email]: item }), {}));
   }, onError);
 }
 
