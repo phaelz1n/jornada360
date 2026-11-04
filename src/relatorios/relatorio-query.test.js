@@ -100,7 +100,7 @@ test('preserva e soma extras candidatas sem misturar com HE validada', () => {
 });
 
 test('não duplica HE candidata no total fora do padrão', () => {
-  const result = consultarDia([{ dateKey: '2026-10-27', items: [{ motorista: 'Ana', he1min: 60, heAcimaPadraoMin: 60, extraCandidataMin: 60 }] }], '2026-10-27');
+  const result = consultarDia([{ dateKey: '2026-10-27', items: [{ motorista: 'Ana', he1min: 60, heAcimaPadraoMin: 60, extraCandidataMin: 60, padraoStatus: 'encontrado', padraoCadastradoMin: 0, padraoHorarios: ['08:00', '17:00'] }] }], '2026-10-27');
   assert.equal(result.summary.extraCandidataMin, 60);
   assert.equal(result.summary.foraPadraoAuditoriaMin, 60);
 });
