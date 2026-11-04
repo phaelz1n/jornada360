@@ -2,6 +2,14 @@ export function normalizeDriverName(name) {
   return String(name || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().replace(/\s+/g, ' ').toLocaleUpperCase('pt-BR');
 }
 
+export function driverToStandardRow(driver = {}) {
+  return {
+    motorista: String(driver.nome || driver.motorista || '').trim(),
+    extraNormalPadrao: Number(driver.extraNormalPadrao ?? driver.extraPrevistaMin ?? 0) || 0,
+    horarios: Array.isArray(driver.horarios) ? driver.horarios.filter(Boolean).map(value => String(value).trim()).filter(Boolean) : []
+  };
+}
+
 export function classifyDriverSector(item = {}, cadastro = {}) {
   const name = normalizeDriverName(item.motorista || item.nome);
   return cadastro[name]?.setor || item.setorAtual || item.setor || 'Sem setor';

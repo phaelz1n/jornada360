@@ -38,6 +38,9 @@ test('calcula extra do ADM acima de oito horas em dia útil', () => {
   });
   assert.equal(row.totalHE, 60);
   assert.equal(row.jornadaBaseMin, 480);
+  assert.equal(row.extraAuditoriaStatus, 'adm-extra-problema');
+  assert.match(row.extraAuditoriaDetalhe, /ADM/);
+  assert.match(row.justificativaSugerida, /ADM/);
 });
 test('calcula extra da Reserva pela base de sete horas e vinte sem rastreador', () => {
   const [row] = crossSources({

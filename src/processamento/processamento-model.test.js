@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizeDriverName, prepareProcessedDay, summarizeDay, splitExtraHours } from './processamento-model.js';
+import { driverToStandardRow, normalizeDriverName, prepareProcessedDay, summarizeDay, splitExtraHours } from './processamento-model.js';
 
 test('normaliza nome para cruzamento', () => assert.equal(normalizeDriverName('  Ana   Silva '), 'ANA SILVA'));
 test('normaliza acentos para cruzar nomes entre planilhas', () => assert.equal(normalizeDriverName('JOSÉ WEBER'), 'JOSE WEBER'));
@@ -45,4 +45,20 @@ test('remove dados pesados do rastreador antes de salvar o snapshot', () => {
   assert.equal(result.items[0].paradasRastreador, undefined);
   assert.equal(result.items[0].rastreadorStatus, 'confirmado');
   assert.deepEqual(result.items[0].resumoRastreador, { total: 1, novas: 0, possiveisTransitos: 0, confirmadas: 0 });
+});
+
+test('converte padrão cadastrado do motorista para fonte de cálculo', () => {
+  assert.deepEqual(driverToStandardRow({ nome: 'Ana Silva', horarios: ['08:00', '17:00'], extraNormalPadrao: 30 }), {
+    motorista: 'Ana Silva',
+    extraNormalPadrao: 30,
+    horarios: ['08:00', '17:00']
+  });
+});
+
+test('mantém motorista cadastrado sem padrão como registro pendente', () => {
+  assert.deepEqual(driverToStandardRow({ nome: 'Bia', setor: 'Motoristas' }), {
+    motorista: 'Bia',
+    extraNormalPadrao: 0,
+    horarios: []
+  });
 });
