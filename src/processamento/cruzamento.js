@@ -61,7 +61,7 @@ function analyzeIntervals(batidas = [], point = {}) {
   const intervalProblem = workedSpan >= 360 && breaks.length > 0 && !hasOneHourBreak;
   return {
     intervalosMin: breaks,
-    intervaloMenorUmaHora: workedSpan >= 360 && shortBreaks.length > 0,
+    intervaloMenorUmaHora: workedSpan >= 360 && shortBreaks.length > 0 && !hasOneHourBreak,
     intervaloObrigatorioAusente: intervalProblem,
     interjornadaProblema: Boolean(point.interjornada || point.interJornada || point.interjornadaStatus === 'inconsistente')
   };
