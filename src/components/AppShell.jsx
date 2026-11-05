@@ -55,6 +55,7 @@ export function AppShell({ user, dashboardData, onLogout }) {
   const [systemPermissions, setSystemPermissions] = useState({});
   const [liveData, setLiveData] = useState(() => normalizeDashboardData(dashboardData));
   const [motoristas, setMotoristas] = useState([]);
+  const [checklistDetails, setChecklistDetails] = useState({});
   const [eventos, setEventos] = useState([]);
   const [importDraft, setImportDraft] = useState(null);
   const [syncStatus, setSyncStatus] = useState('idle');
@@ -82,6 +83,14 @@ export function AppShell({ user, dashboardData, onLogout }) {
   useEffect(() => {
     setLiveData(normalizeDashboardData(dashboardData));
   }, [dashboardData]);
+
+  useEffect(() => {
+    let active = true;
+    const dates = asList(liveData.snapshots).map(snapshot => snapshot.dateKey).filter(Boolean);
+    Promise.all(dates.map(async dateKey => [dateKey, (await firestoreStore.get(`checklist/${dateKey}`))?.details || {}]))
+      .then(entries => { if (active) setChecklistDetails(Object.fromEntries(entries)); }).catch(() => {});
+    return () => { active = false; };
+  }, [liveData.snapshots]);
 
   useEffect(() => {
     const driverList = asList(motoristas);
@@ -194,7 +203,7 @@ export function AppShell({ user, dashboardData, onLogout }) {
           {activeSection === 'Importação' && <ImportacaoPanel draft={importDraft} onDraftChange={setImportDraft} onProcess={handleImportComplete} />}
           {activeSection === 'Checklist' && <ChecklistHistory liveData={liveData} />}
           {activeSection === 'Processamento' && <ProcessingPanel items={liveData?.items} />}
-          {activeSection === 'Relatórios' && <ReportsPanel items={liveData?.items} snapshots={liveData?.snapshots} motoristas={motoristas} />}
+          {activeSection === 'Relatórios' && <ReportsPanel items={liveData?.items} snapshots={liveData?.snapshots} motoristas={motoristas} checklistDetails={checklistDetails} />}
           {activeSection === 'Cadastros' && <RegistersPanel items={liveData?.items} drivers={motoristas} />}
           {activeSection === 'Firebase' && <MigrationPanel onMigrated={snapshot => dashboardData?.items !== snapshot.items && window.dispatchEvent(new CustomEvent('jornada360:data-updated', { detail: snapshot }))} />}
           {activeSection === 'Início' && <InicioDashboard snapshots={liveData?.snapshots || []} eventos={eventos} motoristas={motoristas} />}
