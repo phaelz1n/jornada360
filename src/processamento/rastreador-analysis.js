@@ -15,7 +15,9 @@ function normalizeStops(rastreador = {}) {
     dataKey: stop.dataKey || '',
     minuto: timeToMinutes(stop.horario || stop.hora || stop.time),
     duracaoMin: Number(stop.duracaoMin ?? stop.duracao ?? 0) || 0,
-    local: stop.local || stop.endereco || stop.address || ''
+    local: stop.local || stop.endereco || stop.address || '',
+    endereco: stop.endereco || stop.local || stop.address || '',
+    tipo: stop.tipo || stop.type || ''
   })).filter(stop => stop.minuto != null);
 }
 
