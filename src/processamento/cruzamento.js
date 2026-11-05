@@ -1,6 +1,6 @@
 import { normalizeDriverName } from './processamento-model.js';
 import { analisarParadasRastreador } from './rastreador-analysis.js';
-import { getSectorPolicy } from './sector-rules.js';
+import { getSectorPolicy, isCoverageSector } from './sector-rules.js';
 import { durationFromPairs, nextDateKey, parseTimeMinutes } from './time-utils.js';
 
 function indexByDriver(rows = []) {
@@ -136,7 +136,7 @@ export function crossSources({ pointRows = [], previousPointRows = [], scaleRows
         return true;
       }) }
       : rawTrackerRow;
-    const standardMatch = findDriver(standard, key);
+    const standardMatch = isCoverageSector(setor) ? undefined : findDriver(standard, key);
     const standardRow = Array.isArray(standardMatch) ? standardMatch[0] : standardMatch;
     const previousMatch = findDriver(indexByDriver(previousPointRows), key);
     const previousPoint = Array.isArray(previousMatch) ? previousMatch[0] : previousMatch;

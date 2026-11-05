@@ -29,7 +29,7 @@ function outsideScheduleTimes(item = {}) {
 
 function normalizeItem(item = {}, cadastro = {}) {
   const driver = cadastro[normalizeDriverName(item.motorista || item.nome)];
-  const withStandard = driver?.horarios?.length >= 2 ? applyDriverStandard(item, driver) : item;
+  const withStandard = !isCoverageSector(item.setorAtual || item.setor || item.categoria) && driver?.horarios?.length >= 2 ? applyDriverStandard(item, driver) : item;
   const total = minutes(withStandard.totalHE ?? withStandard.excedenteMin ?? withStandard.he1min) || 0;
   const buckets = withStandard.heBucketsExplicit || withStandard.he2min || withStandard.he3min
     ? { he1min: Number(withStandard.he1min || 0), he2min: Number(withStandard.he2min || 0), he3min: Number(withStandard.he3min || 0) }
