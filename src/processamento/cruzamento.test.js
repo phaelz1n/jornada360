@@ -203,12 +203,12 @@ test('preserva total do espelho quando as batidas estão incompletas', () => {
   assert.equal(row.totalHE, 240);
 });
 
-test('substitui HE importada inconsistente quando supera batidas e extra prevista', () => {
+test('preserva HE importada mesmo quando supera a diferença das batidas', () => {
   const [row] = crossSources({
     pointRows: [{ motorista: 'Fernando Santos', batidas: ['06:06', '10:08', '13:31', '18:48'], totalHE: 119, he1min: 119, heBucketsExplicit: true }],
     standardRows: [{ motorista: 'Fernando Santos', horarios: ['06:05', '10:00', '13:30', '18:30'], extraNormalPadrao: 65 }]
   });
-  assert.equal(row.totalHE, 24);
+  assert.equal(row.totalHE, 119);
   assert.equal(row.batidasExtraMin, 24);
 });
 
