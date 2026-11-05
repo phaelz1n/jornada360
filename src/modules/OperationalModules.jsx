@@ -5,6 +5,7 @@ import { consultarDia, consultarPeriodo } from '../relatorios/relatorio-query.js
 import { asArray } from '../utils/collections.js';
 import { saveDriver } from '../lib/firestore-writes.js';
 import { normalizeSnapshotDateKey } from '../dados/snapshot-history.js';
+import { duplicateDriverError, findSimilarDriverNames, mergeDuplicateDrivers } from '../cadastro/motoristas-duplicates.js';
 
 function duplicateTokens(name) {
   return String(name || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR').replace(/[^a-z0-9 ]/g, '').trim().split(/\s+/).filter(Boolean);
@@ -135,9 +136,7 @@ export function RegistersPanel({ items = [], drivers = [] }) {
   const [patternFilter, setPatternFilter] = useState('todos');
   const pageSize = 25;
   const records = useMemo(() => {
-    const byName = new Map(drivers.map(driver => [driver.nome, driver]));
-    items.forEach(item => { if (item.motorista && !byName.has(item.motorista)) byName.set(item.motorista, { nome: item.motorista, setor: item.setorAtual || item.setor || 'Sem setor', horarios: [], extraNormalPadrao: 0, padraoStatus: 'pendente' }); });
-    return [...byName.values()].sort((a, b) => String(a.nome).localeCompare(String(b.nome), 'pt-BR'));
+    return mergeDuplicateDrivers(drivers, items).map(group => ({ ...group.driver, duplicateCount: group.duplicateCount })).sort((a, b) => String(a.nome).localeCompare(String(b.nome), 'pt-BR'));
   }, [drivers, items]);
   const filteredRecords = records.filter(driver => {
     const matchesName = String(driver.nome).toLocaleLowerCase('pt-BR').includes(filter.toLocaleLowerCase('pt-BR'));
@@ -148,8 +147,9 @@ export function RegistersPanel({ items = [], drivers = [] }) {
   const totalPages = Math.max(1, Math.ceil(filteredRecords.length / pageSize));
   const currentPage = Math.min(page, totalPages);
   const visible = filteredRecords.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-  const names = records.map(driver => driver.nome);
-  const duplicateNames = new Set(records.filter(driver => possibleDuplicate(driver.nome, names)).map(driver => driver.nome));
+  const similarNames = findSimilarDriverNames(drivers);
+  const similarNameSet = new Set(similarNames.flat());
+  const duplicateNames = similarNameSet;
   const complete = records.filter(driver => driver.horarios?.length >= 2).length;
   function openEditor(driver) { setEditing(driver.nome); setDraft({ ...driver, horarios: Array.isArray(driver.horarios) ? [...driver.horarios] : [] }); setNotice(''); }
   function newDriver() { openEditor({ nome: '', setor: 'Motoristas', horarios: [], extraNormalPadrao: 0, padraoStatus: 'pendente' }); }
@@ -160,6 +160,8 @@ export function RegistersPanel({ items = [], drivers = [] }) {
     event.preventDefault();
     const nome = String(draft?.nome || '').trim();
     if (!nome) { setNotice('Informe o nome do motorista.'); return; }
+    const duplicateError = duplicateDriverError(drivers, nome, editing || '');
+    if (duplicateError) { setNotice(duplicateError); return; }
     const horarios = (draft.horarios || []).map(value => String(value).trim()).filter(Boolean);
     const payload = { ...draft, nome, horarios, extraNormalPadrao: Number(draft.extraNormalPadrao) || 0, padraoStatus: horarios.length >= 2 ? 'completo' : 'pendente' };
     try { await saveDriver(payload); setNotice('Cadastro salvo.'); setEditing(nome); setDraft(payload); } catch { setNotice('Não foi possível salvar agora; tente novamente.'); }
