@@ -327,3 +327,14 @@ test('diferencia motorista encontrado na Cobli de ausência de rastreio', () => 
   assert.equal(row.statusCruzamento, 'completo');
   assert.equal(row.evidenciaRastreador[0].motivo, 'rastreio-encontrado-sem-parada-proxima');
 });
+
+test('não chama de sem rastreio a batida sem parada próxima quando há outras paradas na Cobli', () => {
+  const [row] = crossSources({
+    pointRows: [{ motorista: 'Magnus Rafael Viegas', batidas: ['12:33', '13:41', '16:56', '22:36'] }],
+    trackerRows: [{ motorista: 'Magnus Rafael Viegas', paradas: [{ horario: '13:41' }, { horario: '22:36' }] }]
+  });
+
+  assert.equal(row.rastreioEncontrado, true);
+  assert.equal(row.evidenciaRastreador[0].motivo, 'rastreio-encontrado-sem-parada-proxima');
+  assert.equal(row.evidenciaRastreador[1].status, 'confirmada');
+});

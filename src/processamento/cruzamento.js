@@ -99,7 +99,7 @@ function buildEvidence({ batidas = [], paradaAnalysis, totalHE = 0, metaDiaMin =
       horario: `${String(Math.floor(punch / 60) % 24).padStart(2, '0')}:${String(punch % 60).padStart(2, '0')}`,
       diferencaMin: nearest ? nearest.distance : null,
       status: confirmed ? 'confirmada' : 'sem-evidencia',
-      motivo: confirmed ? (stop?.motivo || 'rastreio-próximo') : (stops.length ? 'nenhuma-parada-proxima' : trackerFound ? 'rastreio-encontrado-sem-parada-proxima' : 'sem-rastreio-no-periodo'),
+      motivo: confirmed ? (stop?.motivo || 'rastreio-próximo') : trackerFound ? 'rastreio-encontrado-sem-parada-proxima' : (stops.length ? 'nenhuma-parada-proxima' : 'sem-rastreio-no-periodo'),
       escalaHorario: stop?.escalaHorario || '',
       linhaEscala: stop?.linha || '',
       local: stop?.local || ''
