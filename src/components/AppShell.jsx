@@ -7,6 +7,7 @@ import { ChecklistPanel } from '../checklist/ChecklistPanel.jsx';
 import { buildImportRecord } from '../dados/import-record.js';
 import { MigrationPanel } from '../dados/MigrationPanel.jsx';
 import { ProcessingPanel, ReportsPanel, RegistersPanel } from '../modules/OperationalModules.jsx';
+import { MergeDriversPanel } from '../cadastro/MergeDriversPanel.jsx';
 import { extractPointRows, extractReportDate, extractScaleRows, extractStandardRows } from '../processamento/planilha-normalizer.js';
 import { applyDriverStandard, driverToStandardRow, mergeDriverStandardRows, normalizeDriverName, prepareProcessedDay } from '../processamento/processamento-model.js';
 import { crossSources } from '../processamento/cruzamento.js';
@@ -204,7 +205,7 @@ export function AppShell({ user, dashboardData, onLogout }) {
           {activeSection === 'Checklist' && <ChecklistHistory liveData={liveData} />}
           {activeSection === 'Processamento' && <ProcessingPanel items={liveData?.items} />}
           {activeSection === 'Relatórios' && <ReportsPanel items={liveData?.items} snapshots={liveData?.snapshots} motoristas={motoristas} checklistDetails={checklistDetails} />}
-          {activeSection === 'Cadastros' && <RegistersPanel items={liveData?.items} drivers={motoristas} />}
+          {activeSection === 'Cadastros' && <><MergeDriversPanel drivers={motoristas} /><RegistersPanel items={liveData?.items} drivers={motoristas} /></>}
           {activeSection === 'Firebase' && <MigrationPanel onMigrated={snapshot => dashboardData?.items !== snapshot.items && window.dispatchEvent(new CustomEvent('jornada360:data-updated', { detail: snapshot }))} />}
           {activeSection === 'Início' && <InicioDashboard snapshots={liveData?.snapshots || []} eventos={eventos} motoristas={motoristas} />}
           {activeSection === 'Ocorrências' && <OcorrenciasPanel />}

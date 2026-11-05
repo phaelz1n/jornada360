@@ -1,4 +1,4 @@
-import { doc, setDoc, writeBatch } from 'firebase/firestore';
+import { deleteDoc, doc, setDoc, writeBatch } from 'firebase/firestore';
 import { firebaseApp, auth } from './firebase.js';
 import { getFirestore } from 'firebase/firestore';
 import { createSnapshotWritePlan } from '../dados/snapshot-write-plan.js';
@@ -35,6 +35,24 @@ export async function saveDriver(driver) {
   const id = encodeURIComponent(String(driver.nome || '').toLowerCase());
   await setDoc(doc(db, 'motoristas', id), { ...driver, updatedAt: new Date().toISOString() }, { merge: true });
   return id;
+}
+
+export async function mergeDriverDocuments(keep, remove) {
+  const keepId = encodeURIComponent(String(keep?.nome || '').toLowerCase());
+  const removeId = encodeURIComponent(String(remove?.nome || '').toLowerCase());
+  if (!keepId || !removeId || keepId === removeId) throw new Error('Selecione dois cadastros diferentes.');
+  const merged = {
+    ...remove,
+    ...keep,
+    nome: keep.nome,
+    horarios: keep.horarios?.length >= 2 ? keep.horarios : remove.horarios || [],
+    setor: keep.setor || keep.categoria || remove.setor || remove.categoria || 'Sem setor',
+    extraNormalPadrao: keep.extraNormalPadrao ?? keep.extraPrevistaMin ?? remove.extraNormalPadrao ?? remove.extraPrevistaMin ?? 0,
+    padraoStatus: keep.padraoStatus || remove.padraoStatus || 'pendente'
+  };
+  await setDoc(doc(db, 'motoristas', keepId), { ...merged, updatedAt: new Date().toISOString() }, { merge: true });
+  await deleteDoc(doc(db, 'motoristas', removeId));
+  return keepId;
 }
 
 export async function saveOccurrence(event) {
