@@ -51,7 +51,7 @@ export function normalizeTrackerRows(rows = []) {
     const partida = clean(row[columns.partida]);
     const parada = clean(row[columns.parada]);
     if (partida || parada) group.trajetos.push({ partida, parada, link: clean(row[columns.link]) });
-    if (parada) group.paradas.push({ motoristaHerdado: inherited, horario: timeOnly(parada), dataKey: dateOnly(parada), duracaoMin: number(row[columns.duracao]), local: clean(row[columns.local]) || clean(row[columns.enderecoParada]), tipo: clean(row[columns.tipo]), endereco: clean(row[columns.enderecoParada]), dataHora: parada });
+    if (parada) group.paradas.push({ motoristaHerdado: inherited, horario: timeOnly(parada), dataKey: dateOnly(parada), duracaoMin: number(row[columns.duracao]), local: clean(row[columns.local]) || clean(row[columns.enderecoParada]), tipo: clean(row[columns.tipo]), endereco: clean(row[columns.enderecoParada]), link: clean(row[columns.link]), dataHora: parada });
     group.sinais = group.trajetos.length;
     groups.set(key, group);
   });

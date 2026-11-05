@@ -51,6 +51,10 @@ function isGarageStop(stop = {}) {
   return /\b(garagem|patio|base operacional|terminal garagem)\b/.test(text);
 }
 
+function trackerLocation(stop = {}) {
+  return stop.endereco || stop.local || stop.link || '';
+}
+
 const minutes = parseTimeMinutes;
 
 function isOvernightJourney(point = {}, escala = []) {
@@ -163,7 +167,8 @@ export function crossSources({ pointRows = [], previousPointRows = [], scaleRows
         tipo: stop.tipo,
         endereco: stop.endereco,
         motoristaHerdado: stop.motoristaHerdado,
-        dataKey: stop.dataKey
+        dataKey: stop.dataKey,
+        link: stop.link
       }))
     } : null;
     const metaDiaMin = Math.max(0, Number(standardRow?.extraNormalPadrao ?? 0) || 0);
@@ -200,7 +205,8 @@ export function crossSources({ pointRows = [], previousPointRows = [], scaleRows
     const extraValidatedBySources = Boolean(trackerExtraLine);
     const trackerWithoutValidScale = trackerRow && !trackerExtraLine && paradaAnalysis.paradas.some(stop => stop.status === 'confirmada' || stop.status === 'nova');
     const garageStop = trackerRow && paradaAnalysis.paradas.find(stop => isGarageStop(stop));
-    const garageDescription = garageStop?.endereco || garageStop?.local || '';
+    const garageDescription = trackerLocation(garageStop);
+    const trackerLink = trackerWithoutValidScale && !garageStop ? paradaAnalysis.paradas.find(stop => stop.link)?.link : '';
     const justificativaSugerida = admExtra > 0
       ? `ADM realizou ${admExtra} min acima da jornada base; não existe extra prevista para este setor e a ocorrência precisa ser resolvida.`
       : extraLineEvidence?.linha && cleanScaleLine(extraLineEvidence.linha) || extraRouteNames.length
@@ -210,7 +216,7 @@ export function crossSources({ pointRows = [], previousPointRows = [], scaleRows
       : trackerWithoutValidScale
       ? garageStop
         ? `O rastreador indica passagem pela garagem${garageDescription ? ` (${garageDescription})` : ''}; não foi encontrada uma escala válida de cliente/linha para confirmar o transporte.`
-        : `Há rastreio compatível com o horário realizado, mas não foi encontrada uma escala válida de cliente/linha para confirmar o transporte.`
+        : `Há rastreio compatível com o horário realizado, mas não foi encontrada uma escala válida de cliente/linha para confirmar o transporte${trackerLink ? `; localização registrada: ${trackerLink}` : ''}.`
       : '';
     const extraCandidate = Math.max(0, reportedHE, batidasExtra || 0);
     const extraAuditoriaStatus = admExtra > 0

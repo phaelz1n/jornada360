@@ -17,7 +17,8 @@ function normalizeStops(rastreador = {}) {
     duracaoMin: Number(stop.duracaoMin ?? stop.duracao ?? 0) || 0,
     local: stop.local || stop.endereco || stop.address || '',
     endereco: stop.endereco || stop.local || stop.address || '',
-    tipo: stop.tipo || stop.type || ''
+    tipo: stop.tipo || stop.type || '',
+    link: stop.link || stop.url || ''
   })).filter(stop => stop.minuto != null);
 }
 
