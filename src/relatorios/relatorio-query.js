@@ -31,9 +31,11 @@ function outsideScheduleTimes(item = {}) {
 function normalizeItem(item = {}, cadastro = {}) {
   const driver = cadastro[normalizeDriverName(item.motorista || item.nome)];
   const sector = driver?.setor || driver?.categoria || item.setorAtual || item.setor || item.categoria || 'Sem setor';
-  const withStandard = !isCoverageSector(sector) && driver?.horarios?.length >= 2 ? applyDriverStandard(item, driver) : item;
+  const savedBucketTotal = ['he1min', 'he2min', 'he3min'].reduce((sum, field) => sum + (item[field] == null ? 0 : Number(item[field]) || 0), 0);
+  const hasSavedBuckets = item.heBucketsExplicit === true || (item.totalHE != null && ['he1min', 'he2min', 'he3min'].some(field => item[field] != null) && savedBucketTotal === (Number(item.totalHE) || 0));
+  const withStandard = !isCoverageSector(sector) && driver?.horarios?.length >= 2 && !hasSavedBuckets ? applyDriverStandard(item, driver) : item;
   const importedTotal = minutes(withStandard.totalHE ?? withStandard.excedenteMin ?? withStandard.he1min) || 0;
-  const buckets = withStandard.heBucketsExplicit || withStandard.he2min || withStandard.he3min
+  const buckets = withStandard.heBucketsExplicit || withStandard.he2min != null || withStandard.he3min != null || (hasSavedBuckets && withStandard.he1min != null)
     ? { he1min: Number(withStandard.he1min || 0), he2min: Number(withStandard.he2min || 0), he3min: Number(withStandard.he3min || 0) }
     : splitExtraHours(importedTotal);
   const he3min = isFeriadoOuDsr(withStandard) ? Math.max(buckets.he3min, importedTotal) : buckets.he3min;

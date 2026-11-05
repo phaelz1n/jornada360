@@ -160,6 +160,12 @@ test('reaplica o padrão cadastrado ao consultar snapshots antigos', () => {
   assert.equal(result.summary.motoristasSemPadrao, 0);
 });
 
+test('preserva HE oficial salva no snapshot mesmo sem marcador legado de buckets', () => {
+  const result = consultarDia([{ dateKey: '2026-11-04', items: [{ motorista: 'Ana', he1min: 2414, totalHE: 2414, batidas: ['08:00', '17:00'] }] }], '2026-11-04', {}, { ANA: { nome: 'Ana', horarios: ['08:00', '17:00'], extraNormalPadrao: 0, setor: 'Motorista' } });
+  assert.equal(result.summary.he1min, 2414);
+  assert.equal(result.summary.totalHEmin, 2414);
+});
+
 test('usa cadastro completo quando existem registros duplicados do motorista', () => {
   const cadastro = {
     'ANA SILVA': { nome: 'Ana Silva', horarios: ['08:00', '12:00', '13:00', '17:00'], extraNormalPadrao: 0 }
