@@ -46,19 +46,6 @@ function cleanScaleLine(value) {
   return text;
 }
 
-function isGarageStop(stop = {}) {
-  const text = `${stop.tipo || ''} ${stop.local || ''} ${stop.endereco || ''}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR');
-  return /\b(garagem|patio|base operacional|terminal garagem)\b/.test(text);
-}
-
-function trackerLocation(stop = {}) {
-  return stop.endereco || stop.local || stop.link || '';
-}
-
-function trackerLinkHost(value) {
-  try { return new URL(value).hostname.replace(/^www\./, ''); } catch { return ''; }
-}
-
 const minutes = parseTimeMinutes;
 
 function isOvernightJourney(point = {}, escala = []) {
@@ -208,9 +195,8 @@ export function crossSources({ pointRows = [], previousPointRows = [], scaleRows
     const extraLineEvidence = trackerExtraLine || punchExtraLine;
     const extraValidatedBySources = Boolean(trackerExtraLine);
     const trackerWithoutValidScale = trackerRow && !trackerExtraLine && paradaAnalysis.paradas.some(stop => stop.status === 'confirmada' || stop.status === 'nova');
-    const garageStop = trackerRow && paradaAnalysis.paradas.find(stop => isGarageStop(stop));
-    const garageDescription = trackerLocation(garageStop);
-    const trackerLink = trackerWithoutValidScale && !garageStop ? paradaAnalysis.paradas.find(stop => stop.link)?.link : '';
+    const trackerLocationStop = trackerWithoutValidScale && paradaAnalysis.paradas.find(stop => stop.link);
+    const trackerLink = trackerLocationStop?.link || '';
     const justificativaSugerida = admExtra > 0
       ? `ADM realizou ${admExtra} min acima da jornada base; não existe extra prevista para este setor e a ocorrência precisa ser resolvida.`
       : extraLineEvidence?.linha && cleanScaleLine(extraLineEvidence.linha) || extraRouteNames.length
@@ -218,9 +204,9 @@ export function crossSources({ pointRows = [], previousPointRows = [], scaleRows
         ? `${trackerExtraLine ? 'Escala e rastreador indicam' : 'Escala e batida próxima indicam'} que o motorista realizou o cliente/linha “${cleanScaleLine(extraLineEvidence.linha)}”${extraLineEvidence.horario ? ` às ${extraLineEvidence.horario}` : ''}; o horário diverge do padrão cadastrado.`
         : `A escala indica a rota/cliente “${extraRouteDetails.join('”, “')}” fora do horário padrão; falta confirmação do rastreador para comprovar a realização.`
       : trackerWithoutValidScale
-      ? garageStop
-        ? `Garagem${garageDescription ? `: ${garageDescription}` : ' identificada pelo rastreio'}. Sem cliente na escala.`
-        : `Rastreio sem cliente na escala${trackerLinkHost(trackerLink) ? ` (${trackerLinkHost(trackerLink)})` : ''}.`
+      ? trackerLocationStop
+        ? `Às ${trackerLocationStop.horario}, houve parada no rastreio: ${trackerLink}. Não encontrada na escala, mas bate com o horário.`
+        : `Houve parada no rastreio, não encontrada na escala, mas compatível com o horário.`
       : '';
     const extraCandidate = Math.max(0, reportedHE, batidasExtra || 0);
     const extraAuditoriaStatus = admExtra > 0
