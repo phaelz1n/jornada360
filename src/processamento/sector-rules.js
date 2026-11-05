@@ -16,7 +16,7 @@ export function getSectorPolicy(sector = '', dateKey = '') {
 
 export function isCoverageSector(sector = '') {
   const key = normalizeDriverName(sector);
-  return ['RESERVA', 'FOLGUISTA', 'COBRE FERIAS', 'COBRE FERIAS'].includes(key);
+  return ['ADM', 'RESERVA', 'FOLGUISTA', 'COBRE FERIAS'].includes(key);
 }
 
 export { SECTOR_POLICIES };
