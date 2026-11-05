@@ -64,9 +64,9 @@ export function extractPointRows(rows = []) {
 
 export function extractReportDate(rows = []) {
   const text = rows.flat().map(value => String(value ?? '')).join(' ');
-  const iso = text.match(/\b(20\d{2})[-\/](\d{2})[-\/](\d{2})\b/);
+  const iso = text.match(/\b(20\d{2})[.\/-](\d{2})[.\/-](\d{2})\b/);
   if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
-  const brazilian = text.match(/\b(\d{2})[-\/](\d{2})[-\/](20\d{2})\b/);
+  const brazilian = text.match(/\b(\d{2})[.\/-](\d{2})[.\/-](20\d{2})\b/);
   return brazilian ? `${brazilian[3]}-${brazilian[2]}-${brazilian[1]}` : '';
 }
 
@@ -88,9 +88,9 @@ export function extractStandardRows(rows = []) {
 
 function dateKeyFromValue(value) {
   const text = String(value ?? '');
-  const iso = text.match(/(20\d{2})[-\/](\d{2})[-\/](\d{2})/);
+  const iso = text.match(/(20\d{2})[.\/-](\d{2})[.\/-](\d{2})/);
   if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
-  const br = text.match(/(\d{2})[-\/](\d{2})[-\/](20\d{2})/);
+  const br = text.match(/(\d{2})[.\/-](\d{2})[.\/-](20\d{2})/);
   return br ? `${br[3]}-${br[2]}-${br[1]}` : '';
 }
 

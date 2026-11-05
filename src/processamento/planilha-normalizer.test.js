@@ -29,3 +29,4 @@ test('filtra a escala pelo dia do relatório principal', () => {
   assert.deepEqual(extractScaleRows(rows, '2026-10-27').map(row => row.linha), ['Droga Raia']);
 });
 test('identifica a data do espelho de ponto principal', () => assert.equal(extractReportDate([['Relatório de ponto', '27/10/2026'], ['Nome', 'Ana']]), '2026-10-27'));
+test('identifica data brasileira com pontos no espelho principal', () => assert.equal(extractReportDate([['Relatório de ponto', '04.11.2026'], ['Nome', 'Ana']]), '2026-11-04'));
