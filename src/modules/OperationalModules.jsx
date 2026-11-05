@@ -52,6 +52,20 @@ export function DateCalendar({ snapshots = [], selected, onSelect, allowAny = fa
 
 const AvailableReportDays = DateCalendar;
 
+function isLegacyAutomaticJustification(value) {
+  const text = String(value || '').trim();
+  return /^A escala indica a rota(?:\s*\/\s*cliente)?\s*[“\"]?.+?[”\"]?\s+fora do horário padrão; falta confirmação do rastreador/i.test(text);
+}
+
+function reportJustification(item, remoteJustification = '') {
+  const remote = String(remoteJustification || '').trim();
+  if (remote) return remote;
+  const saved = String(item.justificativa || '').trim();
+  if (saved && !isLegacyAutomaticJustification(saved)) return saved;
+  const suggested = String(item.justificativaSugerida || '').trim();
+  return isLegacyAutomaticJustification(suggested) ? '' : suggested;
+}
+
 function ReportsPanelBody({ items = [], snapshots = [], initialDate, motoristas = [], checklistDetails = {} }) {
   items = asArray(items);
   snapshots = asArray(snapshots);
@@ -73,7 +87,7 @@ function ReportsPanelBody({ items = [], snapshots = [], initialDate, motoristas 
   }, {}), [motoristas]);
   const sourceSnapshots = (snapshots.length ? snapshots : (items.length ? [{ dateKey, items }] : [])).map(snapshot => ({
     ...snapshot,
-    items: asArray(snapshot?.items).map(item => ({ ...item, justificativa: checklistDetails[snapshot.dateKey]?.[String(item.motorista || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')]?.justificativa || item.justificativa || item.justificativaSugerida || '' }))
+    items: asArray(snapshot?.items).map(item => ({ ...item, justificativa: reportJustification(item, checklistDetails[snapshot.dateKey]?.[String(item.motorista || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')]?.justificativa) }))
   }));
   useEffect(() => {
     const available = snapshots.map(snapshot => snapshot.dateKey).filter(Boolean).sort();
