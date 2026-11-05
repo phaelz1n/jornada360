@@ -47,6 +47,16 @@ test('remove dados pesados do rastreador antes de salvar o snapshot', () => {
   assert.deepEqual(result.items[0].resumoRastreador, { total: 1, novas: 0, possiveisTransitos: 0, confirmadas: 0 });
 });
 
+test('preserva justificativa automática e link da parada no snapshot do upload', () => {
+  const result = prepareProcessedDay({ dateKey: '2026-11-05', items: [{
+    motorista: 'Marco Antonio',
+    justificativaSugerida: 'Às 18:00, houve parada no rastreio: https://mapa.exemplo/parada/123. Não encontrada na escala, mas bate com o horário.',
+    rastreadorStatus: 'divergente',
+    rastreio: { paradas: [{ horario: '18:00', link: 'https://mapa.exemplo/parada/123' }] }
+  }] });
+  assert.match(result.items[0].justificativaSugerida, /https:\/\/mapa\.exemplo\/parada\/123/);
+});
+
 test('converte padrão cadastrado do motorista para fonte de cálculo', () => {
   assert.deepEqual(driverToStandardRow({ nome: 'Ana Silva', horarios: ['08:00', '17:00'], extraNormalPadrao: 30 }), {
     motorista: 'Ana Silva',
