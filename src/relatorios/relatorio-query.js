@@ -84,12 +84,14 @@ function buildResult(items, days, forcedMetaDiaMin = null, cadastro = {}) {
   const heDentroPadraoMin = standardItems.reduce((total, item) => {
     const he = item.he1min + item.he2min + item.he3min;
     const meta = Math.max(0, metaIndividual(item));
-    return total + Math.min(he, meta);
+    const outside = Math.max(he - meta, 0);
+    return total + (outside >= MIN_OUTSIDE_REPORT_MIN ? Math.min(he, meta) : he);
   }, 0);
   const heAcimaPadraoMin = standardItems.reduce((total, item) => {
     const he = item.he1min + item.he2min + item.he3min;
     const meta = metaIndividual(item);
-    return total + (meta < 0 ? he : Math.max(he - meta, 0));
+    const outside = meta < 0 ? he : Math.max(he - meta, 0);
+    return total + (outside >= MIN_OUTSIDE_REPORT_MIN ? outside : 0);
   }, 0);
   const semPadraoMin = normalized.filter(item => metaIndividual(item) == null).reduce((total, item) => total + item.he1min + item.he2min + item.he3min, 0);
   const driversWithHE = new Set(normalized.filter(item => item.he1min + item.he2min + item.he3min > 0).map(item => normalizeDriverName(item.motorista)));
@@ -104,8 +106,9 @@ function buildResult(items, days, forcedMetaDiaMin = null, cadastro = {}) {
     row.registros += 1;
     row.totalHEmin += he;
     row.he1min += item.he1min;
-    row.dentroPadraoMin += Math.min(he, Math.max(0, metaIndividual(item) ?? 0));
-    row.acimaPadraoMin += metaIndividual(item) == null ? 0 : Math.max(he - Math.max(0, metaIndividual(item)), 0);
+    const outside = metaIndividual(item) == null ? 0 : Math.max(he - Math.max(0, metaIndividual(item)), 0);
+    row.dentroPadraoMin += outside >= MIN_OUTSIDE_REPORT_MIN ? Math.min(he, Math.max(0, metaIndividual(item) ?? 0)) : he;
+    row.acimaPadraoMin += outside >= MIN_OUTSIDE_REPORT_MIN ? outside : 0;
     bySector[sector] = row;
   });
   const names = new Map();

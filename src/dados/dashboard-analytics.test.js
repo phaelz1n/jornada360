@@ -84,3 +84,4 @@ test('prioriza o setor atual do cadastro sobre o setor antigo do snapshot', () =
   });
   assert.equal(result.sectorComparison[0].setor, 'ADM');
 });
+
