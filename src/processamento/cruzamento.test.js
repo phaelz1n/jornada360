@@ -195,6 +195,14 @@ test('prioriza HE informada pelo espelho quando as batidas geram diferença maio
   assert.equal(row.heAcimaPadraoMin, 11);
 });
 
+test('preserva total do espelho quando as batidas estão incompletas', () => {
+  const [row] = crossSources({
+    pointRows: [{ motorista: 'Ana', totalHE: 240, he1min: 240, batidas: ['08:00', '12:00', '13:00'], heBucketsExplicit: true }],
+    standardRows: [{ motorista: 'Ana', horarios: ['08:00', '12:00', '13:00', '17:00'], extraNormalPadrao: 0 }]
+  });
+  assert.equal(row.totalHE, 240);
+});
+
 test('substitui HE importada inconsistente quando supera batidas e extra prevista', () => {
   const [row] = crossSources({
     pointRows: [{ motorista: 'Fernando Santos', batidas: ['06:06', '10:08', '13:31', '18:48'], totalHE: 119, he1min: 119, heBucketsExplicit: true }],

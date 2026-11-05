@@ -167,10 +167,12 @@ export function crossSources({ pointRows = [], previousPointRows = [], scaleRows
     const actualDuration = durationFromPairs(point.batidas || []);
     const standardDuration = durationFromPairs(standardRow?.horarios || []);
     const batidasExtra = actualDuration && standardDuration ? Math.max(0, actualDuration - standardDuration) : null;
+    const punchValues = Array.isArray(point.batidas) ? point.batidas : [];
+    const completePunchPairs = punchValues.length >= 2 && punchValues.length % 2 === 0;
     const hasReportedExtra = ['totalHE', 'he1min', 'he2min', 'he3min', 'excedenteMin'].some(field => point[field] != null);
     const rawStandardExtra = Number(standardRow?.extraNormalPadrao);
     const standardExtra = Math.max(0, rawStandardExtra || 0);
-    const reportedIsInconsistent = hasReportedExtra && batidasExtra != null && rawStandardExtra >= 0 && reportedHE > batidasExtra + 30 && reportedHE > standardExtra;
+    const reportedIsInconsistent = hasReportedExtra && completePunchPairs && batidasExtra != null && rawStandardExtra >= 0 && reportedHE > batidasExtra + 30 && reportedHE > standardExtra;
     const reportedHEEffective = reportedIsInconsistent ? batidasExtra : reportedHE;
     const jornadaBaseMin = rastreioDispensado ? sectorPolicy.baseMinutes : null;
     const admExtra = rastreioDispensado && actualDuration > 0 ? Math.max(0, actualDuration - jornadaBaseMin) : null;

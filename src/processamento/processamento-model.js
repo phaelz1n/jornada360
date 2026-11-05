@@ -30,11 +30,14 @@ export function applyDriverStandard(item = {}, driver = {}) {
   const actual = durationFromPairs(item.batidas || []);
   const expected = durationFromPairs(standard.horarios);
   const hasReportedExtra = item.heBucketsExplicit === true && ['totalHE', 'he1min', 'he2min', 'he3min', 'excedenteMin'].some(field => item[field] != null);
-  const reportedExtra = hasReportedExtra && item.heBucketsExplicit === true
-    ? Number(item.he1min || 0) + Number(item.he2min || 0) + Number(item.he3min || 0)
-    : Number(item.totalHE ?? item.he1min ?? item.excedenteMin ?? 0) || 0;
+  const reportedBuckets = Number(item.he1min || 0) + Number(item.he2min || 0) + Number(item.he3min || 0);
+  const reportedExtra = hasReportedExtra && item.heBucketsExplicit === true && reportedBuckets > 0
+    ? reportedBuckets
+    : Number(item.totalHE ?? item.he1min ?? item.excedenteMin ?? 0) || reportedBuckets;
   const calculatedExtra = actual != null && expected != null ? Math.max(0, actual - expected) : null;
-  const reportedIsInconsistent = hasReportedExtra && calculatedExtra != null && Number(driver.extraNormalPadrao ?? driver.extraPrevistaMin ?? 0) >= 0 && reportedExtra > calculatedExtra + 30 && reportedExtra > standard.extraNormalPadrao;
+  const punchValues = Array.isArray(item.batidas) ? item.batidas : [];
+  const completePunchPairs = punchValues.length >= 2 && punchValues.length % 2 === 0;
+  const reportedIsInconsistent = hasReportedExtra && completePunchPairs && calculatedExtra != null && Number(driver.extraNormalPadrao ?? driver.extraPrevistaMin ?? 0) >= 0 && reportedExtra > calculatedExtra + 30 && reportedExtra > standard.extraNormalPadrao;
   const extra = reportedIsInconsistent
     ? calculatedExtra
     : hasReportedExtra && standard.extraNormalPadrao >= 0

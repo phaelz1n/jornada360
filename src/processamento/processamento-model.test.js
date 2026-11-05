@@ -98,6 +98,11 @@ test('ignora totalHE legado ao reaplicar padrão quando os buckets oficiais exis
   assert.equal(item.he1min, 11);
 });
 
+test('preserva HE informada quando as batidas estão incompletas', () => {
+  const item = applyDriverStandard({ motorista: 'Ana', totalHE: 240, batidas: ['08:00', '12:00', '13:00'], heBucketsExplicit: true }, { nome: 'Ana', horarios: ['08:00', '12:00', '13:00', '17:00'], extraNormalPadrao: 0 });
+  assert.equal(item.totalHE, 240);
+});
+
 test('mescla a planilha de migração no cadastro sem apagar o setor existente', () => {
   const drivers = mergeDriverStandardRows([{ nome: 'Ana Silva', setor: 'ADM', horarios: [] }], [{ motorista: 'Ana Silva', horarios: ['08:00', '17:00'], extraNormalPadrao: 30 }, { motorista: 'Bia', horarios: ['07:00', '16:00'], extraNormalPadrao: 0 }]);
   assert.deepEqual(drivers, [
