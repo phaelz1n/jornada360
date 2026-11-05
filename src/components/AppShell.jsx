@@ -88,9 +88,11 @@ export function AppShell({ user, dashboardData, onLogout }) {
   useEffect(() => {
     let active = true;
     const dates = asList(liveData.snapshots).map(snapshot => snapshot.dateKey).filter(Boolean);
-    Promise.all(dates.map(async dateKey => [dateKey, (await firestoreStore.get(`checklist/${dateKey}`))?.details || {}]))
+    const loadDetails = () => Promise.all(dates.map(async dateKey => [dateKey, (await firestoreStore.get(`checklist/${dateKey}`))?.details || {}]))
       .then(entries => { if (active) setChecklistDetails(Object.fromEntries(entries)); }).catch(() => {});
-    return () => { active = false; };
+    loadDetails();
+    window.addEventListener('jornada360:sync-success', loadDetails);
+    return () => { active = false; window.removeEventListener('jornada360:sync-success', loadDetails); };
   }, [liveData.snapshots]);
 
   useEffect(() => {
