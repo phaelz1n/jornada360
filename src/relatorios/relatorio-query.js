@@ -29,13 +29,14 @@ function outsideScheduleTimes(item = {}) {
 
 function normalizeItem(item = {}, cadastro = {}) {
   const driver = cadastro[normalizeDriverName(item.motorista || item.nome)];
-  const withStandard = !isCoverageSector(item.setorAtual || item.setor || item.categoria) && driver?.horarios?.length >= 2 ? applyDriverStandard(item, driver) : item;
+  const sector = item.setorAtual || item.setor || item.categoria || driver?.setor || driver?.categoria || 'Sem setor';
+  const withStandard = !isCoverageSector(sector) && driver?.horarios?.length >= 2 ? applyDriverStandard(item, driver) : item;
   const total = minutes(withStandard.totalHE ?? withStandard.excedenteMin ?? withStandard.he1min) || 0;
   const buckets = withStandard.heBucketsExplicit || withStandard.he2min || withStandard.he3min
     ? { he1min: Number(withStandard.he1min || 0), he2min: Number(withStandard.he2min || 0), he3min: Number(withStandard.he3min || 0) }
     : splitExtraHours(total);
   const he3min = isFeriadoOuDsr(withStandard) ? Math.max(buckets.he3min, total) : buckets.he3min;
-  return { ...withStandard, ...buckets, he3min, horariosForaPadrao: outsideScheduleTimes(withStandard), setorAtual: classifyDriverSector(withStandard, cadastro), feriadoOuDsr: isFeriadoOuDsr(withStandard) };
+  return { ...withStandard, ...buckets, he3min, horariosForaPadrao: outsideScheduleTimes(withStandard), setorAtual: sector, setor: sector, feriadoOuDsr: isFeriadoOuDsr(withStandard) };
 }
 
 function applyFilters(items, filters = {}) {
