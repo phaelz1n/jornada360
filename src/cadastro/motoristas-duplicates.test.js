@@ -19,6 +19,10 @@ test('mantém nomes parecidos separados e sinaliza revisão', () => {
   assert.deepEqual(result, [['Carlos Silva', 'Carlos da Silva']]);
 });
 
+test('não confunde pessoas diferentes que compartilham apenas primeiro nome e sobrenome comum', () => {
+  assert.deepEqual(findSimilarDriverNames([{ nome: 'Marcos Aurelio da Silva' }, { nome: 'Marcos Junior da Silva Nepomoceno' }]), []);
+});
+
 test('bloqueia novo cadastro com nome normalizado repetido, mas permite edição do próprio registro', () => {
   const drivers = [{ nome: 'João Pereira' }];
   assert.match(duplicateDriverError(drivers, ' JOAO  PEREIRA '), /Já existe/);

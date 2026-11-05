@@ -40,10 +40,12 @@ export function mergeDuplicateDrivers(drivers = [], items = []) {
 
 export function findSimilarDriverNames(drivers = []) {
   const names = [...new Set((Array.isArray(drivers) ? drivers : Object.values(drivers || {})).map(driver => String(driver?.nome || '').trim()).filter(Boolean))];
-  const tokens = name => normalizeDriverKey(name).split(' ').filter(Boolean);
+  const ignored = new Set(['DA', 'DE', 'DO', 'DAS', 'DOS', 'E']);
+  const tokens = name => normalizeDriverKey(name).split(' ').filter(token => token && !ignored.has(token));
   return names.flatMap((name, index) => names.slice(index + 1).filter(other => {
     const a = tokens(name); const b = tokens(other);
-    return a.length > 1 && b.length > 1 && a[0] === b[0] && a.at(-1) === b.at(-1) && normalizeDriverKey(name) !== normalizeDriverKey(other);
+    const shared = a.filter(token => b.includes(token));
+    return shared.length >= 2 && a[0] === b[0] && normalizeDriverKey(name) !== normalizeDriverKey(other);
   }).map(other => [name, other]));
 }
 
