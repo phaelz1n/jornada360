@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { detectColumns, extractPointRows, extractReportDate, extractScaleRows, extractStandardRows } from './planilha-normalizer.js';
+import { detectColumns, extractPointRows, extractReportDate, extractReportDateFromFilename, extractScaleRows, extractStandardRows } from './planilha-normalizer.js';
 
 test('reconhece cabeçalhos alternativos', () => assert.deepEqual(detectColumns(['Colaborador', 'Matrícula', 'HE 1', 'HE 2', 'HE 3']), { motorista: 0, batidas: -1, matricula: 1, he1min: 2, he2min: 3, he3min: 4, totalHE: -1 }));
 test('converte horas extras HH:MM para minutos', () => assert.deepEqual(extractPointRows([['Nome', 'HE1', 'HE2'], ['Ana', '01:30', '00:20']]), [{ motorista: 'Ana', matricula: '', heBucketsExplicit: true, he1min: 90, he2min: 20, he3min: 0 }]));
@@ -30,3 +30,4 @@ test('filtra a escala pelo dia do relatório principal', () => {
 });
 test('identifica a data do espelho de ponto principal', () => assert.equal(extractReportDate([['Relatório de ponto', '27/10/2026'], ['Nome', 'Ana']]), '2026-10-27'));
 test('identifica data brasileira com pontos no espelho principal', () => assert.equal(extractReportDate([['Relatório de ponto', '04.11.2026'], ['Nome', 'Ana']]), '2026-11-04'));
+test('identifica dia e mês no nome do espelho principal', () => assert.equal(extractReportDateFromFilename('04.11 He 1.csv', new Date('2026-11-05T12:00:00')), '2026-11-04'));

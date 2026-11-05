@@ -70,6 +70,14 @@ export function extractReportDate(rows = []) {
   return brazilian ? `${brazilian[3]}-${brazilian[2]}-${brazilian[1]}` : '';
 }
 
+export function extractReportDateFromFilename(filename = '', referenceDate = new Date()) {
+  const text = String(filename || '');
+  const match = text.match(/(?:^|[^0-9])(\d{2})[._-](\d{2})(?:[._-](20\d{2}))?(?=[^0-9]|$)/);
+  if (!match) return '';
+  const year = match[3] || String(referenceDate.getFullYear());
+  return `${year}-${match[2]}-${match[1]}`;
+}
+
 export function extractStandardRows(rows = []) {
   const isDriverHeader = value => ['nome', 'motorista', 'colaborador', 'funcionario', 'empregado', 'nomecompleto', 'nomecompletodomotorista', 'motoristacadastrado'].includes(normalizeHeader(value));
   const isExtraHeader = value => {
