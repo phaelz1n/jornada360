@@ -10,3 +10,12 @@ test('remove latest e não repete a mesma data no histórico', () => {
   ]);
   assert.deepEqual(result.map(item => item.dateKey), ['2026-11-01', '2026-11-02']);
 });
+
+test('trata ISO e formato brasileiro como a mesma data', () => {
+  const result = dedupeSnapshots([
+    { dateKey: '2026-11-04', items: [{ motorista: 'A' }] },
+    { dateKey: '04/11/2026', items: [{ motorista: 'B' }] }
+  ]);
+  assert.equal(result.length, 1);
+  assert.equal(result[0].dateKey, '2026-11-04');
+});

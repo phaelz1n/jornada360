@@ -4,6 +4,7 @@ import { competenciaParaData } from '../relatorios/competencia.js';
 import { consultarDia, consultarPeriodo } from '../relatorios/relatorio-query.js';
 import { asArray } from '../utils/collections.js';
 import { saveDriver } from '../lib/firestore-writes.js';
+import { normalizeSnapshotDateKey } from '../dados/snapshot-history.js';
 
 function duplicateTokens(name) {
   return String(name || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR').replace(/[^a-z0-9 ]/g, '').trim().split(/\s+/).filter(Boolean);
@@ -104,7 +105,7 @@ function ReportsPanelBody({ items = [], snapshots = [], initialDate, motoristas 
 }
 
 export function ReportsPanel(props) {
-  const snapshots = asArray(props.snapshots);
+  const snapshots = [...new Map(asArray(props.snapshots).map(snapshot => [normalizeSnapshotDateKey(snapshot.dateKey), { ...snapshot, dateKey: normalizeSnapshotDateKey(snapshot.dateKey) }])).values()];
   const [selected, setSelected] = useState(() => snapshots.map(item => item.dateKey).filter(Boolean).sort().at(-1) || new Date().toISOString().slice(0, 10));
   return <><AvailableReportDays snapshots={snapshots} selected={selected} onSelect={setSelected} /><ReportsPanelBody {...props} snapshots={snapshots} initialDate={selected} /></>;
 }
