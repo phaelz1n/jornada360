@@ -45,7 +45,8 @@ export function findSimilarDriverNames(drivers = []) {
   return names.flatMap((name, index) => names.slice(index + 1).filter(other => {
     const a = tokens(name); const b = tokens(other);
     const shared = a.filter(token => b.includes(token));
-    return shared.length >= 2 && a[0] === b[0] && normalizeDriverKey(name) !== normalizeDriverKey(other);
+    const subset = a.every(token => b.includes(token)) || b.every(token => a.includes(token));
+    return shared.length >= 2 && a[0] === b[0] && subset && normalizeDriverKey(name) !== normalizeDriverKey(other);
   }).map(other => [name, other]));
 }
 
