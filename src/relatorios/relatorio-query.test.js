@@ -138,6 +138,14 @@ test('ignora até quatro minutos fora do padrão no relatório e na soma', () =>
   assert.equal(result.summary.heAcimaPadraoMin, 5);
 });
 
+test('inclui no fora do padrão quem ultrapassa uma hora acima da meta', () => {
+  const result = consultarDia([{ dateKey: '2026-11-04', items: [
+    { motorista: 'Giovani Madruga', he1min: 120, he2min: 65, he3min: 0, heBucketsExplicit: true, padraoStatus: 'encontrado', padraoCadastradoMin: 120, padraoHorarios: ['08:00', '17:00'], setor: 'Motoristas' }
+  ] }], '2026-11-04', { categoria: 'Fora do padrão' });
+  assert.equal(result.items[0].motorista, 'Giovani Madruga');
+  assert.equal(result.items[0].heAcimaPadraoMin, 65);
+});
+
 test('não reaplica resumo antigo quando os itens do snapshot foram corrigidos', () => {
   const result = consultarDia([{
     dateKey: '2026-10-27',
