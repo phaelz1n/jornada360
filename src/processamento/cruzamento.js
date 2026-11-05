@@ -168,7 +168,10 @@ export function crossSources({ pointRows = [], previousPointRows = [], scaleRows
     const standardDuration = durationFromPairs(standardRow?.horarios || []);
     const batidasExtra = actualDuration && standardDuration ? Math.max(0, actualDuration - standardDuration) : null;
     const hasReportedExtra = ['totalHE', 'he1min', 'he2min', 'he3min', 'excedenteMin'].some(field => point[field] != null);
-    const standardExtra = Math.max(0, Number(standardRow?.extraNormalPadrao) || 0);
+    const rawStandardExtra = Number(standardRow?.extraNormalPadrao);
+    const standardExtra = Math.max(0, rawStandardExtra || 0);
+    const reportedIsInconsistent = hasReportedExtra && batidasExtra != null && rawStandardExtra >= 0 && reportedHE > batidasExtra + 30 && reportedHE > standardExtra;
+    const reportedHEEffective = reportedIsInconsistent ? batidasExtra : reportedHE;
     const jornadaBaseMin = rastreioDispensado ? sectorPolicy.baseMinutes : null;
     const admExtra = rastreioDispensado && actualDuration > 0 ? Math.max(0, actualDuration - jornadaBaseMin) : null;
     const effectiveExtra = admExtra ?? batidasExtra;
@@ -221,9 +224,9 @@ export function crossSources({ pointRows = [], previousPointRows = [], scaleRows
     const totalHE = rastreioDispensado && admExtra != null
       ? admExtra
       : standardExtra < 0
-      ? (extraValidatedBySources ? (hasReportedExtra ? reportedHE : batidasExtra || 0) : 0)
+      ? (extraValidatedBySources ? (hasReportedExtra ? reportedHEEffective : batidasExtra || 0) : 0)
       : hasReportedExtra && (standardExtra >= 0 || extraValidatedBySources)
-      ? reportedHE
+      ? reportedHEEffective
       : batidasExtra != null ? batidasExtra : reportedHE;
     const trackerEvidence = rastreioDispensado ? { evidence: [], outside: 0 } : buildEvidence({ batidas: point.batidas || [], paradaAnalysis, totalHE, metaDiaMin });
     const history = patternHistory?.[key] || [];

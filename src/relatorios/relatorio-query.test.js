@@ -92,16 +92,16 @@ test('desconsidera padrões negativos na meta do período', () => {
   assert.equal(result.summary.metaPeriodoMin, 20);
 });
 
-test('preserva e soma extras candidatas sem misturar com HE validada', () => {
+test('não soma extras candidatas removidas do relatório', () => {
   const result = consultarDia([{ dateKey: '2026-10-27', items: [{ motorista: 'Ademar', he1min: 0, extraCandidataMin: 25, extraAuditoriaStatus: 'sem-escala-sem-rastreio', padraoCadastradoMin: -25 }] }], '2026-10-27');
   assert.equal(result.summary.totalHEmin, 0);
-  assert.equal(result.summary.extraCandidataMin, 25);
-  assert.equal(result.items[0].extraCandidataMin, 25);
+  assert.equal(result.summary.extraCandidataMin, undefined);
+  assert.equal(result.items[0].extraCandidataMin, undefined);
 });
 
-test('não duplica HE candidata no total fora do padrão', () => {
+test('não duplica HE removida no total fora do padrão', () => {
   const result = consultarDia([{ dateKey: '2026-10-27', items: [{ motorista: 'Ana', he1min: 60, heAcimaPadraoMin: 60, extraCandidataMin: 60, padraoStatus: 'encontrado', padraoCadastradoMin: 0, padraoHorarios: ['08:00', '17:00'] }] }], '2026-10-27');
-  assert.equal(result.summary.extraCandidataMin, 60);
+  assert.equal(result.summary.extraCandidataMin, undefined);
   assert.equal(result.summary.foraPadraoAuditoriaMin, 60);
 });
 

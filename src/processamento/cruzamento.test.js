@@ -136,10 +136,10 @@ test('sugere justificativa com o cliente da linha extra confirmada', () => {
     pointRows: [{ motorista: 'Ana', dateKey: '2026-10-27', batidas: ['08:00', '17:00'], totalHE: 30 }],
     scaleRows: [{ motorista: 'Ana', horario: '16:30', linha: 'Transporte Gedore' }],
     standardRows: [{ motorista: 'Ana', horarios: ['08:00', '17:00'], extraNormalPadrao: 0 }],
-    trackerRows: [{ motorista: 'Ana', paradas: [{ horario: '16:30', local: 'Gedore' }] }]
+    trackerRows: [{ motorista: 'Ana', paradas: [{ horario: '16:30', local: 'Gedore', link: 'https://rastreo.test/parada/1' }] }]
   });
   assert.match(row.justificativaSugerida, /Transporte Gedore/);
-  assert.match(row.justificativaSugerida, /diverge do padrão/);
+  assert.match(row.justificativaSugerida, /https:\/\/rastreo\.test\/parada\/1/);
 });
 
 test('separa problema fora da escala de possível linha extra', () => {
@@ -193,7 +193,15 @@ test('prioriza HE informada pelo espelho quando as batidas geram diferença maio
   });
   assert.equal(row.totalHE, 11);
   assert.equal(row.heAcimaPadraoMin, 11);
-  assert.equal(row.extraCandidataMin, 11);
+});
+
+test('substitui HE importada inconsistente quando supera batidas e extra prevista', () => {
+  const [row] = crossSources({
+    pointRows: [{ motorista: 'Fernando Santos', batidas: ['06:06', '10:08', '13:31', '18:48'], totalHE: 119, he1min: 119, heBucketsExplicit: true }],
+    standardRows: [{ motorista: 'Fernando Santos', horarios: ['06:05', '10:00', '13:30', '18:30'], extraNormalPadrao: 65 }]
+  });
+  assert.equal(row.totalHE, 24);
+  assert.equal(row.batidasExtraMin, 24);
 });
 
 test('usa a quantidade de extra do ponto dentro do padrão mesmo com horários diferentes', () => {
@@ -242,7 +250,7 @@ test('identifica linha extra pela proximidade da batida mesmo sem HE informada n
   assert.equal(row.linhaExtraCandidata, true);
   assert.equal(row.extraAuditoriaStatus, 'possivel-linha-extra');
   assert.match(row.linhaExtraDetalhe, /Linha extra Anderson/);
-  assert.match(row.justificativaSugerida, /08:30/);
+  assert.equal(row.justificativaSugerida, undefined);
 });
 
 test('não chama linha normal de extra quando não existe horário padrão comparável', () => {
@@ -275,8 +283,7 @@ test('inclui a rota da escala na justificativa quando falta confirmação do ras
   });
   assert.equal(row.extraAuditoriaStatus, 'possivel-linha-extra');
   assert.match(row.extraAuditoriaDetalhe, /Rota extra Cassio/);
-  assert.match(row.justificativaSugerida, /Rota extra Cassio/);
-  assert.match(row.justificativaSugerida, /19:00/);
+  assert.equal(row.justificativaSugerida, undefined);
 });
 
 test('não usa texto de status como nome de cliente na justificativa', () => {
@@ -297,7 +304,6 @@ test('separa rastreio na garagem de cliente confirmado quando não há escala v�
     standardRows: [{ motorista: 'Marco Antonio', extraNormalPadrao: 0, horarios: ['06:00', '17:30'] }],
     trackerRows: [{ motorista: 'Marco Antonio', paradas: [{ horario: '18:00', tipo: 'Parada', local: 'Rua da Base, 100', link: 'https://mapa.exemplo/parada/123' }] }]
   });
-  assert.match(row.justificativaSugerida, /18:00/);
-  assert.match(row.justificativaSugerida, /https:\/\/mapa\.exemplo\/parada\/123/);
+  assert.equal(row.justificativaSugerida, undefined);
   assert.equal(row.linhaExtraCandidata, false);
 });
