@@ -296,7 +296,7 @@ test('separa rastreio na garagem de cliente confirmado quando não há escala v�
     standardRows: [{ motorista: 'Marco Antonio', extraNormalPadrao: 0, horarios: ['06:00', '17:30'] }],
     trackerRows: [{ motorista: 'Marco Antonio', paradas: [{ horario: '18:00', tipo: 'Parada na garagem', local: 'Rua da Base, 100' }] }]
   });
-  assert.match(row.justificativaSugerida, /passagem pela garagem/);
+  assert.match(row.justificativaSugerida, /Garagem: Rua da Base, 100/);
   assert.match(row.justificativaSugerida, /Rua da Base, 100/);
   assert.equal(row.linhaExtraCandidata, false);
 });

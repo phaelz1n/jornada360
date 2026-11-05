@@ -55,6 +55,10 @@ function trackerLocation(stop = {}) {
   return stop.endereco || stop.local || stop.link || '';
 }
 
+function trackerLinkHost(value) {
+  try { return new URL(value).hostname.replace(/^www\./, ''); } catch { return ''; }
+}
+
 const minutes = parseTimeMinutes;
 
 function isOvernightJourney(point = {}, escala = []) {
@@ -215,8 +219,8 @@ export function crossSources({ pointRows = [], previousPointRows = [], scaleRows
         : `A escala indica a rota/cliente “${extraRouteDetails.join('”, “')}” fora do horário padrão; falta confirmação do rastreador para comprovar a realização.`
       : trackerWithoutValidScale
       ? garageStop
-        ? `O rastreador indica passagem pela garagem${garageDescription ? ` (${garageDescription})` : ''}; não foi encontrada uma escala válida de cliente/linha para confirmar o transporte.`
-        : `Há rastreio compatível com o horário realizado, mas não foi encontrada uma escala válida de cliente/linha para confirmar o transporte${trackerLink ? `; localização registrada: ${trackerLink}` : ''}.`
+        ? `Garagem${garageDescription ? `: ${garageDescription}` : ' identificada pelo rastreio'}. Sem cliente na escala.`
+        : `Rastreio sem cliente na escala${trackerLinkHost(trackerLink) ? ` (${trackerLinkHost(trackerLink)})` : ''}.`
       : '';
     const extraCandidate = Math.max(0, reportedHE, batidasExtra || 0);
     const extraAuditoriaStatus = admExtra > 0
