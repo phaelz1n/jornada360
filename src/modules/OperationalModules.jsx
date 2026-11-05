@@ -92,7 +92,7 @@ function ReportsPanelBody({ items = [], snapshots = [], initialDate, motoristas 
   const selectedPeriod = periods.find(period => period.chave === periodKey) || (dateKey ? competenciaParaData(dateKey) : periods[0]);
   const sectors = useMemo(() => ['Todos', ...new Set(sourceSnapshots.flatMap(snapshot => asArray(snapshot.items).map(item => item.setorAtual || item.setor || 'Sem setor')))], [sourceSnapshots]);
   const report = useMemo(() => mode === 'dia' ? consultarDia(sourceSnapshots, dateKey, { setor: sector, motorista: search, categoria: category }, cadastro) : consultarPeriodo(sourceSnapshots, selectedPeriod || { inicio: dateKey, fim: dateKey }, { setor: sector, motorista: search, categoria: category }, cadastro), [mode, sourceSnapshots, dateKey, selectedPeriod, sector, search, category, cadastro]);
-  const filtered = report.items;
+  const filtered = report.items.map(item => category === 'Fora do padrão' ? { ...item, he1str: `Fora: ${(item.horariosForaPadrao || []).join(' · ') || 'verificar batidas'} · Excedente: ${format(item.heAcimaPadraoMin || 0)}` } : item);
   const summary = report.summary;
   const format = value => `${Math.floor(value / 60)}h${String(value % 60).padStart(2, '0')}`;
   function downloadCsv() {

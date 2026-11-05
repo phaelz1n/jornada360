@@ -18,6 +18,14 @@ function minutes(value) {
   return Number.isFinite(numeric) ? numeric : null;
 }
 
+function outsideScheduleTimes(item = {}) {
+  const punches = Array.isArray(item.batidas) ? item.batidas : [];
+  const standard = Array.isArray(item.padraoHorarios) ? item.padraoHorarios : [];
+  const clock = value => { const match = String(value ?? '').match(/(\d{1,2}):(\d{2})/); return match ? Number(match[1]) * 60 + Number(match[2]) : null; };
+  const expected = standard.map(clock).filter(value => value != null);
+  return punches.filter(punch => { const minute = clock(punch); if (minute == null || !expected.length) return false; const distance = expected.reduce((best, target) => Math.min(best, Math.abs(minute - target), Math.abs(minute + 1440 - target), Math.abs(minute - target - 1440)), Infinity); return distance > 15; });
+}
+
 function normalizeItem(item = {}, cadastro = {}) {
   const driver = cadastro[normalizeDriverName(item.motorista || item.nome)];
   const withStandard = driver?.horarios?.length >= 2 ? applyDriverStandard(item, driver) : item;
@@ -26,7 +34,7 @@ function normalizeItem(item = {}, cadastro = {}) {
     ? { he1min: Number(withStandard.he1min || 0), he2min: Number(withStandard.he2min || 0), he3min: Number(withStandard.he3min || 0) }
     : splitExtraHours(total);
   const he3min = isFeriadoOuDsr(withStandard) ? Math.max(buckets.he3min, total) : buckets.he3min;
-  return { ...withStandard, ...buckets, he3min, setorAtual: classifyDriverSector(withStandard, cadastro), feriadoOuDsr: isFeriadoOuDsr(withStandard) };
+  return { ...withStandard, ...buckets, he3min, horariosForaPadrao: outsideScheduleTimes(withStandard), setorAtual: classifyDriverSector(withStandard, cadastro), feriadoOuDsr: isFeriadoOuDsr(withStandard) };
 }
 
 function applyFilters(items, filters = {}) {
