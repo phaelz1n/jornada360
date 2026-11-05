@@ -193,6 +193,7 @@ test('prioriza HE informada pelo espelho quando as batidas geram diferença maio
   });
   assert.equal(row.totalHE, 11);
   assert.equal(row.heAcimaPadraoMin, 11);
+  assert.equal(row.extraCandidataMin, 11);
 });
 
 test('usa a quantidade de extra do ponto dentro do padrão mesmo com horários diferentes', () => {

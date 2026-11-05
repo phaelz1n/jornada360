@@ -208,7 +208,9 @@ export function crossSources({ pointRows = [], previousPointRows = [], scaleRows
         ? `Às ${trackerLocationStop.horario}, houve parada no rastreio: ${trackerLink}. Não encontrada na escala, mas bate com o horário.`
         : `Houve parada no rastreio, não encontrada na escala, mas compatível com o horário.`
       : '';
-    const extraCandidate = Math.max(0, reportedHE, batidasExtra || 0);
+    const extraCandidate = hasReportedExtra
+      ? Math.max(0, reportedHE)
+      : Math.max(0, batidasExtra || 0);
     const extraAuditoriaStatus = admExtra > 0
       ? 'adm-extra-problema'
       : extraLineEvidence
