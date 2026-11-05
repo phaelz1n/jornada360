@@ -36,6 +36,16 @@ function lineMatchesStandard(scaleRow, standardRow) {
   });
 }
 
+function cleanScaleLine(value) {
+  const text = String(value ?? '').replace(/\s+/g, ' ').trim();
+  if (!text) return '';
+  const normalized = text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR');
+  if (/^utilizado(?:\s+as?\s+\d+)?$/.test(normalized)) return '';
+  if (/^(garagem|patio|pátio|base|sem escala|nao informado|não informado)$/.test(normalized)) return '';
+  if (/^\d+$/.test(normalized)) return '';
+  return text;
+}
+
 const minutes = parseTimeMinutes;
 
 function isOvernightJourney(point = {}, escala = []) {
@@ -162,17 +172,18 @@ export function crossSources({ pointRows = [], previousPointRows = [], scaleRows
     const admExtra = rastreioDispensado && actualDuration > 0 ? Math.max(0, actualDuration - jornadaBaseMin) : null;
     const effectiveExtra = admExtra ?? batidasExtra;
     const extraScaleRows = scaleRows.filter(row => !lineMatchesStandard(row, standardRow));
-    const extraRouteNames = [...new Set(extraScaleRows.map(row => String(row.linha || row.nome || '').trim()).filter(Boolean))];
+    const extraRouteNames = [...new Set(extraScaleRows.map(row => cleanScaleLine(row.linha || row.nome)).filter(Boolean))];
     const extraRouteDetails = extraScaleRows.map(row => {
-      const route = String(row.linha || row.nome || '').trim();
+      const route = cleanScaleLine(row.linha || row.nome);
       const horario = row.horario || row.inicio || row.horarioInicio;
-      return route ? `${route}${horario ? ` às ${horario}` : ''}` : horario || '';
+      return route ? `${route}${horario ? ` às ${horario}` : ''}` : '';
     }).filter(Boolean);
     const trackerExtraLine = standardRow && paradaAnalysis.paradas.find(stop => extraScaleRows.some(row => {
       const scaleTime = timeOf(row.horario || row.inicio || row.horarioInicio);
       const trackerTime = timeOf(stop.horario);
-      const sameLine = String(row.linha || row.nome || '').trim() && String(row.linha || row.nome || '').trim() === String(stop.linha || '').trim();
-      return (sameLine && !stop.foraDaEscala) || timeDistance(scaleTime, trackerTime) <= 30;
+      const scaleLine = cleanScaleLine(row.linha || row.nome);
+      const sameLine = scaleLine && scaleLine === cleanScaleLine(stop.linha);
+      return Boolean(scaleLine) && ((sameLine && !stop.foraDaEscala) || timeDistance(scaleTime, trackerTime) <= 30);
     }));
     const punchExtraLine = standardRow && extraScaleRows.map(row => {
       const scaleTime = timeOf(row.horario || row.inicio || row.horarioInicio);
@@ -182,12 +193,15 @@ export function crossSources({ pointRows = [], previousPointRows = [], scaleRows
     }).filter(Boolean).sort((a, b) => a.diferencaMin - b.diferencaMin)[0];
     const extraLineEvidence = trackerExtraLine || punchExtraLine;
     const extraValidatedBySources = Boolean(trackerExtraLine);
+    const trackerWithoutValidScale = trackerRow && !trackerExtraLine && paradaAnalysis.paradas.some(stop => stop.status === 'confirmada' || stop.status === 'nova');
     const justificativaSugerida = admExtra > 0
       ? `ADM realizou ${admExtra} min acima da jornada base; não existe extra prevista para este setor e a ocorrência precisa ser resolvida.`
-      : extraLineEvidence?.linha || extraRouteNames.length
-      ? extraLineEvidence?.linha
-        ? `${trackerExtraLine ? 'Escala e rastreador indicam' : 'Escala e batida próxima indicam'} que o motorista realizou o cliente/linha “${extraLineEvidence.linha}”${extraLineEvidence.horario ? ` às ${extraLineEvidence.horario}` : ''}; o horário diverge do padrão cadastrado.`
+      : extraLineEvidence?.linha && cleanScaleLine(extraLineEvidence.linha) || extraRouteNames.length
+      ? extraLineEvidence?.linha && cleanScaleLine(extraLineEvidence.linha)
+        ? `${trackerExtraLine ? 'Escala e rastreador indicam' : 'Escala e batida próxima indicam'} que o motorista realizou o cliente/linha “${cleanScaleLine(extraLineEvidence.linha)}”${extraLineEvidence.horario ? ` às ${extraLineEvidence.horario}` : ''}; o horário diverge do padrão cadastrado.`
         : `A escala indica a rota/cliente “${extraRouteDetails.join('”, “')}” fora do horário padrão; falta confirmação do rastreador para comprovar a realização.`
+      : trackerWithoutValidScale
+      ? `Há rastreio compatível com o horário realizado, mas não foi encontrada uma escala válida de cliente/linha para confirmar o transporte.`
       : '';
     const extraCandidate = Math.max(0, reportedHE, batidasExtra || 0);
     const extraAuditoriaStatus = admExtra > 0
@@ -234,8 +248,8 @@ export function crossSources({ pointRows = [], previousPointRows = [], scaleRows
       escalaEncontrada: scaleRows.length > 0,
       escala: matchedScale || null,
       linhasEscala: scaleRows,
-      linhaExtraCandidata: Boolean(extraLineEvidence),
-      linhaExtraDetalhe: extraLineEvidence ? `Possível linha extra: ${extraLineEvidence.linha || 'linha da escala'} — consta na escala de ${point.dateKey || 'do relatório'} e há ${trackerExtraLine ? 'rastreio' : 'batida'} compatível, mas não consta no horário padrão.` : '',
+      linhaExtraCandidata: Boolean(extraLineEvidence && cleanScaleLine(extraLineEvidence.linha)),
+      linhaExtraDetalhe: extraLineEvidence && cleanScaleLine(extraLineEvidence.linha) ? `Possível linha extra: ${cleanScaleLine(extraLineEvidence.linha)} — consta na escala de ${point.dateKey || 'do relatório'} e há ${trackerExtraLine ? 'rastreio' : 'batida'} compatível, mas não consta no horário padrão.` : '',
       ...(justificativaSugerida ? { justificativaSugerida } : {}),
       extraAuditoriaStatus,
       extraCandidataMin: standardExtra <= 0 ? extraCandidate : 0,

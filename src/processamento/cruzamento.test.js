@@ -277,3 +277,25 @@ test('inclui a rota da escala na justificativa quando falta confirmação do ras
   assert.match(row.justificativaSugerida, /Rota extra Cassio/);
   assert.match(row.justificativaSugerida, /19:00/);
 });
+
+test('não usa texto de status como nome de cliente na justificativa', () => {
+  const [row] = crossSources({
+    pointRows: [{ motorista: 'Marcos Viegas', dateKey: '2026-11-04', totalHE: 52, batidas: ['17:00', '20:51'] }],
+    scaleRows: [{ motorista: 'Marcos Viegas', horario: '20:51', linha: 'UTILIZADO às 985446960' }],
+    standardRows: [{ motorista: 'Marcos Viegas', extraNormalPadrao: 0, horarios: ['17:00', '20:00'] }],
+    trackerRows: [{ motorista: 'Marcos Viegas', paradas: [{ horario: '17:00', local: 'garagem' }] }]
+  });
+  assert.doesNotMatch(row.justificativaSugerida || '', /UTILIZADO|985446960/);
+  assert.doesNotMatch(row.linhaExtraDetalhe || '', /UTILIZADO|985446960/);
+});
+
+test('separa rastreio na garagem de cliente confirmado quando não há escala válida', () => {
+  const [row] = crossSources({
+    pointRows: [{ motorista: 'Marco Antonio', dateKey: '2026-11-04', totalHE: 30, batidas: ['06:00', '18:00'] }],
+    scaleRows: [{ motorista: 'Marco Antonio', horario: '18:00', linha: 'garagem' }],
+    standardRows: [{ motorista: 'Marco Antonio', extraNormalPadrao: 0, horarios: ['06:00', '17:30'] }],
+    trackerRows: [{ motorista: 'Marco Antonio', paradas: [{ horario: '18:00', local: 'garagem' }] }]
+  });
+  assert.match(row.justificativaSugerida, /não foi encontrada uma escala válida de cliente\/linha/);
+  assert.equal(row.linhaExtraCandidata, false);
+});
