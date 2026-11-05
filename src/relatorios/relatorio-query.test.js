@@ -170,3 +170,13 @@ test('considera cadastrado o motorista com horários e extra prevista zero', () 
   assert.equal(result.summary.semPadraoMin, 0);
   assert.equal(result.summary.motoristasSemPadrao, 0);
 });
+
+test('não inclui reserva, folguista ou cobre-férias no filtro fora do padrão nem no resumo', () => {
+  const result = consultarDia([{ dateKey: '2026-11-04', items: [
+    { motorista: 'Fixo', setorAtual: 'Motoristas', he1min: 60, padraoCadastradoMin: 0, heAcimaPadraoMin: 60 },
+    { motorista: 'Reserva', setorAtual: 'Reserva', he1min: 120, padraoCadastradoMin: 0, heAcimaPadraoMin: 120 },
+    { motorista: 'Cobre', setorAtual: 'Cobre férias', he1min: 120, padraoCadastradoMin: 0, heAcimaPadraoMin: 120 }
+  ] }], '2026-11-04', { categoria: 'Fora do padrão' });
+  assert.deepEqual(result.items.map(item => item.motorista), ['Fixo']);
+  assert.equal(result.summary.totalHEmin, 60);
+});

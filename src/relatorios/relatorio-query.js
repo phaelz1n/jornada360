@@ -46,7 +46,8 @@ function applyFilters(items, filters = {}) {
   const foraDoPadrao = item => !isCoverageSector(item.setorAtual || item.setor || item.categoria) && total(item) > 0 && (Number(item.heAcimaPadraoMin) > 0 || (meta(item) >= 0 && total(item) > meta(item)));
   return items.filter(item => {
     const category = filters.categoria;
-    const categoryMatch = !category || category === 'Todos' || (category === 'HE.1' && item.he1min > 0) || (category === 'HE.2' && item.he2min > 0) || (category === 'HE.3' && item.he3min > 0) || (category === 'Interjornada' && item.interjornada) || (category === 'Intrajornada' && (item.intrajornada || item.intraJornada || item.temLacuna)) || (category === 'Rastreio divergente' && rastreioDivergente(item)) || (category === 'Fora do padrão' && foraDoPadrao(item));
+    const categoryKey = normalizeDriverName(category);
+    const categoryMatch = !category || categoryKey === 'TODOS' || (categoryKey === 'HE.1' && item.he1min > 0) || (categoryKey === 'HE.2' && item.he2min > 0) || (categoryKey === 'HE.3' && item.he3min > 0) || (categoryKey === 'INTERJORNADA' && item.interjornada) || (categoryKey === 'INTRAJORNADA' && (item.intrajornada || item.intraJornada || item.temLacuna)) || (categoryKey === 'RASTREIO DIVERGENTE' && rastreioDivergente(item)) || (categoryKey === 'FORA DO PADRAO' && foraDoPadrao(item));
     return (!filters.setor || filters.setor === 'Todos' || item.setorAtual === filters.setor) && (!name || String(item.motorista || '').toLocaleLowerCase('pt-BR').includes(name)) && categoryMatch;
   });
 }
