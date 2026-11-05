@@ -33,9 +33,9 @@ export function applyDriverStandard(item = {}, driver = {}) {
   const reportedExtra = hasReportedExtra && item.heBucketsExplicit === true
     ? Number(item.he1min || 0) + Number(item.he2min || 0) + Number(item.he3min || 0)
     : Number(item.totalHE ?? item.he1min ?? item.excedenteMin ?? 0) || 0;
-  const extra = hasReportedExtra && standard.extraNormalPadrao >= 0
-    ? Math.max(0, reportedExtra)
-    : actual != null && expected != null ? Math.max(0, actual - expected) : reportedExtra;
+  const extra = actual != null && expected != null
+    ? Math.max(0, actual - expected)
+    : reportedExtra;
   const buckets = splitExtraHours(extra);
   return { ...item, padraoStatus: 'encontrado', semHorarioPadrao: false, jornadaPrevistaMin: expected, padraoCadastradoMin: standard.extraNormalPadrao, metaDiaMin: standard.extraNormalPadrao, padraoHorarios: standard.horarios, batidasExtraMin: extra, extraCalculadaPelasBatidas: actual != null && expected != null, totalHE: extra, excedenteMin: extra, ...buckets, heBucketsExplicit: true, heDentroPadraoMin: Math.min(extra, Math.max(0, standard.extraNormalPadrao)), heAcimaPadraoMin: Math.max(0, extra - Math.max(0, standard.extraNormalPadrao)) };
 }
