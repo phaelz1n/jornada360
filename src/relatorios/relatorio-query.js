@@ -2,6 +2,7 @@ import { applyDriverStandard, summarizeDay, splitExtraHours, classifyDriverSecto
 import { isCoverageSector } from '../processamento/sector-rules.js';
 
 const asArray = value => Array.isArray(value) ? value : value && typeof value === 'object' ? Object.values(value) : [];
+export const MIN_OUTSIDE_REPORT_MIN = 5;
 
 function isFeriadoOuDsr(item) {
   return Boolean(item.feriado || item.dsr || item.isFeriado || item.isDsr || item.tipoDia === 'FERIADO' || item.tipoDia === 'DSR' || item.classificacao === 'FERIADO' || item.classificacao === 'DSR');
@@ -31,13 +32,17 @@ function normalizeItem(item = {}, cadastro = {}) {
   const driver = cadastro[normalizeDriverName(item.motorista || item.nome)];
   const sector = driver?.setor || driver?.categoria || item.setorAtual || item.setor || item.categoria || 'Sem setor';
   const withStandard = !isCoverageSector(sector) && driver?.horarios?.length >= 2 ? applyDriverStandard(item, driver) : item;
-  const total = minutes(withStandard.totalHE ?? withStandard.excedenteMin ?? withStandard.he1min) || 0;
+  const importedTotal = minutes(withStandard.totalHE ?? withStandard.excedenteMin ?? withStandard.he1min) || 0;
   const buckets = withStandard.heBucketsExplicit || withStandard.he2min || withStandard.he3min
     ? { he1min: Number(withStandard.he1min || 0), he2min: Number(withStandard.he2min || 0), he3min: Number(withStandard.he3min || 0) }
-    : splitExtraHours(total);
-  const he3min = isFeriadoOuDsr(withStandard) ? Math.max(buckets.he3min, total) : buckets.he3min;
+    : splitExtraHours(importedTotal);
+  const he3min = isFeriadoOuDsr(withStandard) ? Math.max(buckets.he3min, importedTotal) : buckets.he3min;
   const { extraCandidataMin: _extraCandidataMin, ...withoutCandidate } = withStandard;
-  return { ...withoutCandidate, ...buckets, he3min, horariosForaPadrao: outsideScheduleTimes(withStandard), setorAtual: sector, setor: sector, feriadoOuDsr: isFeriadoOuDsr(withStandard) };
+  const total = buckets.he1min + buckets.he2min + he3min;
+  const registeredMeta = Number(withStandard.padraoCadastradoMin ?? withStandard.metaDiaMin ?? withStandard.extraNormalPadrao);
+  const rawOutside = Number.isFinite(registeredMeta) && registeredMeta >= 0 ? Math.max(0, total - registeredMeta) : 0;
+  const outside = rawOutside >= MIN_OUTSIDE_REPORT_MIN ? rawOutside : 0;
+  return { ...withoutCandidate, ...buckets, he3min, heDentroPadraoMin: registeredMeta >= 0 && Number.isFinite(registeredMeta) ? total - outside : withStandard.heDentroPadraoMin, heAcimaPadraoMin: outside, horariosForaPadrao: outsideScheduleTimes(withStandard), setorAtual: sector, setor: sector, feriadoOuDsr: isFeriadoOuDsr(withStandard) };
 }
 
 function applyFilters(items, filters = {}) {
@@ -45,7 +50,7 @@ function applyFilters(items, filters = {}) {
   const total = item => Number(item.he1min || 0) + Number(item.he2min || 0) + Number(item.he3min || 0);
   const meta = item => Number(item.padraoCadastradoMin ?? item.metaDiaMin ?? item.padraoMin ?? item.extraNormalPadrao ?? 0) || 0;
   const rastreioDivergente = item => item.rastreadorStatus === 'divergente' || item.statusCruzamento === 'divergente' || (Array.isArray(item.rastreiosForaDaEscala) && item.rastreiosForaDaEscala.length > 0);
-  const foraDoPadrao = item => !isCoverageSector(item.setorAtual || item.setor || item.categoria) && total(item) > 0 && (Number(item.heAcimaPadraoMin) > 0 || (meta(item) >= 0 && total(item) > meta(item)));
+  const foraDoPadrao = item => !isCoverageSector(item.setorAtual || item.setor || item.categoria) && (Number(item.heAcimaPadraoMin || 0) >= MIN_OUTSIDE_REPORT_MIN || (meta(item) >= 0 && total(item) - meta(item) >= MIN_OUTSIDE_REPORT_MIN));
   return items.filter(item => {
     const category = filters.categoria;
     const categoryKey = normalizeDriverName(category);

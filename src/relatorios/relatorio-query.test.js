@@ -129,6 +129,15 @@ test('não inclui motorista sem HE no relatório de horas fora do padrão', () =
   assert.deepEqual(result.items.map(item => item.motorista), ['Marcos Viegas']);
 });
 
+test('ignora até quatro minutos fora do padrão no relatório e na soma', () => {
+  const result = consultarDia([{ dateKey: '2026-10-27', items: [
+    { motorista: 'Ana', he1min: 64, padraoStatus: 'encontrado', padraoCadastradoMin: 60, padraoHorarios: ['08:00', '17:00'] },
+    { motorista: 'Bia', he1min: 65, padraoStatus: 'encontrado', padraoCadastradoMin: 60, padraoHorarios: ['08:00', '17:00'] }
+  ] }], '2026-10-27', { categoria: 'Fora do padrão' });
+  assert.deepEqual(result.items.map(item => item.motorista), ['Bia']);
+  assert.equal(result.summary.heAcimaPadraoMin, 5);
+});
+
 test('não reaplica resumo antigo quando os itens do snapshot foram corrigidos', () => {
   const result = consultarDia([{
     dateKey: '2026-10-27',
