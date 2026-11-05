@@ -87,7 +87,7 @@ function interjornadaFromPrevious(point = {}, previousPoint = {}) {
   return descanso;
 }
 
-function buildEvidence({ batidas = [], paradaAnalysis, totalHE = 0, metaDiaMin = 0 }) {
+function buildEvidence({ batidas = [], paradaAnalysis, totalHE = 0, metaDiaMin = 0, trackerFound = false }) {
   const stops = paradaAnalysis?.paradas || [];
   const punches = batidas.map(minutes).filter(value => value != null);
   const outside = Math.max(0, Number(totalHE) - Number(metaDiaMin));
@@ -99,7 +99,7 @@ function buildEvidence({ batidas = [], paradaAnalysis, totalHE = 0, metaDiaMin =
       horario: `${String(Math.floor(punch / 60) % 24).padStart(2, '0')}:${String(punch % 60).padStart(2, '0')}`,
       diferencaMin: nearest ? nearest.distance : null,
       status: confirmed ? 'confirmada' : 'sem-evidencia',
-      motivo: confirmed ? (stop?.motivo || 'rastreio-próximo') : (stops.length ? 'nenhuma-parada-proxima' : 'sem-rastreio-no-periodo'),
+      motivo: confirmed ? (stop?.motivo || 'rastreio-próximo') : (stops.length ? 'nenhuma-parada-proxima' : trackerFound ? 'rastreio-encontrado-sem-parada-proxima' : 'sem-rastreio-no-periodo'),
       escalaHorario: stop?.escalaHorario || '',
       linhaEscala: stop?.linha || '',
       local: stop?.local || ''
@@ -227,7 +227,7 @@ export function crossSources({ pointRows = [], previousPointRows = [], scaleRows
       : hasReportedExtra && (standardExtra >= 0 || extraValidatedBySources)
       ? reportedHEEffective
       : batidasExtra != null ? batidasExtra : reportedHE;
-    const trackerEvidence = rastreioDispensado ? { evidence: [], outside: 0 } : buildEvidence({ batidas: point.batidas || [], paradaAnalysis, totalHE, metaDiaMin });
+    const trackerEvidence = rastreioDispensado ? { evidence: [], outside: 0 } : buildEvidence({ batidas: point.batidas || [], paradaAnalysis, totalHE, metaDiaMin, trackerFound: Boolean(trackerRow) });
     const history = patternHistory?.[key] || [];
     const repeatedRealized = history.length >= 5 && history.slice(-5).every(value => Math.abs(Number(value) - totalHE) <= 5);
     const foraDaEscalaSemLinha = paradaAnalysis.paradas.find(stop => stop.foraDaEscala && !extraScaleRows.some(row => {

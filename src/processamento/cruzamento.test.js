@@ -315,3 +315,15 @@ test('separa rastreio na garagem de cliente confirmado quando não há escala v�
   assert.equal(row.justificativaSugerida, undefined);
   assert.equal(row.linhaExtraCandidata, false);
 });
+
+test('diferencia motorista encontrado na Cobli de ausência de rastreio', () => {
+  const [row] = crossSources({
+    pointRows: [{ motorista: 'Fabio Pereira dos Santos', batidas: ['22:00', '08:50'] }],
+    scaleRows: [{ motorista: 'Fabio Pereira dos Santos', horario: '22:00', linha: 'Linha noturna' }],
+    trackerRows: [{ motorista: 'Fabio Pereira', sinais: 7, trajetos: [{ partida: '05/11/2026 - 05:05' }] }]
+  });
+
+  assert.equal(row.rastreioEncontrado, true);
+  assert.equal(row.statusCruzamento, 'completo');
+  assert.equal(row.evidenciaRastreador[0].motivo, 'rastreio-encontrado-sem-parada-proxima');
+});
