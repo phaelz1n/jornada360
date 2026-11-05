@@ -46,7 +46,6 @@ function buildResult(items, days, forcedMetaDiaMin = null, cadastro = {}) {
   const normalized = asArray(items).map(item => normalizeItem(item, cadastro));
   const summary = summarizeDay(normalized);
   const totalHEmin = normalized.reduce((total, item) => total + item.he1min + item.he2min + item.he3min, 0);
-  const extraCandidataMin = normalized.reduce((total, item) => total + Math.max(0, minutes(item.extraCandidataMin) || 0), 0);
   const dailyMeta = new Map();
   normalized.forEach(item => {
     const key = item.dateKey || 'sem-data';
@@ -103,7 +102,7 @@ function buildResult(items, days, forcedMetaDiaMin = null, cadastro = {}) {
     current.itens.push(item);
     names.set(key, current);
   });
-  return { items: normalized, summary: { ...summary, registros: normalized.length, colaboradores: names.size, totalHEmin, extraCandidataMin, foraPadraoAuditoriaMin: heAcimaPadraoMin, metaDiaMin, metaMediaDiariaMin, metaPeriodoMin, diasComMeta: dailyMeta.size, excedenteVsMetaMin: totalHEmin - metaPeriodoMin, heDentroPadraoMin, heAcimaPadraoMin, semPadraoMin, motoristasComHE: driversWithHE.size, motoristasSemPadrao: driversWithoutStandard.size, mediaPorOcorrenciaMin, maxPorOcorrenciaMin: occurrences.at(-1) || 0, porSetorDetalhado: bySector }, porMotorista: [...names.values()], porSetor: summary.porSetor, diasProcessados: days };
+  return { items: normalized, summary: { ...summary, registros: normalized.length, colaboradores: names.size, totalHEmin, foraPadraoAuditoriaMin: heAcimaPadraoMin, metaDiaMin, metaMediaDiariaMin, metaPeriodoMin, diasComMeta: dailyMeta.size, excedenteVsMetaMin: totalHEmin - metaPeriodoMin, heDentroPadraoMin, heAcimaPadraoMin, semPadraoMin, motoristasComHE: driversWithHE.size, motoristasSemPadrao: driversWithoutStandard.size, mediaPorOcorrenciaMin, maxPorOcorrenciaMin: occurrences.at(-1) || 0, porSetorDetalhado: bySector }, porMotorista: [...names.values()], porSetor: summary.porSetor, diasProcessados: days };
 }
 
 export function consultarDia(snapshots = [], dateKey, filters = {}, cadastro = {}) {

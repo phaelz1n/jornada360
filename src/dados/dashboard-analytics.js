@@ -29,11 +29,10 @@ function dailySeries(items) {
   const days = new Map();
   items.forEach(item => {
     const dateKey = item.dateKey || 'sem-data';
-    const row = days.get(dateKey) || { dateKey, totalHEmin: 0, extraCandidataMin: 0, he1min: 0, he2min: 0, he3min: 0, dentroPadraoMin: 0, acimaPadraoMin: 0, metaMin: 0 };
+    const row = days.get(dateKey) || { dateKey, totalHEmin: 0, he1min: 0, he2min: 0, he3min: 0, dentroPadraoMin: 0, acimaPadraoMin: 0, metaMin: 0 };
     const total = totalHE(item);
     const meta = positiveMeta(item);
     row.totalHEmin += total;
-    row.extraCandidataMin += Math.max(0, finite(item.extraCandidataMin));
     row.he1min += Math.max(0, finite(item.he1min));
     row.he2min += Math.max(0, finite(item.he2min));
     row.he3min += Math.max(0, finite(item.he3min));
@@ -60,7 +59,6 @@ function buildDashboardAnalytics({ report = {}, snapshots = [], motoristas = [] 
     result[bucket] = items.reduce((sum, item) => sum + Math.max(0, finite(item[bucket])), 0);
     return result;
   }, { he1min: 0, he2min: 0, he3min: 0 });
-  bucketComposition.extraCandidataMin = items.reduce((sum, item) => sum + Math.max(0, finite(item.extraCandidataMin)), 0);
   bucketComposition.semPadraoMin = items.reduce((sum, item) => sum + (hasStandard(item) || positiveMeta(item) > 0 ? 0 : totalHE(item)), 0);
   bucketComposition.totalHEmin = BUCKETS.reduce((sum, bucket) => sum + bucketComposition[bucket], 0);
 
@@ -94,7 +92,7 @@ function buildDashboardAnalytics({ report = {}, snapshots = [], motoristas = [] 
       interjornada: item.interjornada || item.interjornadaProblema,
       intrajornada: item.intrajornada || item.intraJornada || item.temLacuna || item.intervaloObrigatorioAusente,
       foraDaEscala: item.foraDaEscalaProblema,
-      semPadrao: !hasStandard(item) && (item.semHorarioPadrao || item.padraoStatus === 'sem_cadastro' || (positiveMeta(item) <= 0 && (totalHE(item) > 0 || finite(item.extraCandidataMin) > 0))),
+      semPadrao: !hasStandard(item) && (item.semHorarioPadrao || item.padraoStatus === 'sem_cadastro' || (positiveMeta(item) <= 0 && totalHE(item) > 0)),
       rastreioDivergente: item.rastreadorStatus === 'divergente'
     };
     Object.entries(risks).forEach(([key, active]) => { if (active) riskDetails[key].add(name); });

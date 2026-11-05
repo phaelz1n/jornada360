@@ -4,7 +4,6 @@ export function ExecutiveCards({ summary = {}, delta = 0, faltas = 0, selectedBu
   const cards = [
     [summary.registros || 0, 'registros', '', ''],
     [fmt(summary.totalHEmin), 'horas extras totais', '', ''],
-    [fmt(summary.extraCandidataMin || 0), 'HE candidatas a conferir', '', ''],
     [fmt(summary.metaPeriodoMin || 0), 'meta do período (média do padrão)', '', ''],
     [fmt(summary.he1min || 0), 'HE.1', '', ''],
     [fmt(summary.he2min || 0), 'HE.2', '', 'he2min'],
