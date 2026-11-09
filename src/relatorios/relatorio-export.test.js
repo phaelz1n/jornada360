@@ -14,3 +14,15 @@ test('exporta a data de cada registro no relatório CSV', () => {
   assert.match(csv, /^"Data";"Motorista"/);
   assert.match(csv, /"2026-11-05";"Aldemir Nascimento Paz"/);
 });
+
+test('exporta registros legados com horários salvos como texto', () => {
+  const csv = buildReportCsv([{
+    dateKey: '2026-11-06',
+    motorista: 'Maria Silvana Goncalves',
+    batidas: '08:00 · 12:00',
+    padraoHorarios: '08:00 · 12:00',
+  }]);
+
+  assert.match(csv, /"2026-11-06";"Maria Silvana Goncalves"/);
+  assert.match(csv, /"08:00 · 12:00"/);
+});
