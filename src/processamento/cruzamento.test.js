@@ -142,6 +142,27 @@ test('sugere justificativa com o cliente da linha extra confirmada', () => {
   assert.match(row.justificativaSugerida, /https:\/\/rastreo\.test\/parada\/1/);
 });
 
+test('não acusa falta de rastreio quando a linha extra da escala está confirmada', () => {
+  const [row] = crossSources({
+    pointRows: [{ motorista: 'Jean de Souza Alves', dateKey: '2026-11-06', batidas: ['09:41', '10:29', '12:00', '18:46'], totalHE: 14 }],
+    scaleRows: [
+      { motorista: 'Jean de Souza Alves', horario: '09:40', linha: 'Cliente extra' },
+      { motorista: 'Jean de Souza Alves', horario: '12:40', linha: 'Linha padrão' }
+    ],
+    standardRows: [{ motorista: 'Jean de Souza Alves', extraNormalPadrao: 0, horarios: ['12:40', '16:15', '17:30', '19:30'] }],
+    trackerRows: [{ motorista: 'Jean de Souza Alves', paradas: [
+      { horario: '09:40', dataKey: '2026-11-06', local: 'Cliente extra' },
+      { horario: '10:30', dataKey: '2026-11-06', local: 'Cliente extra' },
+      { horario: '12:01', dataKey: '2026-11-06', local: 'Linha padrão' },
+      { horario: '18:45', dataKey: '2026-11-06', local: 'Linha padrão' }
+    ] }]
+  });
+
+  assert.equal(row.rastreadorStatus, 'confirmado');
+  assert.equal(row.extraAuditoriaStatus, 'linha-extra-com-rastreio');
+  assert.match(row.justificativaSugerida, /Cliente extra/);
+});
+
 test('separa problema fora da escala de possível linha extra', () => {
   const [row] = crossSources({
     pointRows: [{ motorista: 'Ana', dateKey: '2026-10-27', he1min: 30 }],
@@ -357,4 +378,33 @@ test('usa a partida do trajeto do rastreador para confirmar a batida próxima', 
 
   assert.deepEqual(row.evidenciaRastreador.map(item => item.status), ['confirmada', 'confirmada']);
   assert.deepEqual(row.evidenciaRastreador.map(item => item.diferencaMin), [1, 6]);
+});
+
+test('não usa partida sem chegada para confirmar batida após o último rastreio', () => {
+  const [row] = crossSources({
+    pointRows: [{ motorista: 'Jose Luis Moreira', dateKey: '2026-11-06', batidas: ['12:58', '18:22', '22:01', '00:25'] }],
+    trackerRows: [{
+      motorista: 'JOSE LUIS MOREIRA',
+      paradas: [{ horario: '12:57', dataKey: '2026-11-06' }, { horario: '16:35', dataKey: '2026-11-06' }],
+      trajetos: [{ partida: '06/11/2026 - 18:03', parada: '' }]
+    }]
+  });
+
+  const evidence = row.evidenciaRastreador.find(item => item.horario === '18:22');
+  assert.equal(evidence.status, 'sem-evidencia');
+  assert.equal(evidence.motivo, 'fim-do-rastreio');
+  assert.equal(evidence.diferencaMin, null);
+});
+
+test('não usa rastreio de outro dia para calcular a diferença da batida', () => {
+  const [row] = crossSources({
+    pointRows: [{ motorista: 'Jose Luis Moreira', dateKey: '2026-11-06', batidas: ['18:22'] }],
+    trackerRows: [{ motorista: 'JOSE LUIS MOREIRA', paradas: [
+      { horario: '16:35', dataKey: '2026-11-05' }
+    ] }]
+  });
+
+  assert.equal(row.paradasRastreador.length, 0);
+  assert.equal(row.evidenciaRastreador[0].diferencaMin, null);
+  assert.equal(row.evidenciaRastreador[0].motivo, 'sem-rastreio-no-periodo');
 });

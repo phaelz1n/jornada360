@@ -91,15 +91,17 @@ function buildEvidence({ batidas = [], paradaAnalysis, totalHE = 0, metaDiaMin =
   const stops = paradaAnalysis?.paradas || [];
   const punches = batidas.map(minutes).filter(value => value != null);
   const outside = Math.max(0, Number(totalHE) - Number(metaDiaMin));
+  const lastStopMinute = stops.map(stop => minutes(stop.horario)).filter(value => value != null).sort((a, b) => b - a)[0];
   const evidence = punches.map(punch => {
     const nearest = stops.map(stop => ({ stop, distance: Math.abs(punch - minutes(stop.horario)) })).sort((a, b) => a.distance - b.distance)[0];
     const stop = nearest?.stop;
     const confirmed = Boolean(nearest && nearest.distance <= 15);
+    const endedBeforePunch = !confirmed && lastStopMinute != null && punch > lastStopMinute + 15;
     return {
       horario: `${String(Math.floor(punch / 60) % 24).padStart(2, '0')}:${String(punch % 60).padStart(2, '0')}`,
-      diferencaMin: nearest ? nearest.distance : null,
+      diferencaMin: endedBeforePunch ? null : nearest ? nearest.distance : null,
       status: confirmed ? 'confirmada' : 'sem-evidencia',
-      motivo: confirmed ? (stop?.motivo || 'rastreio-próximo') : trackerFound ? 'rastreio-encontrado-sem-parada-proxima' : (stops.length ? 'nenhuma-parada-proxima' : 'sem-rastreio-no-periodo'),
+      motivo: confirmed ? (stop?.motivo || 'rastreio-próximo') : endedBeforePunch ? 'fim-do-rastreio' : trackerFound ? 'rastreio-encontrado-sem-parada-proxima' : (stops.length ? 'nenhuma-parada-proxima' : 'sem-rastreio-no-periodo'),
       escalaHorario: stop?.escalaHorario || '',
       linhaEscala: stop?.linha || '',
       local: stop?.local || ''
@@ -151,6 +153,7 @@ export function crossSources({ pointRows = [], previousPointRows = [], scaleRows
     const previousPoint = Array.isArray(previousMatch) ? previousMatch[0] : previousMatch;
     const descansoInterjornadaMin = interjornadaFromPrevious(point, previousPoint || {});
     const paradaAnalysis = analisarParadasRastreador({ batidas: point.batidas || [], escala: scaleRows, rastreador: trackerRow || {} });
+    const trackerFoundForDate = Boolean(trackerRow && (!allowedDates || (trackerRow.paradas || []).length || (trackerRow.trajetos || []).length));
     const intervalAnalysis = analyzeIntervals(point.batidas || [], point);
     const matchedScale = paradaAnalysis.paradas.find(stop => stop.status === 'confirmada')?.linha
       ? scaleRows.find(row => String(row.linha || row.nome || '') === paradaAnalysis.paradas.find(stop => stop.status === 'confirmada').linha)
@@ -205,6 +208,7 @@ export function crossSources({ pointRows = [], previousPointRows = [], scaleRows
         return line && scaleTime != null && timeDistance(scaleTime, stopTime) <= 30 ? { line, scaleTime } : null;
       }).filter(Boolean).sort((a, b) => timeDistance(a.scaleTime, timeOf(trackerExtraLine.horario)) - timeDistance(b.scaleTime, timeOf(trackerExtraLine.horario)))[0]
       : null;
+    const trackerExtraRoute = trackerExtraLine ? cleanScaleLine(trackerExtraLine.linha) : '';
     const punchExtraLine = standardRow && extraScaleRows.map(row => {
       const scaleTime = timeOf(row.horario || row.inicio || row.horarioInicio);
       if (scaleTime == null) return null;
@@ -218,6 +222,8 @@ export function crossSources({ pointRows = [], previousPointRows = [], scaleRows
       ? `ADM realizou ${admExtra} min acima da jornada base; não existe extra prevista para este setor e a ocorrência precisa ser resolvida.`
       : trackerExtraLocation
       ? `Às ${trackerExtraLine.horario}, a linha “${trackerExtraLocation.line}” está fora do padrão; rastreio: ${trackerExtraLine.link}.`
+      : trackerExtraLine && trackerExtraRoute
+      ? `Às ${trackerExtraLine.horario}, a linha “${trackerExtraRoute}” está fora do padrão e foi confirmada pelo rastreador.`
       : '';
     const extraCandidate = hasReportedExtra
       ? Math.max(0, reportedHE)
@@ -236,7 +242,7 @@ export function crossSources({ pointRows = [], previousPointRows = [], scaleRows
       : hasReportedExtra && (standardExtra >= 0 || extraValidatedBySources)
       ? reportedHEEffective
       : batidasExtra != null ? batidasExtra : reportedHE;
-    const trackerEvidence = rastreioDispensado ? { evidence: [], outside: 0 } : buildEvidence({ batidas: point.batidas || [], paradaAnalysis, totalHE, metaDiaMin, trackerFound: Boolean(trackerRow) });
+    const trackerEvidence = rastreioDispensado ? { evidence: [], outside: 0 } : buildEvidence({ batidas: point.batidas || [], paradaAnalysis, totalHE, metaDiaMin, trackerFound: trackerFoundForDate });
     const history = patternHistory?.[key] || [];
     const repeatedRealized = history.length >= 5 && history.slice(-5).every(value => Math.abs(Number(value) - totalHE) <= 5);
     const foraDaEscalaSemLinha = paradaAnalysis.paradas.find(stop => stop.foraDaEscala && !extraScaleRows.some(row => {
@@ -273,7 +279,7 @@ export function crossSources({ pointRows = [], previousPointRows = [], scaleRows
       extraAuditoriaDetalhe: extraAuditoriaStatus === 'adm-extra-problema' ? `ADM não possui extra prevista: foram identificados ${admExtra} min acima da jornada base. Resolver a ocorrência antes de validar.` : extraAuditoriaStatus === 'possivel-linha-extra' ? `Há ${extraRouteNames.length ? `linha(s) na escala: ${extraRouteNames.join(', ')} ` : 'uma linha na escala '}fora do horário padrão, mas falta confirmação do rastreador.` : extraAuditoriaStatus === 'rastreio-sem-linha' ? 'Há rastreio no período, mas não foi encontrada linha correspondente na escala.' : extraAuditoriaStatus === 'sem-escala-sem-rastreio' ? 'Há excesso no ponto, mas não foi encontrada escala nem rastreio para comprovação.' : '',
       foraDaEscalaProblema: Boolean(foraDaEscalaSemLinha),
       foraDaEscalaDetalhe: foraDaEscalaSemLinha ? `Problema para conferir: o veículo rodou às ${foraDaEscalaSemLinha.horario}, mas esse horário não bateu com nenhuma linha da escala de ${point.dateKey || 'do relatório'}.` : '',
-      rastreioEncontrado: Boolean(trackerRow),
+      rastreioEncontrado: trackerFoundForDate,
       rastreio: rastreioCompacto,
       paradasRastreador: paradaAnalysis.paradas,
       resumoRastreador: {
@@ -282,7 +288,7 @@ export function crossSources({ pointRows = [], previousPointRows = [], scaleRows
         possiveisTransitos: paradaAnalysis.possiveisTransitos,
         confirmadas: paradaAnalysis.confirmadas
       },
-      statusCruzamento: scaleRows.length && (trackerRow || rastreioDispensado) ? 'completo' : scaleRows.length ? 'sem rastreador' : trackerRow ? 'sem escala' : 'sem correspondência',
+      statusCruzamento: scaleRows.length && (trackerFoundForDate || rastreioDispensado) ? 'completo' : scaleRows.length ? 'sem rastreador' : trackerFoundForDate ? 'sem escala' : 'sem correspondência',
     };
   });
 }

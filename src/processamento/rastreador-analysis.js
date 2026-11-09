@@ -28,7 +28,7 @@ function normalizeStops(rastreador = {}) {
     tipo: stop.tipo || stop.type || '',
     link: stop.link || stop.url || ''
   }));
-  const departures = (rastreador.trajetos || []).map(trajeto => ({
+  const departures = (rastreador.trajetos || []).filter(trajeto => trajeto.partida && trajeto.parada).map(trajeto => ({
     horario: String(trajeto.partida || trajeto.dataHoraPartida || '').match(/\d{1,2}:\d{2}/)?.[0] || '',
     dataKey: dateFromValue(trajeto.partida || trajeto.dataHoraPartida),
     duracaoMin: 0,
