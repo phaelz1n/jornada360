@@ -10,6 +10,7 @@ const JORNADA_7320_NOMES = new Set([
   'ROMULO CAVALCANTE BARCELOS',
   'MARIA SILVANA GONCALVES'
 ]);
+const JORNADA_7320_TODOS_OS_DIAS = new Set(['MARIA SILVANA GONCALVES']);
 
 export function normalizeDriverName(name) {
   return String(name || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().replace(/\s+/g, ' ').toLocaleUpperCase('pt-BR');
@@ -19,7 +20,8 @@ function jornadaEspecial7320(nome, dateKey) {
   const [year, month, day] = String(dateKey || '').split('-').map(Number);
   if (!year || !month || !day) return null;
   const weekday = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
-  return weekday >= 1 && weekday <= 6 && JORNADA_7320_NOMES.has(normalizeDriverName(nome))
+  const nomeNormalizado = normalizeDriverName(nome);
+  return (JORNADA_7320_TODOS_OS_DIAS.has(nomeNormalizado) || (weekday >= 1 && weekday <= 6 && JORNADA_7320_NOMES.has(nomeNormalizado)))
     ? ['08:00', '12:00', '13:20', '16:40']
     : null;
 }
