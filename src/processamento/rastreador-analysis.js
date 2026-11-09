@@ -3,6 +3,14 @@ function timeToMinutes(value) {
   return match ? Number(match[1]) * 60 + Number(match[2]) : null;
 }
 
+function dateFromValue(value) {
+  const text = String(value ?? '');
+  const iso = text.match(/(\d{4})[-\/](\d{2})[-\/](\d{2})/);
+  if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
+  const brazilian = text.match(/(\d{2})[-\/](\d{2})[-\/](\d{4})/);
+  return brazilian ? `${brazilian[3]}-${brazilian[2]}-${brazilian[1]}` : '';
+}
+
 function scaleTimes(value) {
   const matches = String(value ?? '').match(/\d{1,2}:\d{2}/g) || [];
   return { inicio: timeToMinutes(matches[0]), fim: timeToMinutes(matches[1] || matches[0]) };
@@ -10,7 +18,7 @@ function scaleTimes(value) {
 
 function normalizeStops(rastreador = {}) {
   const source = rastreador.paradas || rastreador.stops || [];
-  return source.map(stop => ({
+  const stops = source.map(stop => ({
     horario: stop.horario || stop.hora || stop.time || '',
     dataKey: stop.dataKey || '',
     minuto: timeToMinutes(stop.horario || stop.hora || stop.time),
@@ -19,6 +27,19 @@ function normalizeStops(rastreador = {}) {
     endereco: stop.endereco || stop.local || stop.address || '',
     tipo: stop.tipo || stop.type || '',
     link: stop.link || stop.url || ''
+  }));
+  const departures = (rastreador.trajetos || []).map(trajeto => ({
+    horario: String(trajeto.partida || trajeto.dataHoraPartida || '').match(/\d{1,2}:\d{2}/)?.[0] || '',
+    dataKey: dateFromValue(trajeto.partida || trajeto.dataHoraPartida),
+    duracaoMin: 0,
+    local: trajeto.local || '',
+    endereco: trajeto.endereco || '',
+    tipo: 'partida',
+    link: trajeto.link || ''
+  }));
+  return [...stops, ...departures].map(stop => ({
+    ...stop,
+    minuto: timeToMinutes(stop.horario)
   })).filter(stop => stop.minuto != null);
 }
 

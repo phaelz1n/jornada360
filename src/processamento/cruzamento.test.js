@@ -338,3 +338,23 @@ test('não chama de sem rastreio a batida sem parada próxima quando há outras 
   assert.equal(row.evidenciaRastreador[0].motivo, 'rastreio-encontrado-sem-parada-proxima');
   assert.equal(row.evidenciaRastreador[1].status, 'confirmada');
 });
+
+test('usa a partida do trajeto do rastreador para confirmar a batida próxima', () => {
+  const [row] = crossSources({
+    pointRows: [{ motorista: 'Aldemir Nascimento Paz', batidas: ['16:32', '20:31'], dateKey: '2026-11-05' }],
+    trackerRows: [{
+      motorista: 'ALDEMIR NASCIMENTO PAZ',
+      paradas: [
+        { horario: '17:02', dataKey: '2026-11-05' },
+        { horario: '21:39', dataKey: '2026-11-05' }
+      ],
+      trajetos: [
+        { partida: '05/11/2026 - 16:33', parada: '05/11/2026 - 17:02' },
+        { partida: '05/11/2026 - 20:37', parada: '05/11/2026 - 21:39' }
+      ]
+    }]
+  });
+
+  assert.deepEqual(row.evidenciaRastreador.map(item => item.status), ['confirmada', 'confirmada']);
+  assert.deepEqual(row.evidenciaRastreador.map(item => item.diferencaMin), [1, 6]);
+});

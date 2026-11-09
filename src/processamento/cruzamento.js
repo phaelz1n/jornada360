@@ -127,14 +127,23 @@ export function crossSources({ pointRows = [], previousPointRows = [], scaleRows
     const punches = (point.batidas || []).map(minutes).filter(value => value != null);
     const overnightEnd = overnight && punches.length ? punches[punches.length - 1] : null;
     const trackerRow = rawTrackerRow && allowedDates && Array.isArray(rawTrackerRow.paradas)
-      ? { ...rawTrackerRow, paradas: rawTrackerRow.paradas.filter(stop => {
-        if (stop.dataKey && !allowedDates.has(stop.dataKey)) return false;
-        if (overnight && stop.dataKey === nextDateKey(point.dateKey) && overnightEnd != null) {
-          const stopMinute = minutes(stop.horario);
-          return stopMinute == null || stopMinute <= overnightEnd + 30;
-        }
-        return true;
-      }) }
+      ? { ...rawTrackerRow,
+        paradas: rawTrackerRow.paradas.filter(stop => {
+          if (stop.dataKey && !allowedDates.has(stop.dataKey)) return false;
+          if (overnight && stop.dataKey === nextDateKey(point.dateKey) && overnightEnd != null) {
+            const stopMinute = minutes(stop.horario);
+            return stopMinute == null || stopMinute <= overnightEnd + 30;
+          }
+          return true;
+        }),
+        trajetos: (rawTrackerRow.trajetos || []).filter(trajeto => {
+          const value = String(trajeto.partida || trajeto.dataHoraPartida || '');
+          const iso = value.match(/(\d{4})[-\/](\d{2})[-\/](\d{2})/);
+          const br = value.match(/(\d{2})[-\/](\d{2})[-\/](\d{4})/);
+          const dataKey = iso ? `${iso[1]}-${iso[2]}-${iso[3]}` : br ? `${br[3]}-${br[2]}-${br[1]}` : '';
+          return !dataKey || allowedDates.has(dataKey);
+        })
+      }
       : rawTrackerRow;
     const standardMatch = isCoverageSector(setor) ? undefined : findDriver(standard, key);
     const standardRow = Array.isArray(standardMatch) ? standardMatch[0] : standardMatch;
