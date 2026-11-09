@@ -147,7 +147,7 @@ export function crossSources({ pointRows = [], previousPointRows = [], scaleRows
         })
       }
       : rawTrackerRow;
-    const standardMatch = isCoverageSector(setor) ? undefined : findDriver(standard, key);
+    const standardMatch = findDriver(standard, key);
     const standardRow = Array.isArray(standardMatch) ? standardMatch[0] : standardMatch;
     const previousMatch = findDriver(indexByDriver(previousPointRows), key);
     const previousPoint = Array.isArray(previousMatch) ? previousMatch[0] : previousMatch;
@@ -184,7 +184,9 @@ export function crossSources({ pointRows = [], previousPointRows = [], scaleRows
     const standardExtra = Math.max(0, rawStandardExtra || 0);
     const reportedHEEffective = reportedHE;
     const jornadaBaseMin = rastreioDispensado ? sectorPolicy.baseMinutes : null;
-    const admExtra = rastreioDispensado && actualDuration > 0 ? Math.max(0, actualDuration - jornadaBaseMin) : null;
+    const admExtra = rastreioDispensado && actualDuration > 0
+      ? standardRow && standardDuration > 0 ? Math.max(0, actualDuration - standardDuration) : Math.max(0, actualDuration - jornadaBaseMin)
+      : null;
     const effectiveExtra = admExtra ?? batidasExtra;
     const extraScaleRows = scaleRows.filter(row => !lineMatchesStandard(row, standardRow));
     const extraRouteNames = [...new Set(extraScaleRows.map(row => cleanScaleLine(row.linha || row.nome)).filter(Boolean))];

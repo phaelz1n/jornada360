@@ -163,6 +163,19 @@ test('não acusa falta de rastreio quando a linha extra da escala está confirma
   assert.match(row.justificativaSugerida, /Cliente extra/);
 });
 
+test('usa o padrão cadastrado de ADM quando existe jornada completa', () => {
+  const [row] = crossSources({
+    pointRows: [{ motorista: 'Diego Knevtiz Oliveira', dateKey: '2026-11-07', batidas: ['08:14', '12:09', '13:33', '15:56'] }],
+    cadastro: { 'DIEGO KNEVTIZ OLIVEIRA': { setor: 'ADM' } },
+    standardRows: [{ motorista: 'Diego Knevtiz Oliveira', extraNormalPadrao: 0, horarios: ['08:00', '12:00', '13:10', '16:30'] }]
+  });
+
+  assert.equal(row.padraoStatus, 'encontrado');
+  assert.equal(row.jornadaPrevistaMin, 440);
+  assert.equal(row.totalHE, 0);
+  assert.equal(row.heAcimaPadraoMin, 0);
+});
+
 test('separa problema fora da escala de possível linha extra', () => {
   const [row] = crossSources({
     pointRows: [{ motorista: 'Ana', dateKey: '2026-10-27', he1min: 30 }],
