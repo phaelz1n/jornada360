@@ -1,14 +1,33 @@
 import { durationFromPairs } from './time-utils.js';
 
+const JORNADA_7320_NOMES = new Set([
+  'JOSUE WEBER GIENDRUCZAK',
+  'PAULO RAFAEL DA SILVA VARGAS',
+  'VINICIUS ROSA DA CUNHA',
+  'RODRIGO MARTINS DA SILVA',
+  'DIEGO KNEVITZ OLIVEIRA'
+]);
+
 export function normalizeDriverName(name) {
   return String(name || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().replace(/\s+/g, ' ').toLocaleUpperCase('pt-BR');
 }
 
-export function driverToStandardRow(driver = {}) {
+function jornadaEspecial7320(nome, dateKey) {
+  const [year, month, day] = String(dateKey || '').split('-').map(Number);
+  if (!year || !month || !day) return null;
+  const weekday = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+  return weekday >= 1 && weekday <= 6 && JORNADA_7320_NOMES.has(normalizeDriverName(nome))
+    ? ['08:00', '12:00', '13:20', '16:40']
+    : null;
+}
+
+export function driverToStandardRow(driver = {}, dateKey = '') {
+  const horarios = jornadaEspecial7320(driver.nome || driver.motorista, dateKey)
+    || (Array.isArray(driver.horarios) ? driver.horarios.filter(Boolean).map(value => String(value).trim()).filter(Boolean) : []);
   return {
     motorista: String(driver.nome || driver.motorista || '').trim(),
     extraNormalPadrao: Math.max(0, Number(driver.extraNormalPadrao ?? driver.extraPrevistaMin ?? 0) || 0),
-    horarios: Array.isArray(driver.horarios) ? driver.horarios.filter(Boolean).map(value => String(value).trim()).filter(Boolean) : []
+    horarios
   };
 }
 
@@ -25,7 +44,7 @@ export function mergeDriverStandardRows(drivers = [], standardRows = []) {
 }
 
 export function applyDriverStandard(item = {}, driver = {}) {
-  const standard = driverToStandardRow(driver);
+  const standard = driverToStandardRow(driver, item.dateKey);
   if (!standard.horarios.length) return { ...item, padraoStatus: 'sem_cadastro', semHorarioPadrao: true };
   const actual = durationFromPairs(item.batidas || []);
   const expected = durationFromPairs(standard.horarios);

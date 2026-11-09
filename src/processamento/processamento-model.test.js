@@ -77,6 +77,17 @@ test('normaliza extra padrão negativa para zero', () => {
   assert.equal(driverToStandardRow({ nome: 'Marcos', extraNormalPadrao: -85 }).extraNormalPadrao, 0);
 });
 
+test('aplica jornada de 7h20 aos supervisores configurados de segunda a sábado', () => {
+  const item = applyDriverStandard({ motorista: 'Josué Weber Giendruczak', dateKey: '2026-11-09', batidas: ['08:00', '12:00', '13:20', '16:40'] }, { nome: 'Josué Weber Giendruczak', horarios: [] });
+  assert.equal(item.jornadaPrevistaMin, 440);
+  assert.equal(item.totalHE, 0);
+});
+
+test('não aplica a jornada especial no domingo', () => {
+  const item = applyDriverStandard({ motorista: 'Josué Weber Giendruczak', dateKey: '2026-11-08', batidas: ['08:00', '12:00', '13:20', '16:40'] }, { nome: 'Josué Weber Giendruczak', horarios: [] });
+  assert.equal(item.padraoStatus, 'sem_cadastro');
+});
+
 test('recalcula o padrão de um snapshot quando o cadastro é atualizado', () => {
   const item = applyDriverStandard({ motorista: 'Ana', batidas: ['08:00', '12:00', '13:00', '18:00'] }, { nome: 'Ana', horarios: ['08:00', '12:00', '13:00', '17:00'], extraNormalPadrao: 30 });
   assert.equal(item.totalHE, 60);

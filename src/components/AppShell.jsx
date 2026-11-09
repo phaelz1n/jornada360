@@ -167,7 +167,7 @@ export function AppShell({ user, dashboardData, onLogout }) {
     const newDrivers = [...new Map(pointRows.map(row => [normalizeDriverName(row.motorista), row.motorista]).filter(([key]) => key && !knownDrivers.has(key))).values()].map(nome => ({ nome, setor: 'Sem setor', padraoStatus: 'pendente', horarios: [], extraNormalPadrao: 0 }));
     const driversForImport = [...driversWithImportedStandard, ...newDrivers];
     const cadastro = Object.fromEntries(driversForImport.map(driver => [normalizeDriverName(driver.nome), driver]));
-    const items = crossSources({ pointRows: pointRows.map(row => ({ ...row, dateKey })), previousPointRows, scaleRows: extractScaleRows(payload.rowData?.escala || [], dateKey), trackerRows: normalizeTrackerRows(payload.rowData?.rastreador || []), standardRows: driversForImport.map(driverToStandardRow), cadastro });
+    const items = crossSources({ pointRows: pointRows.map(row => ({ ...row, dateKey })), previousPointRows, scaleRows: extractScaleRows(payload.rowData?.escala || [], dateKey), trackerRows: normalizeTrackerRows(payload.rowData?.rastreador || []), standardRows: driversForImport.map(driver => driverToStandardRow(driver, dateKey)), cadastro });
     const processedDay = prepareProcessedDay({ dateKey, items, cadastro });
     const record = buildImportRecord({ ...payload, actorEmail: user?.email });
     window.dispatchEvent(new CustomEvent('jornada360:sync-start'));
