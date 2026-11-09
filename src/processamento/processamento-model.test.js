@@ -78,7 +78,7 @@ test('normaliza extra padrão negativa para zero', () => {
 });
 
 test('aplica jornada de 7h20 aos supervisores configurados de segunda a sábado', () => {
-  for (const nome of ['Josué Weber Giendruczak', 'Wagner Luis Maciel Vargas', 'Rômulo Cavalcante Barcelos']) {
+  for (const nome of ['Josué Weber Giendruczak', 'Wagner Luis Maciel Vargas', 'Rômulo Cavalcante Barcelos', 'Maria Silvana Gonçalves']) {
     const item = applyDriverStandard({ motorista: nome, dateKey: '2026-11-09', batidas: ['08:00', '12:00', '13:20', '16:40'] }, { nome, horarios: [] });
     assert.equal(item.jornadaPrevistaMin, 440);
     assert.equal(item.totalHE, 0);
