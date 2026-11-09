@@ -6,7 +6,7 @@ import { asArray } from '../utils/collections.js';
 import { mergeDriverDocuments, saveDriver } from '../lib/firestore-writes.js';
 import { normalizeSnapshotDateKey } from '../dados/snapshot-history.js';
 import { duplicateDriverError, findSimilarDriverNames, mergeDuplicateDrivers } from '../cadastro/motoristas-duplicates.js';
-import { buildReportCsv } from '../relatorios/relatorio-export.js';
+import { buildReportCsv, formatReportTimes } from '../relatorios/relatorio-export.js';
 
 function duplicateTokens(name) {
   return String(name || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR').replace(/[^a-z0-9 ]/g, '').trim().split(/\s+/).filter(Boolean);
@@ -111,7 +111,7 @@ function ReportsPanelBody({ items = [], snapshots = [], initialDate, motoristas 
   const report = useMemo(() => mode === 'dia' ? consultarDia(sourceSnapshots, dateKey, { setor: sector, motorista: search, categoria: category }, cadastro) : consultarPeriodo(sourceSnapshots, selectedPeriod || { inicio: dateKey, fim: dateKey }, { setor: sector, motorista: search, categoria: category }, cadastro), [mode, sourceSnapshots, dateKey, selectedPeriod, sector, search, category, cadastro]);
   const summary = report.summary;
   const format = value => `${Math.floor(value / 60)}h${String(value % 60).padStart(2, '0')}`;
-  const filtered = report.items.map(item => category === 'Fora do padrão' ? { ...item, he1str: `Fora: ${(item.horariosForaPadrao || []).join(' · ') || 'verificar batidas'} · Excedente: ${format(item.heAcimaPadraoMin || 0)}` } : item);
+  const filtered = report.items.map(item => category === 'Fora do padrão' ? { ...item, he1str: `Fora: ${formatReportTimes(item.horariosForaPadrao) || 'verificar batidas'} · Excedente: ${format(item.heAcimaPadraoMin || 0)}` } : item);
   function downloadCsv() {
     const lines = buildReportCsv(filtered);
     const url = URL.createObjectURL(new Blob([`\ufeff${lines.join('\n')}`], { type: 'text/csv;charset=utf-8' })); const link = document.createElement('a'); link.href = url; link.download = 'jornada360-relatorio.csv'; link.click(); URL.revokeObjectURL(url);
