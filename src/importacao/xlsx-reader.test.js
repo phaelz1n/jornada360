@@ -7,7 +7,8 @@ test('lê linhas da primeira aba usando a API XLSX injetada', async () => {
   const XLSX = {
     read: (buffer, options) => {
       assert.equal(buffer.byteLength, 8);
-      assert.deepEqual(options, { type: 'array', cellDates: true });
+      assert.ok(buffer instanceof Uint8Array);
+      assert.deepEqual(options, { type: 'array', cellDates: true, WTF: false });
       return { SheetNames: ['Dados'], Sheets: { Dados: { rows: true } } };
     },
     utils: { sheet_to_json: (sheet, options) => { assert.equal(sheet.rows, true); assert.deepEqual(options, { header: 1, raw: false, defval: null }); return [['Nome'], ['Cristiano']]; } }
