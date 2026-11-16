@@ -38,6 +38,13 @@ export async function saveDriver(driver) {
   return id;
 }
 
+export async function deleteDriver(driver) {
+  const id = encodeURIComponent(String(driver?.nome || '').toLowerCase());
+  if (!id) throw new Error('Cadastro inválido.');
+  await deleteDoc(doc(db, 'motoristas', id));
+  return id;
+}
+
 export async function mergeDriverDocuments(keep, remove) {
   const keepId = encodeURIComponent(String(keep?.nome || '').toLowerCase());
   const removeId = encodeURIComponent(String(remove?.nome || '').toLowerCase());
