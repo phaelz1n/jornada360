@@ -5,7 +5,7 @@ import { consultarDia, consultarPeriodo } from '../relatorios/relatorio-query.js
 import { asArray } from '../utils/collections.js';
 import { deleteDriver, mergeDriverDocuments, saveDriver } from '../lib/firestore-writes.js';
 import { normalizeSnapshotDateKey } from '../dados/snapshot-history.js';
-import { duplicateDriverError, findSimilarDriverNames, mergeDuplicateDrivers } from '../cadastro/motoristas-duplicates.js';
+import { duplicateDriverError, findSimilarDriverNames, mergeDuplicateDrivers, preferDuplicateKeep } from '../cadastro/motoristas-duplicates.js';
 import { buildReportCsv, formatReportTimes } from '../relatorios/relatorio-export.js';
 
 function duplicateTokens(name) {
@@ -172,8 +172,9 @@ export function RegistersPanel({ items = [], drivers = [], acceptedPairs = [] })
     try { await deleteDriver(draft); setEditing(null); setDraft(null); setNotice('Cadastro excluído.'); } catch { setNotice('Não foi possível excluir o cadastro.'); }
   }
   async function mergePair(pair) {
-    const keep = drivers.find(driver => driver.nome === pair[0]);
-    const remove = drivers.find(driver => driver.nome === pair[1]);
+    const [keepName, removeName] = preferDuplicateKeep(drivers, pair);
+    const keep = drivers.find(driver => driver.nome === keepName);
+    const remove = drivers.find(driver => driver.nome === removeName);
     if (!keep || !remove || !window.confirm(`Manter “${keep.nome}” e excluir o cadastro “${remove.nome}”? Históricos não serão apagados.`)) return;
     try { await mergeDriverDocuments(keep, remove); setNotice(`Cadastro “${remove.nome}” mesclado em “${keep.nome}”. Atualize a tela para conferir.`); } catch { setNotice('Não foi possível mesclar os cadastros.'); }
   }

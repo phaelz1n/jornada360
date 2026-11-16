@@ -19,6 +19,13 @@ export function resolveDuplicateName(name, aliases = {}) {
   return aliases[normalizeDriverKey(name)] || name;
 }
 
+export function preferDuplicateKeep(drivers = [], pair = []) {
+  const list = Array.isArray(drivers) ? drivers : Object.values(drivers || {});
+  const records = pair.map(name => list.find(driver => normalizeDriverKey(driver?.nome) === normalizeDriverKey(name)));
+  const complete = records.findIndex(driver => Array.isArray(driver?.horarios) && driver.horarios.filter(Boolean).length >= 2);
+  return complete === 1 ? [pair[1], pair[0]] : pair;
+}
+
 function completeness(driver = {}) {
   return (Array.isArray(driver.horarios) && driver.horarios.filter(Boolean).length >= 2 ? 4 : 0)
     + (driver.setor || driver.categoria ? 2 : 0)

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildDuplicateAliasMap, duplicateDriverError, findSimilarDriverNames, mergeDuplicateDrivers, normalizeDriverKey, duplicatePairKey, resolveDuplicateName } from './motoristas-duplicates.js';
+import { buildDuplicateAliasMap, duplicateDriverError, findSimilarDriverNames, mergeDuplicateDrivers, normalizeDriverKey, duplicatePairKey, preferDuplicateKeep, resolveDuplicateName } from './motoristas-duplicates.js';
 
 test('normaliza acentos, caixa e espaços', () => assert.equal(normalizeDriverKey('  José   da  Silva '), 'JOSE DA SILVA'));
 
@@ -27,6 +27,14 @@ test('não sinaliza novamente uma duplicidade já aceita', () => {
 test('resolve o nome antigo para o cadastro mantido após aceitar a duplicidade', () => {
   const aliases = buildDuplicateAliasMap([{ keepName: 'Adilson Fernando Abruzzi', removeName: 'Adilson Fernando Abruzzi Milanezi' }]);
   assert.equal(resolveDuplicateName('ADILSON FERNANDO ABRUZZI MILANEZI', aliases), 'Adilson Fernando Abruzzi');
+});
+
+test('prioriza o cadastro com horário padrão ao resolver a duplicidade', () => {
+  const drivers = [
+    { nome: 'Adilson Fernando Abruzzi Milanezi', horarios: [] },
+    { nome: 'Adilson Fernando Abruzzi', horarios: ['08:00', '12:00'] }
+  ];
+  assert.deepEqual(preferDuplicateKeep(drivers, ['Adilson Fernando Abruzzi Milanezi', 'Adilson Fernando Abruzzi']), ['Adilson Fernando Abruzzi', 'Adilson Fernando Abruzzi Milanezi']);
 });
 
 test('não confunde pessoas diferentes que compartilham apenas primeiro nome e sobrenome comum', () => {
