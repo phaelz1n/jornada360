@@ -1,4 +1,4 @@
-import { collection, deleteDoc, doc, getDocs, query, setDoc, where, writeBatch } from 'firebase/firestore';
+import { deleteDoc, doc, setDoc, writeBatch } from 'firebase/firestore';
 import { firebaseApp, auth } from './firebase.js';
 import { getFirestore } from 'firebase/firestore';
 import { createSnapshotWritePlan } from '../dados/snapshot-write-plan.js';
@@ -41,14 +41,7 @@ export async function saveDriver(driver) {
 export async function deleteDriver(driver) {
   const id = String(driver?.id || '').trim() || encodeURIComponent(String(driver?.nome || '').toLowerCase());
   if (!id) throw new Error('Cadastro inválido.');
-  const batch = writeBatch(db);
-  batch.delete(doc(db, 'motoristas', id));
-  const name = String(driver?.nome || '').trim();
-  if (name) {
-    const matches = await getDocs(query(collection(db, 'motoristas'), where('nome', '==', name)));
-    matches.docs.filter(item => item.id !== id).forEach(item => batch.delete(item.ref));
-  }
-  await batch.commit();
+  await deleteDoc(doc(db, 'motoristas', id));
   return id;
 }
 
