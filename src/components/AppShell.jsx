@@ -23,6 +23,7 @@ import { AccessManager } from './AccessManager.jsx';
 import { canAccessSystem } from '../auth/system-access.js';
 import { loadSystemPermission, subscribeSystemPermissions } from '../auth/permissions-store.js';
 import { firestoreStore } from '../lib/firestore-store.js';
+import { buildDuplicateAliasMap, resolveDuplicateName } from '../cadastro/motoristas-duplicates.js';
 
 function ChecklistHistory({ liveData }) {
   const dates = dedupeSnapshots(liveData?.snapshots || []);
@@ -99,13 +100,15 @@ export function AppShell({ user, dashboardData, onLogout }) {
   useEffect(() => {
     const driverList = asList(motoristas);
     if (!driverList.length) return;
+    const duplicateAliases = buildDuplicateAliasMap(acceptedDuplicatePairs);
     const cadastro = Object.fromEntries(driverList.map(driver => [normalizeDriverName(driver.nome), driver]));
     const applySectors = items => asList(items).map(item => {
-      const driver = cadastro[normalizeDriverName(item.motorista || item.nome)];
+      const resolvedName = resolveDuplicateName(item.motorista || item.nome, duplicateAliases);
+      const driver = cadastro[normalizeDriverName(resolvedName)];
       if (!driver) return item;
       const next = driver.horarios?.length ? applyDriverStandard(item, driver) : item;
       const setor = driver.setor || driver.categoria || 'Sem setor';
-      return { ...next, setorAtual: setor, setor };
+      return { ...next, motorista: driver.nome, setorAtual: setor, setor };
     });
     const refreshSnapshot = snapshot => prepareProcessedDay({ ...snapshot, items: applySectors(snapshot.items || []), cadastro });
     setLiveData(current => ({
@@ -113,7 +116,7 @@ export function AppShell({ user, dashboardData, onLogout }) {
       items: applySectors(current.items || []),
       snapshots: asList(current.snapshots).map(refreshSnapshot),
     }));
-  }, [motoristas, liveData.snapshots?.length]);
+  }, [motoristas, acceptedDuplicatePairs, liveData.snapshots?.length]);
 
   useEffect(() => {
     const refreshSnapshot = event => {
@@ -156,7 +159,7 @@ export function AppShell({ user, dashboardData, onLogout }) {
       }, error => window.dispatchEvent(new CustomEvent('jornada360:sync-read-error', { detail: { message: error?.message || 'Não foi possível ler os snapshots do Firebase.' } })));
       unsubscribeEvents = firestoreStore.subscribe('ocorrencias', events => setEventos(asList(events)), error => { setEventos([]); window.dispatchEvent(new CustomEvent('jornada360:sync-read-error', { detail: { message: error?.message || 'Não foi possível ler as ocorrências do Firebase.' } })); });
       unsubscribeDrivers = firestoreStore.subscribe('motoristas', drivers => setMotoristas(asList(drivers)), error => { setMotoristas([]); window.dispatchEvent(new CustomEvent('jornada360:sync-read-error', { detail: { message: error?.message || 'Não foi possível ler o cadastro do Firebase.' } })); });
-      unsubscribeDuplicatePairs = firestoreStore.subscribe('motoristas_duplicidades', pairs => setAcceptedDuplicatePairs(asList(pairs).map(pair => pair.id)), () => setAcceptedDuplicatePairs([]));
+      unsubscribeDuplicatePairs = firestoreStore.subscribe('motoristas_duplicidades', pairs => setAcceptedDuplicatePairs(asList(pairs)), () => setAcceptedDuplicatePairs([]));
     return () => { unsubscribe(); unsubscribeEvents(); unsubscribeDrivers(); unsubscribeDuplicatePairs(); };
   }, []);
 
@@ -165,12 +168,14 @@ export function AppShell({ user, dashboardData, onLogout }) {
     const dateKey = extractReportDate(payload.rowData?.espelhoHoje || []) || payload.dateKey || new Date().toISOString().slice(0, 10);
     const previousPointRows = extractPointRows(payload.rowData?.espelhoOntem || []);
     const importedStandardRows = extractStandardRows(payload.rowData?.horarioPadrao || []);
+    const duplicateAliases = buildDuplicateAliasMap(acceptedDuplicatePairs);
     const driversWithImportedStandard = mergeDriverStandardRows(motoristas, importedStandardRows);
+    const normalizedPointRows = pointRows.map(row => ({ ...row, motorista: resolveDuplicateName(row.motorista, duplicateAliases) }));
     const knownDrivers = new Map(driversWithImportedStandard.map(driver => [normalizeDriverName(driver.nome), driver]));
-    const newDrivers = [...new Map(pointRows.map(row => [normalizeDriverName(row.motorista), row.motorista]).filter(([key]) => key && !knownDrivers.has(key))).values()].map(nome => ({ nome, setor: 'Sem setor', padraoStatus: 'pendente', horarios: [], extraNormalPadrao: 0 }));
+    const newDrivers = [...new Map(normalizedPointRows.map(row => [normalizeDriverName(row.motorista), row.motorista]).filter(([key]) => key && !knownDrivers.has(key))).values()].map(nome => ({ nome, setor: 'Sem setor', padraoStatus: 'pendente', horarios: [], extraNormalPadrao: 0 }));
     const driversForImport = [...driversWithImportedStandard, ...newDrivers];
     const cadastro = Object.fromEntries(driversForImport.map(driver => [normalizeDriverName(driver.nome), driver]));
-    const items = crossSources({ pointRows: pointRows.map(row => ({ ...row, dateKey })), previousPointRows, scaleRows: extractScaleRows(payload.rowData?.escala || [], dateKey), trackerRows: normalizeTrackerRows(payload.rowData?.rastreador || []), standardRows: driversForImport.map(driver => driverToStandardRow(driver, dateKey)), cadastro });
+    const items = crossSources({ pointRows: normalizedPointRows.map(row => ({ ...row, dateKey })), previousPointRows, scaleRows: extractScaleRows(payload.rowData?.escala || [], dateKey), trackerRows: normalizeTrackerRows(payload.rowData?.rastreador || []), standardRows: driversForImport.map(driver => driverToStandardRow(driver, dateKey)), cadastro });
     const processedDay = prepareProcessedDay({ dateKey, items, cadastro });
     const record = buildImportRecord({ ...payload, actorEmail: user?.email });
     window.dispatchEvent(new CustomEvent('jornada360:sync-start'));

@@ -6,6 +6,19 @@ export function duplicatePairKey(firstName, secondName) {
   return [normalizeDriverKey(firstName), normalizeDriverKey(secondName)].sort().join('::');
 }
 
+export function buildDuplicateAliasMap(acceptedPairs = []) {
+  return (Array.isArray(acceptedPairs) ? acceptedPairs : Object.values(acceptedPairs || {})).reduce((aliases, pair) => {
+    const keepName = String(pair?.keepName || '').trim();
+    const removeName = String(pair?.removeName || '').trim();
+    if (keepName && removeName) aliases[normalizeDriverKey(removeName)] = keepName;
+    return aliases;
+  }, {});
+}
+
+export function resolveDuplicateName(name, aliases = {}) {
+  return aliases[normalizeDriverKey(name)] || name;
+}
+
 function completeness(driver = {}) {
   return (Array.isArray(driver.horarios) && driver.horarios.filter(Boolean).length >= 2 ? 4 : 0)
     + (driver.setor || driver.categoria ? 2 : 0)
