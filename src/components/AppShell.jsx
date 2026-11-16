@@ -158,8 +158,12 @@ export function AppShell({ user, dashboardData, onLogout }) {
         if (latest) setLiveData(current => ({ ...current, items: asList(latest.items), dateKey: latest.dateKey, snapshots: asList(ordered), source: 'firebase' }));
       }, error => window.dispatchEvent(new CustomEvent('jornada360:sync-read-error', { detail: { message: error?.message || 'Não foi possível ler os snapshots do Firebase.' } })));
       unsubscribeEvents = firestoreStore.subscribe('ocorrencias', events => setEventos(asList(events)), error => { setEventos([]); window.dispatchEvent(new CustomEvent('jornada360:sync-read-error', { detail: { message: error?.message || 'Não foi possível ler as ocorrências do Firebase.' } })); });
-      unsubscribeDrivers = firestoreStore.subscribe('motoristas', drivers => setMotoristas(asList(drivers)), error => { setMotoristas([]); window.dispatchEvent(new CustomEvent('jornada360:sync-read-error', { detail: { message: error?.message || 'Não foi possível ler o cadastro do Firebase.' } })); });
-      unsubscribeDuplicatePairs = firestoreStore.subscribe('motoristas_duplicidades', pairs => setAcceptedDuplicatePairs(asList(pairs)), () => setAcceptedDuplicatePairs([]));
+      unsubscribeDrivers = firestoreStore.subscribe('motoristas', drivers => {
+        const driverList = asList(drivers);
+        setMotoristas(driverList);
+        setAcceptedDuplicatePairs(driverList.flatMap(driver => asList(driver.duplicateAliases)));
+      }, error => { setMotoristas([]); setAcceptedDuplicatePairs([]); window.dispatchEvent(new CustomEvent('jornada360:sync-read-error', { detail: { message: error?.message || 'Não foi possível ler o cadastro do Firebase.' } })); });
+      unsubscribeDuplicatePairs = () => {};
     return () => { unsubscribe(); unsubscribeEvents(); unsubscribeDrivers(); unsubscribeDuplicatePairs(); };
   }, []);
 
