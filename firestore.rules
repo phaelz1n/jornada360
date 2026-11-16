@@ -66,6 +66,7 @@ service cloud.firestore {
     }
 
     match /motoristas/{id} { allow read, write: if hasJornadaAccess(); }
+    match /motoristas_duplicidades/{id} { allow read, write: if hasJornadaAccess(); }
     match /escalas/{id} { allow read, write: if hasJornadaAccess(); }
     match /padroes_horario/{id} { allow read, write: if hasJornadaAccess(); }
     match /dias_processados/{id} { allow read, write: if hasJornadaAccess(); }

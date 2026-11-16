@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { findSimilarDriverNames } from './motoristas-duplicates.js';
 import { mergeDriverDocuments } from '../lib/firestore-writes.js';
 
-export function MergeDriversPanel({ drivers = [] }) {
+export function MergeDriversPanel({ drivers = [], acceptedPairs = [] }) {
   const [notice, setNotice] = useState('');
-  const pairs = findSimilarDriverNames(drivers);
+  const pairs = findSimilarDriverNames(drivers, acceptedPairs);
   async function merge(pair) {
     const keep = drivers.find(driver => driver.nome === pair[0]);
     const remove = drivers.find(driver => driver.nome === pair[1]);

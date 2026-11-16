@@ -6,6 +6,7 @@ import { buildImportAudit, createImportSyncPlan } from '../dados/import-sync-pla
 import { buildChecklistAudit } from '../dados/checklist-audit.js';
 import { validateOccurrence } from '../dados/occurrence-validation.js';
 import { buildOccurrenceAudit } from '../dados/occurrence-audit.js';
+import { duplicatePairKey } from '../cadastro/motoristas-duplicates.js';
 
 const db = getFirestore(firebaseApp);
 
@@ -52,6 +53,7 @@ export async function mergeDriverDocuments(keep, remove) {
   };
   await setDoc(doc(db, 'motoristas', keepId), { ...merged, updatedAt: new Date().toISOString() }, { merge: true });
   await deleteDoc(doc(db, 'motoristas', removeId));
+  await setDoc(doc(db, 'motoristas_duplicidades', duplicatePairKey(keep.nome, remove.nome)), { keepName: keep.nome, removeName: remove.nome, acceptedAt: new Date().toISOString(), status: 'aceita' }, { merge: true });
   return keepId;
 }
 

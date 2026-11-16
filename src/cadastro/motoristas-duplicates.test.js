@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { duplicateDriverError, findSimilarDriverNames, mergeDuplicateDrivers, normalizeDriverKey } from './motoristas-duplicates.js';
+import { duplicateDriverError, findSimilarDriverNames, mergeDuplicateDrivers, normalizeDriverKey, duplicatePairKey } from './motoristas-duplicates.js';
 
 test('normaliza acentos, caixa e espaços', () => assert.equal(normalizeDriverKey('  José   da  Silva '), 'JOSE DA SILVA'));
 
@@ -17,6 +17,11 @@ test('agrupa nomes exatamente iguais e preserva o cadastro mais completo', () =>
 test('mantém nomes parecidos separados e sinaliza revisão', () => {
   const result = findSimilarDriverNames([{ nome: 'Carlos Silva' }, { nome: 'Carlos da Silva' }]);
   assert.deepEqual(result, [['Carlos Silva', 'Carlos da Silva']]);
+});
+
+test('não sinaliza novamente uma duplicidade já aceita', () => {
+  const drivers = [{ nome: 'Carlos Silva' }, { nome: 'Carlos da Silva' }];
+  assert.deepEqual(findSimilarDriverNames(drivers, [duplicatePairKey('Carlos Silva', 'Carlos da Silva')]), []);
 });
 
 test('não confunde pessoas diferentes que compartilham apenas primeiro nome e sobrenome comum', () => {

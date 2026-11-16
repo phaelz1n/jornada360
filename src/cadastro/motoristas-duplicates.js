@@ -2,6 +2,10 @@ export function normalizeDriverKey(name) {
   return String(name || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().replace(/\s+/g, ' ').toLocaleUpperCase('pt-BR');
 }
 
+export function duplicatePairKey(firstName, secondName) {
+  return [normalizeDriverKey(firstName), normalizeDriverKey(secondName)].sort().join('::');
+}
+
 function completeness(driver = {}) {
   return (Array.isArray(driver.horarios) && driver.horarios.filter(Boolean).length >= 2 ? 4 : 0)
     + (driver.setor || driver.categoria ? 2 : 0)
@@ -38,11 +42,13 @@ export function mergeDuplicateDrivers(drivers = [], items = []) {
   return [...groups.entries()].map(([key, records]) => ({ key, records, driver: mergeDriverRecords(records), duplicateCount: Math.max(1, records.filter(record => record.__source === 'cadastro').length) })).sort((a, b) => a.driver.nome.localeCompare(b.driver.nome, 'pt-BR'));
 }
 
-export function findSimilarDriverNames(drivers = []) {
+export function findSimilarDriverNames(drivers = [], acceptedPairs = []) {
   const names = [...new Set((Array.isArray(drivers) ? drivers : Object.values(drivers || {})).map(driver => String(driver?.nome || '').trim()).filter(Boolean))];
+  const accepted = new Set((Array.isArray(acceptedPairs) ? acceptedPairs : Object.values(acceptedPairs || {})).map(pair => typeof pair === 'string' ? pair : duplicatePairKey(pair?.firstName || pair?.keepName, pair?.secondName || pair?.removeName)));
   const ignored = new Set(['DA', 'DE', 'DO', 'DAS', 'DOS', 'E']);
   const tokens = name => normalizeDriverKey(name).split(' ').filter(token => token && !ignored.has(token));
   return names.flatMap((name, index) => names.slice(index + 1).filter(other => {
+    if (accepted.has(duplicatePairKey(name, other))) return false;
     const a = tokens(name); const b = tokens(other);
     const shared = a.filter(token => b.includes(token));
     const subset = a.every(token => b.includes(token)) || b.every(token => a.includes(token));

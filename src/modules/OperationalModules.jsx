@@ -125,7 +125,7 @@ export function ReportsPanel(props) {
   return <><AvailableReportDays snapshots={snapshots} selected={selected} onSelect={setSelected} /><ReportsPanelBody {...props} snapshots={snapshots} initialDate={selected} /></>;
 }
 
-export function RegistersPanel({ items = [], drivers = [] }) {
+export function RegistersPanel({ items = [], drivers = [], acceptedPairs = [] }) {
   items = asArray(items);
   drivers = asArray(drivers);
   const [filter, setFilter] = useState('');
@@ -147,7 +147,7 @@ export function RegistersPanel({ items = [], drivers = [] }) {
   const totalPages = Math.max(1, Math.ceil(filteredRecords.length / pageSize));
   const currentPage = Math.min(page, totalPages);
   const visible = filteredRecords.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-  const similarNames = findSimilarDriverNames(drivers);
+  const similarNames = findSimilarDriverNames(drivers, acceptedPairs);
   const similarNameSet = new Set(similarNames.flat());
   const duplicateNames = similarNameSet;
   const complete = records.filter(driver => driver.horarios?.length >= 2).length;

@@ -56,6 +56,7 @@ export function AppShell({ user, dashboardData, onLogout }) {
   const [systemPermissions, setSystemPermissions] = useState({});
   const [liveData, setLiveData] = useState(() => normalizeDashboardData(dashboardData));
   const [motoristas, setMotoristas] = useState([]);
+  const [acceptedDuplicatePairs, setAcceptedDuplicatePairs] = useState([]);
   const [checklistDetails, setChecklistDetails] = useState({});
   const [eventos, setEventos] = useState([]);
   const [importDraft, setImportDraft] = useState(null);
@@ -144,6 +145,7 @@ export function AppShell({ user, dashboardData, onLogout }) {
     let unsubscribe = () => {};
     let unsubscribeEvents = () => {};
     let unsubscribeDrivers = () => {};
+    let unsubscribeDuplicatePairs = () => {};
     unsubscribe = firestoreStore.subscribe('snapshots_dias', snapshots => {
         const ordered = dedupeSnapshots(snapshots).map(snapshot => ({
           ...snapshot,
@@ -154,7 +156,8 @@ export function AppShell({ user, dashboardData, onLogout }) {
       }, error => window.dispatchEvent(new CustomEvent('jornada360:sync-read-error', { detail: { message: error?.message || 'Não foi possível ler os snapshots do Firebase.' } })));
       unsubscribeEvents = firestoreStore.subscribe('ocorrencias', events => setEventos(asList(events)), error => { setEventos([]); window.dispatchEvent(new CustomEvent('jornada360:sync-read-error', { detail: { message: error?.message || 'Não foi possível ler as ocorrências do Firebase.' } })); });
       unsubscribeDrivers = firestoreStore.subscribe('motoristas', drivers => setMotoristas(asList(drivers)), error => { setMotoristas([]); window.dispatchEvent(new CustomEvent('jornada360:sync-read-error', { detail: { message: error?.message || 'Não foi possível ler o cadastro do Firebase.' } })); });
-    return () => { unsubscribe(); unsubscribeEvents(); unsubscribeDrivers(); };
+      unsubscribeDuplicatePairs = firestoreStore.subscribe('motoristas_duplicidades', pairs => setAcceptedDuplicatePairs(asList(pairs).map(pair => pair.id)), () => setAcceptedDuplicatePairs([]));
+    return () => { unsubscribe(); unsubscribeEvents(); unsubscribeDrivers(); unsubscribeDuplicatePairs(); };
   }, []);
 
   async function handleImportComplete(payload) {
@@ -207,7 +210,7 @@ export function AppShell({ user, dashboardData, onLogout }) {
           {activeSection === 'Checklist' && <ChecklistHistory liveData={liveData} />}
           {activeSection === 'Processamento' && <ProcessingPanel items={liveData?.items} />}
           {activeSection === 'Relatórios' && <ReportsPanel items={liveData?.items} snapshots={liveData?.snapshots} motoristas={motoristas} checklistDetails={checklistDetails} />}
-          {activeSection === 'Cadastros' && <><MergeDriversPanel drivers={motoristas} /><RegistersPanel items={liveData?.items} drivers={motoristas} /></>}
+          {activeSection === 'Cadastros' && <><MergeDriversPanel drivers={motoristas} acceptedPairs={acceptedDuplicatePairs} /><RegistersPanel items={liveData?.items} drivers={motoristas} acceptedPairs={acceptedDuplicatePairs} /></>}
           {activeSection === 'Firebase' && <MigrationPanel onMigrated={snapshot => dashboardData?.items !== snapshot.items && window.dispatchEvent(new CustomEvent('jornada360:data-updated', { detail: snapshot }))} />}
           {activeSection === 'Início' && <InicioDashboard snapshots={liveData?.snapshots || []} eventos={eventos} motoristas={motoristas} />}
           {activeSection === 'Ocorrências' && <OcorrenciasPanel />}
