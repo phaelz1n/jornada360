@@ -217,7 +217,7 @@ export function AppShell({ user, dashboardData, onLogout }) {
           {activeSection === 'Checklist' && <ChecklistHistory liveData={liveData} />}
           {activeSection === 'Processamento' && <ProcessingPanel items={liveData?.items} />}
           {activeSection === 'Relatórios' && <ReportsPanel items={liveData?.items} snapshots={liveData?.snapshots} motoristas={motoristas} checklistDetails={checklistDetails} />}
-          {activeSection === 'Cadastros' && <><MergeDriversPanel drivers={motoristas} acceptedPairs={acceptedDuplicatePairs} /><RegistersPanel items={liveData?.items} drivers={motoristas} acceptedPairs={acceptedDuplicatePairs} /></>}
+          {activeSection === 'Cadastros' && <><MergeDriversPanel drivers={motoristas} acceptedPairs={acceptedDuplicatePairs} /><RegistersPanel items={liveData?.items} drivers={motoristas} acceptedPairs={acceptedDuplicatePairs} onDeleted={deletedId => setMotoristas(current => current.filter(driver => driver.id !== deletedId))} /></>}
           {activeSection === 'Firebase' && <MigrationPanel onMigrated={snapshot => dashboardData?.items !== snapshot.items && window.dispatchEvent(new CustomEvent('jornada360:data-updated', { detail: snapshot }))} />}
           {activeSection === 'Início' && <InicioDashboard snapshots={liveData?.snapshots || []} eventos={eventos} motoristas={motoristas} />}
           {activeSection === 'Ocorrências' && <OcorrenciasPanel />}

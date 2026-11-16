@@ -125,7 +125,7 @@ export function ReportsPanel(props) {
   return <><AvailableReportDays snapshots={snapshots} selected={selected} onSelect={setSelected} /><ReportsPanelBody {...props} snapshots={snapshots} initialDate={selected} /></>;
 }
 
-export function RegistersPanel({ items = [], drivers = [], acceptedPairs = [] }) {
+export function RegistersPanel({ items = [], drivers = [], acceptedPairs = [], onDeleted }) {
   items = asArray(items);
   drivers = asArray(drivers);
   const [filter, setFilter] = useState('');
@@ -169,7 +169,7 @@ export function RegistersPanel({ items = [], drivers = [], acceptedPairs = [] })
   async function removeDraft() {
     const nome = String(draft?.nome || '').trim();
     if (!nome || !window.confirm(`Excluir o cadastro de “${nome}”? Os históricos não serão apagados.`)) return;
-    try { await deleteDriver(draft); setEditing(null); setDraft(null); setNotice('Cadastro excluído.'); } catch { setNotice('Não foi possível excluir o cadastro.'); }
+    try { const deletedId = await deleteDriver(draft); onDeleted?.(deletedId); setEditing(null); setDraft(null); setNotice('Cadastro excluído.'); } catch { setNotice('Não foi possível excluir o cadastro.'); }
   }
   async function mergePair(pair) {
     const [keepName, removeName] = preferDuplicateKeep(drivers, pair);
