@@ -37,6 +37,15 @@ test('prioriza o cadastro com horário padrão ao resolver a duplicidade', () =>
   assert.deepEqual(preferDuplicateKeep(drivers, ['Adilson Fernando Abruzzi Milanezi', 'Adilson Fernando Abruzzi']), ['Adilson Fernando Abruzzi', 'Adilson Fernando Abruzzi Milanezi']);
 });
 
+test('preserva o id do Firebase ao consolidar cadastro com item da planilha', () => {
+  const result = mergeDuplicateDrivers([
+    { id: 'cadastro-adilson', nome: 'Adilson Fernando Abruzzi', horarios: [] }
+  ], [
+    { motorista: 'Adilson Fernando Abruzzi', padraoHorarios: ['08:00', '17:00'], padraoStatus: 'completo' }
+  ]);
+  assert.equal(result[0].driver.id, 'cadastro-adilson');
+});
+
 test('não confunde pessoas diferentes que compartilham apenas primeiro nome e sobrenome comum', () => {
   assert.deepEqual(findSimilarDriverNames([{ nome: 'Marcos Aurelio da Silva' }, { nome: 'Marcos Junior da Silva Nepomoceno' }]), []);
 });
