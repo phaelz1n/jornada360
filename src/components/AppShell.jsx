@@ -166,16 +166,18 @@ export function AppShell({ user, dashboardData, onLogout }) {
   async function handleImportComplete(payload) {
     const pointRows = extractPointRows(payload.rowData?.espelhoHoje || []);
     const dateKey = extractReportDate(payload.rowData?.espelhoHoje || []) || payload.dateKey || new Date().toISOString().slice(0, 10);
-    const previousPointRows = extractPointRows(payload.rowData?.espelhoOntem || []);
-    const importedStandardRows = extractStandardRows(payload.rowData?.horarioPadrao || []);
     const duplicateAliases = buildDuplicateAliasMap(acceptedDuplicatePairs);
+    const resolveRows = rows => asList(rows).map(row => ({ ...row, motorista: resolveDuplicateName(row.motorista || row.nome, duplicateAliases) }));
+    const previousPointRows = resolveRows(extractPointRows(payload.rowData?.espelhoOntem || []));
+    const importedStandardRows = resolveRows(extractStandardRows(payload.rowData?.horarioPadrao || []));
     const driversWithImportedStandard = mergeDriverStandardRows(motoristas, importedStandardRows);
     const normalizedPointRows = pointRows.map(row => ({ ...row, motorista: resolveDuplicateName(row.motorista, duplicateAliases) }));
     const knownDrivers = new Map(driversWithImportedStandard.map(driver => [normalizeDriverName(driver.nome), driver]));
     const newDrivers = [...new Map(normalizedPointRows.map(row => [normalizeDriverName(row.motorista), row.motorista]).filter(([key]) => key && !knownDrivers.has(key))).values()].map(nome => ({ nome, setor: 'Sem setor', padraoStatus: 'pendente', horarios: [], extraNormalPadrao: 0 }));
     const driversForImport = [...driversWithImportedStandard, ...newDrivers];
     const cadastro = Object.fromEntries(driversForImport.map(driver => [normalizeDriverName(driver.nome), driver]));
-    const items = crossSources({ pointRows: normalizedPointRows.map(row => ({ ...row, dateKey })), previousPointRows, scaleRows: extractScaleRows(payload.rowData?.escala || [], dateKey), trackerRows: normalizeTrackerRows(payload.rowData?.rastreador || []), standardRows: driversForImport.map(driver => driverToStandardRow(driver, dateKey)), cadastro });
+    const scaleRows = resolveRows(extractScaleRows(payload.rowData?.escala || [], dateKey));
+    const items = crossSources({ pointRows: normalizedPointRows.map(row => ({ ...row, dateKey })), previousPointRows, scaleRows, trackerRows: normalizeTrackerRows(payload.rowData?.rastreador || []), standardRows: driversForImport.map(driver => driverToStandardRow(driver, dateKey)), cadastro });
     const processedDay = prepareProcessedDay({ dateKey, items, cadastro });
     const record = buildImportRecord({ ...payload, actorEmail: user?.email });
     window.dispatchEvent(new CustomEvent('jornada360:sync-start'));
