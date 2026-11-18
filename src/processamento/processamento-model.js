@@ -36,6 +36,12 @@ export function driverToStandardRow(driver = {}, dateKey = '') {
   };
 }
 
+export function calculateExpectedExtra(horarios = [], jornadaBaseMin = 480) {
+  const jornadaRealizadaMin = durationFromPairs(Array.isArray(horarios) ? horarios : []);
+  const base = Math.max(0, Number(jornadaBaseMin) || 0);
+  return { jornadaRealizadaMin, extraNormalPadrao: jornadaRealizadaMin == null ? 0 : Math.max(0, jornadaRealizadaMin - base) };
+}
+
 export function mergeDriverStandardRows(drivers = [], standardRows = []) {
   const driverList = Array.isArray(drivers) ? drivers : Object.values(drivers || {});
   const standardList = Array.isArray(standardRows) ? standardRows : Object.values(standardRows || {});

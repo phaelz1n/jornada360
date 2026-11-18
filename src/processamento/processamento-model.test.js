@@ -1,9 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { applyDriverStandard, driverToStandardRow, mergeDriverStandardRows, normalizeDriverName, prepareProcessedDay, summarizeDay, splitExtraHours } from './processamento-model.js';
+import { applyDriverStandard, calculateExpectedExtra, driverToStandardRow, mergeDriverStandardRows, normalizeDriverName, prepareProcessedDay, summarizeDay, splitExtraHours } from './processamento-model.js';
 
 test('normaliza nome para cruzamento', () => assert.equal(normalizeDriverName('  Ana   Silva '), 'ANA SILVA'));
 test('normaliza acentos para cruzar nomes entre planilhas', () => assert.equal(normalizeDriverName('JOSÉ WEBER'), 'JOSE WEBER'));
+test('calcula extra prevista pela jornada-base escolhida', () => {
+  assert.equal(calculateExpectedExtra(['16:25', '19:00', '20:30', '23:30', '00:50', '03:00'], 440).extraNormalPadrao, 25);
+  assert.equal(calculateExpectedExtra(['08:00', '17:00'], 480).extraNormalPadrao, 60);
+  assert.equal(calculateExpectedExtra(['08:00', '17:00'], 528).extraNormalPadrao, 12);
+});
 test('consolida HE e ocorrências do dia', () => {
   const summary = summarizeDay([{ motorista: 'Ana', he1min: 10, he2min: 5, interjornada: 'alerta', setorAtual: 'Motoristas' }, { motorista: 'Bia', he3min: 8, temLacuna: true }]);
   assert.deepEqual(summary, { registros: 2, he1min: 10, he2min: 5, he3min: 8, interjornada: 1, intrajornada: 1, porSetor: { Motoristas: 1, 'Sem setor': 1 } });
