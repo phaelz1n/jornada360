@@ -146,6 +146,7 @@ button, input { font: inherit; }
 .register-metrics span { color: #6d8298; font-size: 12px; }
 .register-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
 .register-toolbar .register-search { margin: 0; max-width: 420px; }
+.register-toolbar select { min-width: 150px; }
 .register-toolbar > span { color: #7a8da2; font-size: 12px; }
 .modern-register-list { gap: 9px; }
 .register-card { display: grid; grid-template-columns: 42px minmax(0, 1fr) auto 24px; align-items: center; gap: 12px; width: 100%; padding: 13px 15px; border: 1px solid #e3ebf3; border-radius: 14px; background: #fff; color: #23415f; text-align: left; cursor: pointer; transition: .18s ease; }
@@ -154,6 +155,7 @@ button, input { font: inherit; }
 .register-card-copy { min-width: 0; }
 .register-card-copy strong, .register-card-copy small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .register-card-copy small { margin-top: 4px; color: #8193a6; font-size: 11px; }
+.register-journey-badge { display: inline-block; width: fit-content; padding: 3px 7px; border-radius: 999px; background: #eaf2ff; color: #28639a !important; font-weight: 700; }
 .register-status { padding: 5px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; }
 .register-status.complete { background: #e4f7ef; color: #168369; }
 .register-status.pending { background: #fff1df; color: #b46d13; }
